@@ -132,6 +132,11 @@ class AirQualityAggregator:
                 lat, lon, s.get("lat", 0), s.get("lon", 0),
                 wind_dir, wind_speed,
             )
+        if wind_speed >= 1.5:
+            wind_factors = [s.get("wind_factor", 1.0) for s in all_stations]
+            logger.info(f"Wind factor: dir={wind_dir}°, speed={wind_speed}m/s, factors={[round(f, 2) for f in wind_factors]}")
+        else:
+            logger.info(f"Wind factor: speed={wind_speed}m/s (bajo, factor neutral)")
 
         # --- Paso 7: IDW con corrección altitudinal + eólica + outliers ---
         idw_aqi = self._idw_interpolate(all_stations, lat, lon)

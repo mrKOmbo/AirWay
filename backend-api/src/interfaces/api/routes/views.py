@@ -1,4 +1,5 @@
 # backend/interfaces/api/routes/views.py
+import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as http_status
@@ -11,6 +12,8 @@ from application.routes.exposure import ExposureService
 from application.air.aggregator import AirQualityAggregator
 from application.air.prediction_service import PredictionService
 from adapters.ai.llm_service import LLMService
+
+logger = logging.getLogger(__name__)
 
 
 def _aqi_category(aqi: int) -> tuple:
@@ -103,14 +106,18 @@ class AirAnalysisView(APIView):
             )
 
         try:
+            logger.info(f"AirAnalysis request: lat={lat}, lon={lon}, mode={mode}")
+
             # Paso 1: Agregar datos de múltiples fuentes
             aggregator = AirQualityAggregator()
             combined = aggregator.get_combined(lat, lon)
+            logger.info(f"Aggregator: AQI={combined.get('combined_aqi')}, stations={combined.get('station_count')}, wind={combined.get('weather', {}).get('wind_speed')}m/s")
 
             # Paso 2: Obtener pronóstico y weather actual de Open-Meteo
             meteo = OpenMeteoProvider()
             forecast = meteo.get_forecast(lat, lon, hours=24)
             weather = meteo.get_current_weather(lat, lon)
+            logger.info(f"Weather: temp={weather.get('temperature_2m')}°C, wind={weather.get('wind_speed_10m')}m/s, humidity={weather.get('relative_humidity_2m')}%")
 
             # Paso 3: Predicción ML (PM2.5 futuro)
             ml_prediction = None
@@ -118,9 +125,12 @@ class AirAnalysisView(APIView):
                 predictor = PredictionService()
                 if predictor.is_available:
                     ml_prediction = predictor.predict(combined, weather, lat, lon)
+                    preds = ml_prediction.get("predictions", {})
+                    logger.info(f"ML prediction: 1h={preds.get('1h', {}).get('aqi')}, 3h={preds.get('3h', {}).get('aqi')}, 6h={preds.get('6h', {}).get('aqi')}, trend={ml_prediction.get('trend')}")
+                else:
+                    logger.warning("ML prediction: modelo no disponible")
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(f"ML prediction error: {e}")
+                logger.warning(f"ML prediction error: {e}")
 
             # Paso 4: Análisis con IA (ahora incluye predicción ML)
             llm = LLMService()
@@ -182,10 +192,13 @@ class AirHeatmapView(APIView):
         resolution = min(resolution, 25)  # Cap para no sobrecargar
 
         try:
+            logger.info(f"Heatmap request: center=({center_lat},{center_lon}), radius={radius_km}km, res={resolution}")
+
             # Obtener estaciones reales una sola vez
             aggregator = AirQualityAggregator()
             combined = aggregator.get_combined(center_lat, center_lon)
             stations = combined.get("stations", [])
+            logger.info(f"Heatmap: {len(stations)} estaciones, grid={resolution}x{resolution}={resolution**2} puntos")
 
             if not stations:
                 return Response({"error": "Sin datos de estaciones"}, status=404)
@@ -414,6 +427,8 @@ class AirPredictionView(APIView):
         mode = request.query_params.get("mode", "walk")
 
         try:
+            logger.info(f"Prediction request: lat={lat}, lon={lon}, mode={mode}")
+
             # Datos actuales
             aggregator = AirQualityAggregator()
             combined = aggregator.get_combined(lat, lon)
@@ -425,6 +440,7 @@ class AirPredictionView(APIView):
             # Predicción ML
             predictor = PredictionService()
             if not predictor.is_available:
+                logger.warning("Prediction endpoint: modelo ML no disponible")
                 return Response({
                     "error": "Modelo de predicción no disponible",
                     "current_aqi": combined.get("combined_aqi", 0),
@@ -488,6 +504,8 @@ class OptimalRouteView(APIView):
         depart_in_min = int(request.query_params.get("depart_in", 0))
         depart_at = datetime.now(timezone.utc)
 
+        logger.info(f"OptimalRoute request: ({lat1},{lon1})→({lat2},{lon2}), mode={mode}, depart_in={depart_in_min}min")
+
         # Clientes
         router = OSRMClient()
         aggregator = AirQualityAggregator()
@@ -498,9 +516,17 @@ class OptimalRouteView(APIView):
         ml_available = predictor.is_available
 
         # Obtener rutas alternativas
-        routes = router.route([(lon1, lat1), (lon2, lat2)], profile=mode, alternatives=3)
+        try:
+            routes = router.route([(lon1, lat1), (lon2, lat2)], profile=mode, alternatives=3)
+        except Exception as e:
+            logger.error(f"OSRM route error: {e}")
+            return Response({"error": f"Error al calcular rutas: {str(e)}"}, status=500)
+
         if not routes:
+            logger.warning("OSRM: no routes found")
             return Response({"error": "No se encontraron rutas alternativas."}, status=404)
+
+        logger.info(f"OSRM: {len(routes)} rutas encontradas")
 
         evaluations = []
         for r in routes:
@@ -557,6 +583,7 @@ class OptimalRouteView(APIView):
 
         # Seleccionar la ruta con menor score combinado
         optimal = min(evaluations, key=lambda x: x["score"])
+        logger.info(f"Route selected: {optimal['distance']/1000:.1f}km, {optimal['duration']/60:.0f}min, avg_aqi={optimal['avg_aqi']:.0f}, predicted_arrival={optimal.get('predicted_arrival_aqi', 'N/A')}")
 
         # Análisis IA para la ruta óptima con predicción
         combined_air = None
