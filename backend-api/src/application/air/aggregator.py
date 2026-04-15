@@ -16,6 +16,9 @@ from adapters.air.openmeteo_provider import OpenMeteoProvider
 from adapters.air.waqi_provider import WAQIProvider
 from adapters.air.elevation_service import ElevationService
 
+# Para cálculo de bearing (dirección estación→usuario)
+from math import atan2, degrees
+
 logger = logging.getLogger(__name__)
 
 # Radio por defecto para buscar estaciones (metros)
@@ -56,15 +59,18 @@ class AirQualityAggregator:
         waqi_stations = []
         openaq_stations = []
         meteo_data = None
+        weather_data = None
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             f_waqi = executor.submit(self._safe_call, self.waqi.get_stations_nearby, lat, lon, DEFAULT_RADIUS_KM)
             f_openaq = executor.submit(self._safe_call, self.openaq.get_stations_nearby, lat, lon, DEFAULT_RADIUS_KM * 1000)
             f_meteo = executor.submit(self._safe_call, self.openmeteo.get_aqi_cell, lat, lon, when)
+            f_weather = executor.submit(self._safe_call, self.openmeteo.get_current_weather, lat, lon)
 
             waqi_stations = f_waqi.result() or []
             openaq_stations = f_openaq.result() or []
             meteo_data = f_meteo.result()
+            weather_data = f_weather.result() or {}
 
         # --- Paso 2: Unificar todas las estaciones ---
         all_stations = []
@@ -118,7 +124,16 @@ class AirQualityAggregator:
         # --- Paso 6: Detectar outliers ---
         self._detect_outliers(all_stations)
 
-        # --- Paso 7: IDW con corrección altitudinal + outliers ---
+        # --- Paso 6.5: Calcular factor eólico por estación ---
+        wind_dir = weather_data.get("wind_direction_10m", None)
+        wind_speed = weather_data.get("wind_speed_10m", 0)
+        for s in all_stations:
+            s["wind_factor"] = self._wind_factor(
+                lat, lon, s.get("lat", 0), s.get("lon", 0),
+                wind_dir, wind_speed,
+            )
+
+        # --- Paso 7: IDW con corrección altitudinal + eólica + outliers ---
         idw_aqi = self._idw_interpolate(all_stations, lat, lon)
 
         # --- Paso 8: Rango de confianza ---
@@ -153,6 +168,12 @@ class AirQualityAggregator:
             "stations": all_stations,
             "user_elevation_m": round(user_elevation),
             "location": {"lat": lat, "lon": lon},
+            "weather": {
+                "wind_speed": weather_data.get("wind_speed_10m", 0),
+                "wind_direction": weather_data.get("wind_direction_10m", 0),
+                "temperature": weather_data.get("temperature_2m", 0),
+                "humidity": weather_data.get("relative_humidity_2m", 0),
+            },
         }
 
     # ── IDW ──────────────────────────────────────────────────
@@ -183,6 +204,9 @@ class AirQualityAggregator:
 
             # Factor de altitud (Fase 2)
             w *= s.get("altitude_factor", 1.0)
+
+            # Factor eólico: estaciones upwind pesan más
+            w *= s.get("wind_factor", 1.0)
 
             # Factor de outlier (Fase 3) — no eliminar, solo reducir
             if s.get("is_outlier"):
@@ -218,6 +242,7 @@ class AirQualityAggregator:
                 dist = max(s.get("distance_m", 100), 100)
                 w = 1.0 / (dist ** 2)
                 w *= s.get("altitude_factor", 1.0)
+                w *= s.get("wind_factor", 1.0)
                 if s.get("is_outlier"):
                     w *= 0.2
                 if s.get("source_type") == "model":
@@ -237,6 +262,43 @@ class AirQualityAggregator:
                 result[key] = None
 
         return result
+
+    # ── Factor eólico ─────────────────────────────────────────
+
+    def _wind_factor(self, user_lat, user_lon, station_lat, station_lon,
+                     wind_dir, wind_speed):
+        """
+        Calcula factor eólico: estaciones upwind (viento sopla DESDE ella
+        hacia el usuario) son más relevantes.
+
+        wind_factor = 1.0 + 0.5 × cos(wind_direction - bearing_station_to_user)
+
+        Rango: 0.5 (downwind, menos relevante) a 1.5 (upwind, más relevante)
+        Con viento bajo (<2 m/s), el factor tiende a 1.0 (irrelevante).
+        """
+        if wind_dir is None or wind_speed < 1.5:
+            return 1.0  # Sin viento significativo, factor neutral
+
+        # Bearing de estación → usuario (dirección geográfica)
+        dlat = radians(user_lat - station_lat)
+        dlon = radians(user_lon - station_lon)
+        x = sin(dlon) * cos(radians(user_lat))
+        y = cos(radians(station_lat)) * sin(radians(user_lat)) - \
+            sin(radians(station_lat)) * cos(radians(user_lat)) * cos(dlon)
+        bearing = (degrees(atan2(x, y)) + 360) % 360
+
+        # Diferencia angular entre dirección del viento y bearing
+        angle_diff = radians(wind_dir - bearing)
+
+        # cos(0) = 1.0: viento sopla en la misma dirección que station→user (upwind)
+        # cos(180) = -1.0: viento sopla en dirección opuesta (downwind)
+        alignment = cos(angle_diff)
+
+        # Escalar por velocidad del viento (más viento = más efecto)
+        # Normalizar: 5 m/s = efecto completo, <2 = poco efecto
+        speed_factor = min(wind_speed / 5.0, 1.0)
+
+        return 1.0 + 0.5 * alignment * speed_factor
 
     # ── Corrección altitudinal ─────────────────────────────────
 
