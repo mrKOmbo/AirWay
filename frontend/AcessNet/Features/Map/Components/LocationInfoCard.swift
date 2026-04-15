@@ -29,13 +29,16 @@ struct LocationInfoCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            mainInfoView
-                .padding(20)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .appElevatedShadow(radius: 18, y: 8)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 0) {
+                mainInfoView
+                    .padding(20)
+            }
         }
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .appElevatedShadow(radius: 18, y: 8)
         .onAppear {
             // Iniciar animaciones escalonadas
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
