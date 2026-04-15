@@ -208,7 +208,7 @@ Genera el análisis en formato JSON."""
             "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
             "generationConfig": {
                 "temperature": 0.3,
-                "maxOutputTokens": 2048,
+                "maxOutputTokens": 4096,
                 "responseMimeType": "application/json",
             },
         }
