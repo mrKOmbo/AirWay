@@ -14,6 +14,7 @@ struct MainTabView: View {
     enum Tab {
         case home
         case map
+        case health
         case settings
     }
 
@@ -36,6 +37,13 @@ struct MainTabView: View {
                             removal: .move(edge: .leading).combined(with: .opacity)
                         ))
                         .id(Tab.map)
+                case .health:
+                    PPIDashboardView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                        .id(Tab.health)
                 case .settings:
                     SettingsView()
                         .transition(.asymmetric(

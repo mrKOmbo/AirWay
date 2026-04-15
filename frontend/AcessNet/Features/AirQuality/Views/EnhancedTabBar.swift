@@ -12,12 +12,14 @@ import SwiftUI
 enum TabTheme {
     case home
     case map
+    case health
     case settings
 
     var icon: String {
         switch self {
         case .home: return "house.fill"
         case .map: return "map.fill"
+        case .health: return "heart.text.clipboard.fill"
         case .settings: return "gearshape.fill"
         }
     }
@@ -26,6 +28,7 @@ enum TabTheme {
         switch self {
         case .home: return "Home"
         case .map: return "Map"
+        case .health: return "PPI"
         case .settings: return "Settings"
         }
     }
@@ -72,12 +75,13 @@ struct EnhancedTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
     @Namespace private var namespace
 
-    let tabs: [MainTabView.Tab] = [.home, .map, .settings]
+    let tabs: [MainTabView.Tab] = [.home, .map, .health, .settings]
 
     var currentTheme: TabTheme {
         switch selectedTab {
         case .home: return .home
         case .map: return .map
+        case .health: return .health
         case .settings: return .settings
         }
     }
@@ -214,6 +218,7 @@ struct EnhancedTabBar: View {
         switch tab {
         case .home: return .home
         case .map: return .map
+        case .health: return .health
         case .settings: return .settings
         }
     }
