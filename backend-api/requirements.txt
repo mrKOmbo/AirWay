@@ -7,3 +7,4 @@ celery==5.4.0
 redis==5.0.7
 requests==2.32.3
 polyline==2.0.0
+gunicorn==22.0.0

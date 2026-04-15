@@ -29,7 +29,7 @@ services:
               python manage.py makemigrations &&
               python manage.py migrate &&
               python manage.py runserver 0.0.0.0:8000"
-    env_file: .env
+    env_file: ../.env
     depends_on:
       db:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
   worker:
     build: .
     command: celery -A core worker -l INFO --concurrency=2
-    env_file: .env
+    env_file: ../.env
     depends_on:
       api:
         condition: service_started
@@ -62,7 +62,7 @@ services:
   beat:
     build: .
     command: celery -A core beat -l INFO
-    env_file: .env
+    env_file: ../.env
     depends_on:
       worker:
         condition: service_started

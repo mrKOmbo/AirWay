@@ -6,7 +6,26 @@ from datetime import datetime, timezone
 
 from adapters.router.osrm_client import OSRMClient
 from adapters.air.openaq_grid_provider import OpenAQGridProvider
+from adapters.air.openmeteo_provider import OpenMeteoProvider
 from application.routes.exposure import ExposureService
+from application.air.aggregator import AirQualityAggregator
+from adapters.ai.llm_service import LLMService
+
+
+def _aqi_category(aqi: int) -> tuple:
+    """Retorna (categoría, color) según el AQI."""
+    if aqi <= 50:
+        return "Bueno", "#00e400"
+    elif aqi <= 100:
+        return "Moderado", "#ffff00"
+    elif aqi <= 150:
+        return "Dañino para grupos sensibles", "#ff7e00"
+    elif aqi <= 200:
+        return "Dañino", "#ff0000"
+    elif aqi <= 300:
+        return "Muy dañino", "#8f3f97"
+    else:
+        return "Peligroso", "#7e0023"
 
 
 class HealthCheckView(APIView):
@@ -35,34 +54,8 @@ class CurrentAQIView(APIView):
         
         try:
             data = air.get_aqi_cell(lat, lon, when)
-            
-            # Categoría de AQI
-            print("aqi: ", data.get("aqi"))
             aqi = data.get("aqi", 0)
-            if aqi <= 50:
-                category = "Bueno"
-                color = "#00e400"
-                message = "La calidad del aire es satisfactoria"
-            elif aqi <= 100:
-                category = "Moderado"
-                color = "#ffff00"
-                message = "La calidad del aire es aceptable"
-            elif aqi <= 150:
-                category = "Dañino para grupos sensibles"
-                color = "#ff7e00"
-                message = "Grupos sensibles pueden experimentar efectos"
-            elif aqi <= 200:
-                category = "Dañino"
-                color = "#ff0000"
-                message = "Todos pueden experimentar efectos en la salud"
-            elif aqi <= 300:
-                category = "Muy dañino"
-                color = "#8f3f97"
-                message = "Alerta de salud: todos pueden experimentar efectos graves"
-            else:
-                category = "Peligroso"
-                color = "#7e0023"
-                message = "Alerta de salud de emergencia"
+            category, color = _aqi_category(aqi)
 
             return Response({
                 "location": {
@@ -73,7 +66,6 @@ class CurrentAQIView(APIView):
                 "aqi": aqi,
                 "category": category,
                 "color": color,
-                "message": message,
                 "pollutants": {
                     "pm25": data.get("pm25"),
                     "o3": data.get("o3"),
@@ -87,9 +79,70 @@ class CurrentAQIView(APIView):
             )
 
 
+class AirAnalysisView(APIView):
+    """
+    Análisis completo de calidad del aire con múltiples fuentes + IA.
+    GET /api/v1/air/analysis?lat=19.4326&lon=-99.1332&mode=bike
+    """
+    def get(self, request):
+        try:
+            lat = float(request.query_params.get("lat"))
+            lon = float(request.query_params.get("lon"))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Parámetros inválidos. Usa 'lat' y 'lon'."},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        mode = request.query_params.get("mode", "walk")
+        if mode not in ("walk", "run", "bike"):
+            return Response(
+                {"error": "Modo inválido. Usa 'walk', 'run' o 'bike'."},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Paso 1: Agregar datos de múltiples fuentes
+            aggregator = AirQualityAggregator()
+            combined = aggregator.get_combined(lat, lon)
+
+            # Paso 2: Obtener pronóstico de Open-Meteo
+            meteo = OpenMeteoProvider()
+            forecast = meteo.get_forecast(lat, lon, hours=24)
+
+            # Paso 3: Análisis con IA
+            llm = LLMService()
+            ai_analysis = llm.analyze(combined, mode=mode, forecast=forecast)
+
+            # Paso 4: Categoría AQI
+            aqi = combined.get("combined_aqi", 0)
+            category, color = _aqi_category(aqi)
+
+            return Response({
+                "location": {"lat": lat, "lon": lon},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "combined_aqi": aqi,
+                "category": category,
+                "color": color,
+                "confidence": combined.get("confidence", 0),
+                "dominant_pollutant": combined.get("dominant_pollutant"),
+                "sources": combined.get("sources", {}),
+                "pollutants": combined.get("pollutants", {}),
+                "ai_analysis": ai_analysis,
+                "forecast": forecast[:12],
+            })
+
+        except Exception as e:
+            return Response(
+                {"error": f"Error en análisis de calidad del aire: {str(e)}"},
+                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 class OptimalRouteView(APIView):
     """
     Devuelve una única ruta óptima: balance entre distancia y contaminación del aire.
+    Usa el agregador multi-fuente para datos de AQI más confiables.
     """
     def get(self, request):
         try:
@@ -105,10 +158,10 @@ class OptimalRouteView(APIView):
         beta  = float(request.query_params.get("beta", 0.5))   # peso contaminación
         depart_at = datetime.now(timezone.utc)
 
-        # Clientes
+        # Clientes — ahora con agregador multi-fuente
         router = OSRMClient()
-        air = OpenAQGridProvider()
-        exposure = ExposureService(air)
+        aggregator = AirQualityAggregator()
+        exposure = ExposureService(aggregator)
 
         # Obtener rutas alternativas
         routes = router.route([(lon1, lat1), (lon2, lat2)], profile=mode, alternatives=3)
@@ -141,6 +194,16 @@ class OptimalRouteView(APIView):
         # Seleccionar la ruta con menor score combinado
         optimal = min(evaluations, key=lambda x: x["score"])
 
+        # Análisis IA para la ruta óptima
+        try:
+            mid_lat = (lat1 + lat2) / 2
+            mid_lon = (lon1 + lon2) / 2
+            combined_air = aggregator.get_combined(mid_lat, mid_lon)
+            llm = LLMService()
+            ai_analysis = llm.analyze(combined_air, mode=mode)
+        except Exception:
+            ai_analysis = None
+
         return Response({
             "origin": [lon1, lat1],
             "destination": [lon2, lat2],
@@ -153,8 +216,15 @@ class OptimalRouteView(APIView):
                 "polyline": optimal["polyline"],
             },
             "weights": {"alpha_distance": alpha, "beta_air": beta},
+            "air_quality": {
+                "combined_aqi": combined_air.get("combined_aqi", 0) if ai_analysis else None,
+                "confidence": combined_air.get("confidence", 0) if ai_analysis else None,
+                "sources_count": combined_air.get("source_count", 0) if ai_analysis else None,
+            },
+            "ai_analysis": ai_analysis,
             "explanation": (
                 "Ruta óptima entre distancia y aire limpio "
-                f"(α={alpha}, β={beta})"
+                f"(α={alpha}, β={beta}). "
+                f"Datos de {combined_air.get('source_count', 0) if ai_analysis else 1} fuentes."
             ),
         })
