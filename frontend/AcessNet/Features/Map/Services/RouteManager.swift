@@ -65,11 +65,11 @@ class RouteManager: ObservableObject {
     private let airQualityService: AirQualityAPIService
 
     /// Flag para usar mock service (testing sin backend)
-    private var useMockService: Bool = true  // Cambiar a false cuando tengas backend real
+    private var useMockService: Bool = false  // Conectado al backend real
 
     // MARK: - Initialization
 
-    init(useMockService: Bool = true) {
+    init(useMockService: Bool = false) {
         self.useMockService = useMockService
         self.airQualityService = useMockService ? MockAirQualityAPIService() : AirQualityAPIService.shared
         self.routeOptimizer = RouteOptimizer()

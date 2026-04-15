@@ -32,8 +32,12 @@ class AirQualityGridManager: ObservableObject {
     /// Configuración del grid
     private var config: AirQualityGridConfig
 
-    /// Generador de datos de calidad del aire
-    private let dataGenerator = AirQualityDataGenerator.shared
+    /// URL del backend real
+    private let backendURL = "https://airway-api.onrender.com/api/v1"
+
+    /// Cache de datos del backend
+    private var cachedHeatmapData: [HeatmapPoint]?
+    private var cachedAnalysisAQI: Int?
 
     /// Timestamp del último cálculo
     private var lastCalculation: Date?
@@ -361,47 +365,116 @@ class AirQualityGridManager: ObservableObject {
         return sampledCoordinates
     }
 
-    /// Calcula el grid de zonas
+    /// Calcula el grid de zonas usando datos REALES del backend
     /// - Parameter center: Centro del grid
     /// - Returns: Array de zonas
     private func calculateGrid(center: CLLocationCoordinate2D) -> [AirQualityZone] {
-        var zones: [AirQualityZone] = []
+        // Llamar al backend de forma síncrona (ya estamos en background queue)
+        let radiusKm = Double(config.gridSize) * config.spacing / 1000.0
+        let resolution = config.gridSize * 2 + 1 // e.g. gridSize=1 → 3x3, gridSize=2 → 5x5
 
-        let halfSize = config.gridSize / 2
-        let metersPerDegreeLatitude = 111_000.0  // Aproximadamente 111km por grado de latitud
+        let urlString = "\(backendURL)/air/heatmap?lat=\(center.latitude)&lon=\(center.longitude)&radius_km=\(radiusKm)&resolution=\(resolution)"
 
-        // Calcular en grados
-        let latDegreePerMeter = 1.0 / metersPerDegreeLatitude
-        let lonDegreePerMeter = 1.0 / (metersPerDegreeLatitude * cos(center.latitude * .pi / 180))
-
-        let latSpacing = config.spacing * latDegreePerMeter
-        let lonSpacing = config.spacing * lonDegreePerMeter
-
-        // Generar grid NxN
-        for i in -halfSize...halfSize {
-            for j in -halfSize...halfSize {
-                let lat = center.latitude + (Double(i) * latSpacing)
-                let lon = center.longitude + (Double(j) * lonSpacing)
-
-                let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-
-                // Generar datos de calidad del aire para este punto
-                let airQuality = dataGenerator.generateAirQuality(
-                    for: coordinate,
-                    includeExtendedMetrics: false
-                )
-
-                // Crear zona
-                let zone = AirQualityZone(
-                    coordinate: coordinate,
-                    radius: config.zoneRadius,
-                    airQuality: airQuality
-                )
-
-                zones.append(zone)
-            }
+        guard let url = URL(string: urlString) else {
+            print("❌ Grid: URL inválida")
+            return fallbackGrid(center: center)
         }
 
+        print("🌐 Grid: fetching from backend: \(urlString)")
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var resultZones: [AirQualityZone] = []
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            defer { semaphore.signal() }
+
+            guard let self = self, let data = data, error == nil else {
+                print("❌ Grid backend error: \(error?.localizedDescription ?? "unknown")")
+                return
+            }
+
+            do {
+                let heatmap = try JSONDecoder().decode(HeatmapResponse.self, from: data)
+                self.cachedHeatmapData = heatmap.grid
+
+                print("✅ Grid: \(heatmap.grid_points) points from backend (trend: \(heatmap.trend_factor))")
+
+                for point in heatmap.grid {
+                    let coordinate = CLLocationCoordinate2D(latitude: point.lat, longitude: point.lon)
+                    let airQuality = AirQualityPoint(
+                        coordinate: coordinate,
+                        aqi: Double(point.aqi),
+                        pm25: Double(point.aqi) * 0.3, // Estimate PM2.5 from AQI
+                        pm10: Double(point.aqi) * 0.5,
+                        timestamp: Date()
+                    )
+                    let zone = AirQualityZone(
+                        coordinate: coordinate,
+                        radius: self.config.zoneRadius,
+                        airQuality: airQuality
+                    )
+                    resultZones.append(zone)
+                }
+            } catch {
+                print("❌ Grid decode error: \(error)")
+            }
+        }.resume()
+
+        // Esperar máximo 12 segundos
+        let waitResult = semaphore.wait(timeout: .now() + 12)
+        if waitResult == .timedOut {
+            print("⏰ Grid: backend timeout, using fallback")
+            return fallbackGrid(center: center)
+        }
+
+        if resultZones.isEmpty {
+            return fallbackGrid(center: center)
+        }
+
+        return resultZones
+    }
+
+    /// Fallback cuando el backend no responde — usa un solo punto del análisis
+    private func fallbackGrid(center: CLLocationCoordinate2D) -> [AirQualityZone] {
+        print("⚠️ Grid: using single-point fallback")
+
+        let urlString = "\(backendURL)/air/analysis?lat=\(center.latitude)&lon=\(center.longitude)&mode=walk"
+        guard let url = URL(string: urlString) else { return [] }
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var zones: [AirQualityZone] = []
+
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            defer { semaphore.signal() }
+            guard let data = data, error == nil else { return }
+
+            do {
+                let analysis = try JSONDecoder().decode(AnalysisResponse.self, from: data)
+                let aqi = Double(analysis.combined_aqi)
+                let pm25 = analysis.pollutants?.pm25?.value ?? aqi * 0.3
+
+                let airQuality = AirQualityPoint(
+                    coordinate: center,
+                    aqi: aqi,
+                    pm25: pm25,
+                    pm10: analysis.pollutants?.pm10?.value,
+                    no2: analysis.pollutants?.no2?.value,
+                    o3: analysis.pollutants?.o3?.value,
+                    timestamp: Date()
+                )
+                let zone = AirQualityZone(
+                    coordinate: center,
+                    radius: 800,
+                    airQuality: airQuality
+                )
+                zones.append(zone)
+                print("✅ Fallback: AQI=\(analysis.combined_aqi) from analysis endpoint")
+            } catch {
+                print("❌ Fallback decode error: \(error)")
+            }
+        }.resume()
+
+        _ = semaphore.wait(timeout: .now() + 10)
         return zones
     }
 
@@ -468,35 +541,31 @@ class AirQualityGridManager: ObservableObject {
 
     /// Calcula el promedio de calidad del aire de un área circular
     private func calculateAreaAverage(center: CLLocationCoordinate2D, radius: CLLocationDistance) -> AirQualityPoint {
-        var aqiSum = 0.0
-        var pm25Sum = 0.0
-        var pm10Sum = 0.0
-
-        // 9 puntos de muestra: centro + 8 alrededor en círculo
-        let angles: [Double] = [0, 45, 90, 135, 180, 225, 270, 315]
-        var samplePoints: [CLLocationCoordinate2D] = [center]  // Centro
-
-        // Agregar 8 puntos alrededor del centro (70% del radio)
-        for angle in angles {
-            let point = center.coordinate(atDistance: radius * 0.7, bearing: angle)
-            samplePoints.append(point)
+        // Buscar en cache del heatmap datos cercanos
+        if let cached = cachedHeatmapData {
+            let nearby = cached.filter { point in
+                let dist = sqrt(pow(point.lat - center.latitude, 2) + pow(point.lon - center.longitude, 2)) * 111000
+                return dist < radius * 1.5
+            }
+            if !nearby.isEmpty {
+                let avgAQI = Double(nearby.map { $0.aqi }.reduce(0, +)) / Double(nearby.count)
+                return AirQualityPoint(
+                    coordinate: center,
+                    aqi: avgAQI,
+                    pm25: avgAQI * 0.3,
+                    pm10: avgAQI * 0.5,
+                    timestamp: Date()
+                )
+            }
         }
 
-        // Generar calidad del aire para cada punto y promediar
-        for point in samplePoints {
-            let airQuality = dataGenerator.generateAirQuality(for: point, includeExtendedMetrics: false)
-            aqiSum += airQuality.aqi
-            pm25Sum += airQuality.pm25
-            pm10Sum += airQuality.pm10 ?? 0
-        }
-
-        let count = Double(samplePoints.count)
-
+        // Fallback: usar AQI promedio conocido
+        let fallbackAQI = Double(cachedAnalysisAQI ?? 50)
         return AirQualityPoint(
             coordinate: center,
-            aqi: aqiSum / count,
-            pm25: pm25Sum / count,
-            pm10: pm10Sum / count,
+            aqi: fallbackAQI,
+            pm25: fallbackAQI * 0.3,
+            pm10: fallbackAQI * 0.5,
             timestamp: Date()
         )
     }
