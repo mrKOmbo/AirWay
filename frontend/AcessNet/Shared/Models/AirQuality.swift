@@ -120,18 +120,25 @@ extension AirQualityData {
 // MARK: - Backend Analysis Response Models
 
 struct AnalysisResponse: Codable {
-    let location: LocationData
-    let timestamp: String
+    let location: LocationData?
+    let timestamp: String?
     let combined_aqi: Int
     let aqi_range: AQIRange?
-    let category: String
-    let color: String
-    let confidence: Double
+    let category: String?
+    let color: String?
+    let confidence: Double?
     let dominant_pollutant: String?
-    let station_count: Int
+    let station_count: Int?
     let pollutants: PollutantsData?
     let ml_prediction: MLPredictionResponse?
     let ai_analysis: AIAnalysisResponse?
+
+    // Ignore fields we don't need (sources, stations, forecast, weather)
+    enum CodingKeys: String, CodingKey {
+        case location, timestamp, combined_aqi, aqi_range, category, color
+        case confidence, dominant_pollutant, station_count, pollutants
+        case ml_prediction, ai_analysis
+    }
 }
 
 struct LocationData: Codable {
@@ -172,19 +179,19 @@ struct MLPredictionResponse: Codable {
 }
 
 struct HorizonPrediction: Codable {
-    let pm25: Double
+    let pm25: Double?
     let aqi: Int
-    let risk_level: String
+    let risk_level: String?
     let confidence_interval: ConfidenceInterval?
     let category: String?
     let color: String?
 }
 
 struct ConfidenceInterval: Codable {
-    let lower_pm25: Double
-    let upper_pm25: Double
-    let lower_aqi: Int
-    let upper_aqi: Int
+    let lower_pm25: Double?
+    let upper_pm25: Double?
+    let lower_aqi: Int?
+    let upper_aqi: Int?
 }
 
 // MARK: - AI Analysis Models

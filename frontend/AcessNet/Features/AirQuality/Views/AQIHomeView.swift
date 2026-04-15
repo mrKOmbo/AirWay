@@ -22,6 +22,7 @@ struct AQIHomeView: View {
     @State private var aiAnalysis: AIAnalysisResponse?
     @State private var bestTimeData: BestTimeResponse?
     @State private var dataLoadError: String?
+    @State private var hasLoadedBackend: Bool = false
 
     enum ForecastTab {
         case hourly
@@ -53,6 +54,26 @@ struct AQIHomeView: View {
 
                         // AQI Info Button (combines AQI Card + PM Indicators)
                         aqiInfoButton
+
+                        // Loading indicator
+                        if isLoadingAQI {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .tint(.white)
+                                Text("Loading real-time data...")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .padding()
+                        }
+
+                        // Error message
+                        if let error = dataLoadError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.horizontal)
+                        }
 
                         // ML Prediction Card (NEW)
                         if let prediction = mlPrediction, prediction.model_available == true {
@@ -95,6 +116,7 @@ struct AQIHomeView: View {
             LocationSearchModal(searchText: $searchText, onLocationSelected: handleLocationSelection)
         }
         .task {
+            guard !hasLoadedBackend else { return }
             await loadBackendData()
         }
     }
@@ -102,17 +124,29 @@ struct AQIHomeView: View {
     // MARK: - Backend Data Loading
 
     private func loadBackendData() async {
-        isLoadingAQI = true
-        dataLoadError = nil
+        await MainActor.run {
+            isLoadingAQI = true
+            dataLoadError = nil
+        }
 
-        let lat = 19.4326  // CDMX centro (TODO: usar ubicación real del usuario)
+        let lat = 19.4326
         let lon = -99.1332
+        let backendURL = "https://airway-api.onrender.com/api/v1"
 
-        let api = AirQualityAPIService.shared
-
-        // Cargar análisis + predicción ML
+        // Llamada directa con URLSession (más confiable que el genérico)
         do {
-            let analysis = try await api.fetchAnalysis(latitude: lat, longitude: lon, mode: "walk")
+            // 1. Fetch analysis
+            guard let analysisURL = URL(string: "\(backendURL)/air/analysis?lat=\(lat)&lon=\(lon)&mode=walk") else { return }
+            print("🌐 Fetching: \(analysisURL)")
+            let (analysisData, _) = try await URLSession.shared.data(from: analysisURL)
+
+            if let rawJSON = String(data: analysisData, encoding: .utf8) {
+                print("📦 Analysis response (\(analysisData.count) bytes): \(String(rawJSON.prefix(300)))")
+            }
+
+            let decoder = JSONDecoder()
+            let analysis = try decoder.decode(AnalysisResponse.self, from: analysisData)
+
             await MainActor.run {
                 airQualityData = AirQualityData(
                     aqi: analysis.combined_aqi,
@@ -130,19 +164,28 @@ struct AQIHomeView: View {
                 )
                 mlPrediction = analysis.ml_prediction
                 aiAnalysis = analysis.ai_analysis
-                print("✅ Backend data loaded: AQI=\(analysis.combined_aqi)")
+                hasLoadedBackend = true
+                print("✅ Analysis loaded: AQI=\(analysis.combined_aqi), ML=\(analysis.ml_prediction != nil)")
             }
         } catch {
-            print("⚠️ Analysis load error: \(error)")
-            await MainActor.run { dataLoadError = error.localizedDescription }
+            print("❌ Analysis error: \(error)")
+            if let decodingError = error as? DecodingError {
+                print("   Decoding detail: \(decodingError)")
+            }
+            await MainActor.run { dataLoadError = "Error: \(error.localizedDescription)" }
         }
 
-        // Cargar mejor hora
+        // 2. Fetch best-time (independiente, no bloquea si falla)
         do {
-            let bestTime = try await api.fetchBestTime(latitude: lat, longitude: lon, mode: "bike", hours: 12)
-            await MainActor.run { bestTimeData = bestTime }
+            guard let btURL = URL(string: "\(backendURL)/air/best-time?lat=\(lat)&lon=\(lon)&mode=bike&hours=12") else { return }
+            let (btData, _) = try await URLSession.shared.data(from: btURL)
+            let bestTime = try JSONDecoder().decode(BestTimeResponse.self, from: btData)
+            await MainActor.run {
+                bestTimeData = bestTime
+                print("✅ BestTime loaded: best=\(bestTime.best_window?.avg_aqi ?? 0)")
+            }
         } catch {
-            print("⚠️ BestTime load error: \(error)")
+            print("⚠️ BestTime error: \(error)")
         }
 
         await MainActor.run { isLoadingAQI = false }
@@ -515,8 +558,8 @@ struct AQIHomeView: View {
                                     .foregroundColor(.white.opacity(0.7))
                                 Text("\(p.aqi)")
                                     .font(.title2.bold())
-                                    .foregroundColor(Color(hex: p.color ?? "#ffffff"))
-                                Text(p.risk_level.capitalized)
+                                    .foregroundColor(Color(hex: p.color ?? "#ffff00"))
+                                Text((p.risk_level ?? "moderado").capitalized)
                                     .font(.caption2)
                                     .foregroundColor(.white.opacity(0.6))
                             }
