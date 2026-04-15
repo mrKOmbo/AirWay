@@ -310,17 +310,16 @@ struct EnhancedMapView: View {
                 .transition(.opacity)
             }
 
-            // ML Prediction Banner (below search, above map)
-            if !hasActiveRoute && !isSearchFocused && !showLocationInfo {
+            // ML Prediction Banner — solo cuando el mapa está "limpio" (sin cards, zonas, rutas)
+            if !hasActiveRoute && !isSearchFocused && !showLocationInfo && !showAirQualityLayer && !showZoneDetail && selectedZone == nil {
                 VStack {
                     Spacer()
-                        .frame(height: AppConstants.safeAreaTop + 70)
                     HStack {
                         Spacer()
                         AQIPredictionBanner()
                         Spacer()
                     }
-                    Spacer()
+                    .padding(.bottom, tabBarHeight + 20)
                 }
                 .transition(.opacity)
                 .allowsHitTesting(false)
