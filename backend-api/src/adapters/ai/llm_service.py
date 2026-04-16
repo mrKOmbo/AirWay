@@ -58,7 +58,7 @@ class LLMService:
         self.provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
         self.gemini_key = os.environ.get("GEMINI_API_KEY", "")
         self.alt_key = os.environ.get("ALT_LLM_API_KEY", "")
-        self.gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-lite")
+        self.gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         self.cache_ttl = 300  # 5 min
 
     def analyze(self, aggregated_data: dict, mode: str = "walk",
