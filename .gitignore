@@ -1,2 +1,77 @@
+# ── Environment / Secrets ─────────────────────────────
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+!.env.example
+
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+
+# ── Django ────────────────────────────────────────────
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+staticfiles/
+media/
+
+# ── Xcode ─────────────────────────────────────────────
+# User-specific state
+**/xcuserdata/
+**/*.xcuserstate
+**/UserInterfaceState.xcuserstate
+**/xcschemes/xcschememanagement.plist
+
+# Xcode build products
+build/
+DerivedData/
+*.xcarchive
+
+# Legacy
 UI/AcessNet.xcodeproj/project.xcworkspace/xcuserdata/
 UI/AcessNet.xcodeproj/xcuserdata/
+
+# ── Project backups ───────────────────────────────────
+*.backup
+*.bak
+**/*.xcodeproj.backup/
+
+# ── macOS / System ────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# ── IDE / Editors ─────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── ML training data (too large for git) ──────────────
+scripts/*.csv
+scripts/full_pm25_cdmx.csv
+scripts/test_pm25_cdmx.csv
+scripts/train_pm25_cdmx.csv
+
+# ── Documentation PDFs ────────────────────────────────
+# Opcional: ignorar PDFs generados localmente
+# *.pdf
+
+# ── Misc ──────────────────────────────────────────────
+*.tmp
+*.temp
+.cache/
