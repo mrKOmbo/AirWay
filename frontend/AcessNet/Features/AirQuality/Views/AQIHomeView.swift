@@ -3,12 +3,15 @@
 //  AcessNet
 //
 //  Created by BICHOTEE
+//  Redesigned to match AirWay .pen spec — iOS 26 glass effects
 //
 
 import SwiftUI
+import Combine
 import CoreLocation
 
 struct AQIHomeView: View {
+    @EnvironmentObject var appSettings: AppSettings
     @Binding var showBusinessPulse: Bool
     @State private var airQualityData: AirQualityData = .sample
     @State private var selectedForecastTab: ForecastTab = .hourly
@@ -23,6 +26,12 @@ struct AQIHomeView: View {
     @State private var bestTimeData: BestTimeResponse?
     @State private var dataLoadError: String?
     @State private var hasLoadedBackend: Bool = false
+    @State private var animatedAQI: CGFloat = 0
+    @State private var animateGauges: Bool = false
+    @State private var currentNotifIndex: Int = 0
+    @State private var showNotif: Bool = false
+    @State private var notifExpanded: Bool = false
+    @State private var notifDismissed: Bool = false
 
     enum ForecastTab {
         case hourly
@@ -36,24 +45,20 @@ struct AQIHomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient - Primary to Secondary
-                LinearGradient(
-                    colors: [
-                        Color("Primary"),
-                        Color("Secondary")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Background — dynamic weather
+                WeatherBackground(condition: activeWeather)
+                    .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 20) {
                         // Header
                         headerView
 
-                        // AQI Info Button (combines AQI Card + PM Indicators)
-                        aqiInfoButton
+                        // AQI Main Card
+                        aqiMainCard
+
+                        // AI Insight banner (collapsible, below AQI)
+                        insightBanner
 
                         // Loading indicator
                         if isLoadingAQI {
@@ -64,6 +69,7 @@ struct AQIHomeView: View {
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.7))
                             }
+                            .frame(maxWidth: .infinity)
                             .padding()
                         }
 
@@ -75,34 +81,19 @@ struct AQIHomeView: View {
                                 .padding(.horizontal)
                         }
 
-                        // ML Prediction Card (NEW)
-                        if let prediction = mlPrediction, prediction.model_available == true {
-                            mlPredictionCard(prediction)
-                        }
+                        // Environment Card (Pollutants + Weather)
+                        environmentCard
 
-                        // AI Analysis Card (NEW)
-                        if let analysis = aiAnalysis, analysis.summary != nil {
-                            aiAnalysisCard(analysis)
-                        }
+                        // Bento Grid: Exposure + Forecast + AR + AI
+                        bentoGrid
 
-                        // Best Time Card (NEW)
-                        if let bestTime = bestTimeData {
-                            bestTimeCard(bestTime)
-                        }
+                        // Hourly / Weekly Forecast
+                        hourlySection
 
-                        // AR Button
-                        arButton
-
-                        // Weather Info Card
-                        weatherCard
-
-                        // Today's Exposure
+                        // Today's Exposure Detail
                         todaysExposureView
-
-                        // Weather Forecast
-                        weatherForecast
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 16)
                     .avoidTabBar(extraPadding: 20)
                 }
             }
@@ -115,9 +106,42 @@ struct AQIHomeView: View {
         .sheet(isPresented: $showSearchModal) {
             LocationSearchModal(searchText: $searchText, onLocationSelected: handleLocationSelection)
         }
+        .environment(\.weatherTheme, theme)
         .task {
             guard !hasLoadedBackend else { return }
             await loadBackendData()
+        }
+        .onAppear {
+            triggerAnimations()
+        }
+        .onChange(of: airQualityData.aqi) { _ in
+            triggerAnimations()
+        }
+    }
+
+    // MARK: - AQI Animation
+
+    private func triggerAnimations() {
+        Task { @MainActor in
+            animatedAQI = 0
+            animateGauges = false
+
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+
+            withAnimation(.easeOut(duration: 1.2)) {
+                animateGauges = true
+            }
+
+            let target = CGFloat(airQualityData.aqi)
+            let steps = 40
+
+            for i in 1...steps {
+                try? await Task.sleep(nanoseconds: 30_000_000) // 30ms
+                let progress = CGFloat(i) / CGFloat(steps)
+                let eased = 1.0 - pow(1.0 - progress, 3)
+                animatedAQI = target * eased
+            }
+            animatedAQI = target
         }
     }
 
@@ -133,16 +157,9 @@ struct AQIHomeView: View {
         let lon = -99.1332
         let backendURL = "https://airway-api.onrender.com/api/v1"
 
-        // Llamada directa con URLSession (más confiable que el genérico)
         do {
-            // 1. Fetch analysis
             guard let analysisURL = URL(string: "\(backendURL)/air/analysis?lat=\(lat)&lon=\(lon)&mode=walk") else { return }
-            print("🌐 Fetching: \(analysisURL)")
             let (analysisData, _) = try await URLSession.shared.data(from: analysisURL)
-
-            if let rawJSON = String(data: analysisData, encoding: .utf8) {
-                print("📦 Analysis response (\(analysisData.count) bytes): \(String(rawJSON.prefix(300)))")
-            }
 
             let decoder = JSONDecoder()
             let analysis = try decoder.decode(AnalysisResponse.self, from: analysisData)
@@ -165,567 +182,575 @@ struct AQIHomeView: View {
                 mlPrediction = analysis.ml_prediction
                 aiAnalysis = analysis.ai_analysis
                 hasLoadedBackend = true
-                print("✅ Analysis loaded: AQI=\(analysis.combined_aqi), ML=\(analysis.ml_prediction != nil)")
             }
         } catch {
-            print("❌ Analysis error: \(error)")
-            if let decodingError = error as? DecodingError {
-                print("   Decoding detail: \(decodingError)")
-            }
             await MainActor.run { dataLoadError = "Error: \(error.localizedDescription)" }
         }
 
-        // 2. Fetch best-time (independiente, no bloquea si falla)
+        // Best-time (independiente)
         do {
             guard let btURL = URL(string: "\(backendURL)/air/best-time?lat=\(lat)&lon=\(lon)&mode=bike&hours=12") else { return }
             let (btData, _) = try await URLSession.shared.data(from: btURL)
             let bestTime = try JSONDecoder().decode(BestTimeResponse.self, from: btData)
-            await MainActor.run {
-                bestTimeData = bestTime
-                print("✅ BestTime loaded: best=\(bestTime.best_window?.avg_aqi ?? 0)")
-            }
-        } catch {
-            print("⚠️ BestTime error: \(error)")
-        }
+            await MainActor.run { bestTimeData = bestTime }
+        } catch { }
 
         await MainActor.run { isLoadingAQI = false }
     }
 
-    // MARK: - View Components
+    // MARK: - Header
 
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "location.fill")
-                            .foregroundColor(.white)
-                            .font(.subheadline)
-
-                        Text(airQualityData.location)
-                            .font(.title3.bold())
-                            .foregroundColor(.white)
-
-                        Image(systemName: "arrow.up.right.circle.fill")
-                            .foregroundColor(.white.opacity(0.8))
-                            .font(.subheadline)
-                    }
-
-                    Text(airQualityData.city)
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
-
-                    Text("Nearest Monitor : \(String(format: "%.2f", airQualityData.distance)) Km")
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "location.fill")
+                        .foregroundColor(.white.opacity(0.7))
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+
+                    Text(airQualityData.location)
+                        .font(.headline)
+                        .foregroundColor(.white)
                 }
 
-                Spacer()
+                Text(airQualityData.city)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.6))
 
-                // Search button
-                Button(action: {
-                    showSearchModal = true
-                }) {
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sensor.tag.radiowaves.forward")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.4))
+                        Text("Monitor: \(String(format: "%.1f", airQualityData.distance)) km")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe.americas")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.4))
+                        Text("NASA TEMPO")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 16) {
+                Button(action: {}) {
+                    Image(systemName: "bell")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+
+                Button(action: { showSearchModal = true }) {
                     Image(systemName: "magnifyingglass")
                         .font(.title3)
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(.white.opacity(0.2))
-                                .overlay(
-                                    Circle()
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
     }
 
-    private var aqiCard: some View {
-        VStack(spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
+    // MARK: - AQI Main Card
+
+    private var aqiMainCard: some View {
+        ZStack(alignment: .topTrailing) {
+            NavigationLink(destination: DailyForecastView()) {
+                VStack(spacing: 12) {
+                    Text("Air Quality Index")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.5))
+
+                    Text("\(Int(animatedAQI))")
+                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: Color(hex: airQualityData.qualityLevel.color).opacity(0.6), radius: 20)
+
+                    // "Good" badge
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(.red)
-                            .frame(width: 10, height: 10)
-                            .shadow(color: .red, radius: 4)
-
-                        Text("Live AQI")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.white)
-                    }
-
-                    Text("\(airQualityData.aqi)")
-                        .font(.system(size: 90, weight: .heavy))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    Text("Air Quality is")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.95))
-
-                    Text(airQualityData.qualityLevel.rawValue)
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .fill(Color(hex: airQualityData.qualityLevel.color).opacity(0.8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1.5)
-                                )
-                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                        )
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-        }
-    }
-
-    private var dailyForecastButton: some View {
-        NavigationLink(destination: DailyForecastView()) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("5-Day Forecast")
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text("View detailed daily air quality predictions")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.title3)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color("Secondary").opacity(0.7),
-                                Color("Primary").opacity(0.7)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-            )
-        }
-        .padding(.horizontal)
-    }
-
-    private var aqiInfoButton: some View {
-        NavigationLink(destination: DailyForecastView()) {
-            VStack(spacing: 16) {
-                // AQI Card content
-                HStack(alignment: .top, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(.red)
-                                .frame(width: 10, height: 10)
-                                .shadow(color: .red, radius: 4)
-
-                            Text("Live AQI")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.white)
-                        }
-
-                        Text("\(airQualityData.aqi)")
-                            .font(.system(size: 90, weight: .heavy))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 10) {
-                        Text("Air Quality is")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.95))
+                            .fill(Color(hex: airQualityData.qualityLevel.color))
+                            .frame(width: 8, height: 8)
 
                         Text(airQualityData.qualityLevel.rawValue)
-                            .font(.title2.bold())
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .fill(Color(hex: airQualityData.qualityLevel.color).opacity(0.8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 18)
-                                            .stroke(.white.opacity(0.3), lineWidth: 1.5)
-                                    )
-                                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                            )
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-                // PM Indicators with daily comparison
-                HStack(spacing: 20) {
-                    // PM2.5
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("PM2.5")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-
-                        Text("\(Int(airQualityData.pm25)) μg/m³")
                             .font(.subheadline.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(hex: airQualityData.qualityLevel.color))
                     }
-
-                    // PM10
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("PM10")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-
-                        Text("\(Int(airQualityData.pm10)) μg/m³")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.white)
-                    }
-
-                    Spacer()
-
-                    // Daily comparison dots
-                    HStack(spacing: 8) {
-                        DayDot(label: "Tue", aqi: 52)
-                        DayDot(label: "Wed", aqi: 58)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial.opacity(0.3))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-            )
-        }
-        .padding(.horizontal)
-    }
-
-    private var arButton: some View {
-        Button(action: {
-            showARView = true
-        }) {
-            HStack(spacing: 16) {
-                // AR Icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple.opacity(0.8), .indigo.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                        .shadow(color: .purple.opacity(0.4), radius: 8, x: 0, y: 4)
-
-                    Image(systemName: "camera.metering.center.weighted")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-
-                // Text content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("AR Air Quality")
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text("Visualize invisible PM2.5 particles")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-
-                Spacer()
-
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.title3)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.purple.opacity(0.5),
-                                Color.indigo.opacity(0.5)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
-            )
-        }
-        .padding(.horizontal)
-    }
-
-    private var pmIndicators: some View {
-        HStack(spacing: 24) {
-            // PM2.5 - Simplified
-            HStack(spacing: 8) {
-                Text("PM2.5:")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                Text("\(Int(airQualityData.pm25)) μg/m³")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-            }
-
-            // PM10 - Simplified
-            HStack(spacing: 8) {
-                Text("PM10:")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                Text("\(Int(airQualityData.pm10)) μg/m³")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-            }
-        }
-        .padding(.horizontal)
-    }
-
-    // MARK: - ML Prediction Card
-
-    private func mlPredictionCard(_ prediction: MLPredictionResponse) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "brain.head.profile")
-                    .foregroundColor(.cyan)
-                Text("ML Prediction")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-                Spacer()
-                if let trend = prediction.trend {
-                    HStack(spacing: 4) {
-                        Image(systemName: trend == "subiendo" ? "arrow.up.right" : trend == "bajando" ? "arrow.down.right" : "arrow.right")
-                            .foregroundColor(trend == "subiendo" ? .orange : trend == "bajando" ? .green : .white)
-                        Text(trend.capitalized)
-                            .font(.caption.bold())
-                            .foregroundColor(trend == "subiendo" ? .orange : trend == "bajando" ? .green : .white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
                     .background(
-                        Capsule().fill(.white.opacity(0.15))
+                        Capsule()
+                            .fill(Color(hex: airQualityData.qualityLevel.color).opacity(0.15))
                     )
+                    .opacity(animatedAQI > 0 ? 1 : 0)
+                    .animation(.easeOut(duration: 0.3), value: animatedAQI)
+
+                    // Live indicator (pulsing)
+                    LiveIndicator()
+
+                    // Scale bar — animated
+                    aqiScaleBar
+                        .padding(.top, 8)
                 }
+                .padding(.vertical, 24)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
+                .background(glassCard)
             }
 
-            if let preds = prediction.predictions {
-                HStack(spacing: 0) {
-                    ForEach(["1h", "3h", "6h"], id: \.self) { key in
-                        if let p = preds[key] {
-                            VStack(spacing: 6) {
-                                Text("In \(key)")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
-                                Text("\(p.aqi)")
-                                    .font(.title2.bold())
-                                    .foregroundColor(Color(hex: p.color ?? "#ffff00"))
-                                Text((p.risk_level ?? "moderado").capitalized)
-                                    .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.6))
-                            }
-                            .frame(maxWidth: .infinity)
+            // AR button — top right corner
+            Button(action: { showARView = true }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arkit")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("AR")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(.purple)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(.purple.opacity(0.15))
+                        .overlay(
+                            Capsule().stroke(.purple.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
+            .padding(12)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - AQI Scale Bar
+
+    private var aqiScaleBar: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Gradient bar
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "#4CAF50"),
+                            Color(hex: "#8BC34A"),
+                            Color(hex: "#FFEB3B"),
+                            Color(hex: "#FF9800"),
+                            Color(hex: "#F44336"),
+                            Color(hex: "#9C27B0")
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .clipShape(Capsule())
+
+                    // Animated position indicator
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 16, height: 16)
+                        .shadow(color: .black.opacity(0.3), radius: 4)
+                        .offset(x: min(animatedAQI / 300.0 * geo.size.width, geo.size.width - 16))
+                        .animation(.easeOut(duration: 1.5), value: animatedAQI)
+                }
+            }
+            .frame(height: 10)
+
+            HStack {
+                Text("Good"); Spacer(); Text("Moderate"); Spacer(); Text("Poor"); Spacer(); Text("Hazardous")
+            }
+            .font(.system(size: 9))
+            .foregroundColor(.white.opacity(0.4))
+        }
+    }
+
+    // MARK: - Environment Card (Pollutants + Weather unified)
+
+    private var environmentCard: some View {
+        VStack(spacing: 16) {
+            // Pollutant gauges row
+            HStack(spacing: 0) {
+                MiniPollutantGauge(
+                    value: Int(airQualityData.pm25),
+                    maxValue: 75,
+                    name: "PM2.5",
+                    color: airQualityData.pm25 < 35 ? .green : .yellow
+                )
+
+                // Divider
+                Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 50)
+
+                MiniPollutantGauge(
+                    value: Int(airQualityData.pm10),
+                    maxValue: 150,
+                    name: "PM10",
+                    color: airQualityData.pm10 < 50 ? .green : .yellow
+                )
+
+                Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 50)
+
+                MiniPollutantGauge(
+                    value: 42,
+                    maxValue: 100,
+                    name: "O₃",
+                    color: .white.opacity(0.7)
+                )
+            }
+
+            // Thin separator
+            Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                .padding(.horizontal, 8)
+
+            // Weather stats row — inline, compact
+            HStack(spacing: 0) {
+                WeatherMiniStat(icon: "thermometer.medium", value: "\(Int(airQualityData.temperature))°C", label: "Temp")
+                WeatherMiniStat(icon: "humidity.fill", value: "\(airQualityData.humidity)%", label: "Humidity")
+                WeatherMiniStat(icon: "wind", value: "\(Int(airQualityData.windSpeed))", label: "km/h")
+                WeatherMiniStat(icon: "sun.max.fill", value: "\(airQualityData.uvIndex)", label: "UV")
+            }
+        }
+        .padding(.vertical, 14)
+        .background(glassCard)
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Bento Grid
+
+    private var bentoGrid: some View {
+        VStack(spacing: 10) {
+            // Row 1: Exposure + Forecast (side by side)
+            HStack(alignment: .top, spacing: 10) {
+                // Exposure gauge
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 6)
+
+                        Circle()
+                            .trim(from: 0, to: animateGauges ? 0.25 : 0)
+                            .stroke(
+                                AngularGradient(
+                                    colors: [.green, .yellow],
+                                    center: .center,
+                                    startAngle: .degrees(0),
+                                    endAngle: .degrees(90)
+                                ),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 1.0).delay(0.5), value: animateGauges)
+
+                        VStack(spacing: 1) {
+                            Text("Low")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.green)
+                            Text("0.8 cig")
+                                .font(.system(size: 8))
+                                .foregroundColor(.white.opacity(0.4))
                         }
                     }
+                    .frame(width: 72, height: 72)
+
+                    Text("Exposure")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(glassCard)
+
+                // Forecast — matches exposure height
+                if let prediction = mlPrediction, prediction.model_available == true,
+                   let preds = prediction.predictions {
+                    VStack(spacing: 0) {
+                        // Trend header
+                        HStack(spacing: 4) {
+                            Text("Forecast")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.5))
+                            Spacer()
+                            if let trend = prediction.trend {
+                                HStack(spacing: 2) {
+                                    Circle()
+                                        .fill(trend == "subiendo" ? Color.orange : trend == "bajando" ? Color.green : Color.white.opacity(0.4))
+                                        .frame(width: 5, height: 5)
+                                    Text(trend == "subiendo" ? "Worsening" : trend == "bajando" ? "Improving" : "Stable")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .foregroundColor(trend == "subiendo" ? .orange : trend == "bajando" ? .green : .white.opacity(0.4))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top, 10)
+                        .padding(.bottom, 6)
+
+                        // Bar chart area
+                        HStack(alignment: .bottom, spacing: 6) {
+                            ForEach(["1h", "3h", "6h"], id: \.self) { key in
+                                if let p = preds[key] {
+                                    let aqiColor = aqiLevelColor(p.aqi)
+                                    let barFill = max(0.15, min(CGFloat(p.aqi) / 200.0, 1.0))
+
+                                    VStack(spacing: 0) {
+                                        // AQI value
+                                        Text("\(p.aqi)")
+                                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                            .foregroundColor(aqiColor)
+                                            .padding(.bottom, 4)
+
+                                        // Bar
+                                        GeometryReader { geo in
+                                            VStack {
+                                                Spacer()
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [aqiColor.opacity(0.3), aqiColor.opacity(0.7), aqiColor],
+                                                            startPoint: .bottom,
+                                                            endPoint: .top
+                                                        )
+                                                    )
+                                                    .frame(height: geo.size.height * barFill)
+                                                    .shadow(color: aqiColor.opacity(0.4), radius: 6, y: -2)
+                                            }
+                                        }
+
+                                        // Time label
+                                        Text(key)
+                                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                            .foregroundColor(.white.opacity(0.35))
+                                            .padding(.top, 4)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 10)
+                        .frame(maxHeight: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(glassCard)
                 }
             }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.cyan.opacity(0.3), Color.blue.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
 
-    // MARK: - AI Analysis Card
-
-    private func aiAnalysisCard(_ analysis: AIAnalysisResponse) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "sparkles")
-                    .foregroundColor(.purple)
-                Text("AI Analysis")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-            }
-
-            if let summary = analysis.summary {
-                Text(summary)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                    .lineLimit(3)
-            }
-
-            if let rec = analysis.health_recommendation {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "heart.fill")
-                        .foregroundColor(.red.opacity(0.8))
-                        .font(.caption)
-                        .padding(.top, 2)
-                    Text(rec)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                        .lineLimit(3)
-                }
-            }
-
-            if let bestHours = analysis.best_hours, !bestHours.isEmpty {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "clock.fill")
-                        .foregroundColor(.yellow.opacity(0.8))
-                        .font(.caption)
-                        .padding(.top, 2)
-                    Text(bestHours)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                        .lineLimit(2)
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.purple.opacity(0.3), Color.indigo.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
-
-    // MARK: - Best Time Card
-
-    private func bestTimeCard(_ bestTime: BestTimeResponse) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "clock.badge.checkmark")
-                    .foregroundColor(.green)
-                Text("Best Time to Go Out")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-            }
-
-            if let best = bestTime.best_window {
+            // Row 2: Best Time (full width)
+            if let bestTime = bestTimeData, let best = bestTime.best_window {
                 HStack(spacing: 12) {
+                    // Best window
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Best")
-                            .font(.caption)
-                            .foregroundColor(.green.opacity(0.8))
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.green)
+                            Text("Go out")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
                         Text(formatTimeWindow(best.start, best.end))
-                            .font(.subheadline.bold())
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                         Text("AQI \(best.avg_aqi)")
-                            .font(.caption)
+                            .font(.system(size: 11))
                             .foregroundColor(.green)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
+                    // Avoid window
                     if let worst = bestTime.worst_window {
+                        Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 40)
+
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Avoid")
-                                .font(.caption)
-                                .foregroundColor(.red.opacity(0.8))
+                            HStack(spacing: 4) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.red.opacity(0.7))
+                                Text("Avoid")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
                             Text(formatTimeWindow(worst.start, worst.end))
-                                .font(.subheadline.bold())
+                                .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             Text("AQI \(worst.avg_aqi)")
-                                .font(.caption)
+                                .font(.system(size: 11))
                                 .foregroundColor(.red)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .padding(12)
+                .background(glassCard)
             }
+        }
+        .padding(.horizontal, 16)
+    }
 
-            // Mini hourly bar chart
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(bestTime.hourly.prefix(12)) { entry in
-                        VStack(spacing: 4) {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(Color(hex: entry.color))
-                                .frame(width: 20, height: CGFloat(max(10, entry.aqi / 2)))
-                            Text(entry.hourLabel)
-                                .font(.system(size: 8))
-                                .foregroundColor(.white.opacity(0.6))
+    // MARK: - Insight Notifications (auto-rotate)
+
+    private var insightNotifications: [InsightNotif] {
+        var notifs: [InsightNotif] = []
+
+        if let analysis = aiAnalysis {
+            if let summary = analysis.summary {
+                let short = String(summary.prefix(60)) + (summary.count > 60 ? "…" : "")
+                notifs.append(InsightNotif(icon: "sparkles", color: .purple, text: short, fullText: summary))
+            }
+            if let rec = analysis.health_recommendation {
+                let short = String(rec.prefix(55)) + (rec.count > 55 ? "…" : "")
+                notifs.append(InsightNotif(icon: "heart.fill", color: .red, text: short, fullText: rec))
+            }
+            if let hours = analysis.best_hours, !hours.isEmpty {
+                let short = String(hours.prefix(50)) + (hours.count > 50 ? "…" : "")
+                notifs.append(InsightNotif(icon: "clock.fill", color: .yellow, text: short, fullText: hours))
+            }
+        }
+
+        if let prediction = mlPrediction, let trend = prediction.trend {
+            let short = trend == "subiendo" ? "Air quality worsening ahead" : trend == "bajando" ? "Air quality improving" : "Air quality stable"
+            notifs.append(InsightNotif(icon: "chart.line.uptrend.xyaxis", color: .cyan, text: short, fullText: short))
+        }
+
+        return notifs
+    }
+
+    private var insightBanner: some View {
+        let notifs = insightNotifications
+
+        return Group {
+            if !notifs.isEmpty && showNotif && !notifDismissed {
+                let notif = notifs[currentNotifIndex % notifs.count]
+
+                VStack(alignment: .leading, spacing: 0) {
+                    // Main row — tap to expand, swipe to dismiss
+                    HStack(spacing: 10) {
+                        Image(systemName: notif.icon)
+                            .font(.system(size: 11))
+                            .foregroundColor(notif.color)
+
+                        Text(notifExpanded ? notif.fullText : notif.text)
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.7))
+                            .lineLimit(notifExpanded ? 5 : 1)
+                            .fixedSize(horizontal: false, vertical: notifExpanded)
+
+                        Spacer(minLength: 4)
+
+                        if !notifExpanded {
+                            // Dots + dismiss
+                            HStack(spacing: 6) {
+                                HStack(spacing: 3) {
+                                    ForEach(0..<notifs.count, id: \.self) { i in
+                                        Circle()
+                                            .fill(i == currentNotifIndex % notifs.count ? .white.opacity(0.6) : .white.opacity(0.15))
+                                            .frame(width: 4, height: 4)
+                                    }
+                                }
+
+                                Button {
+                                    // Dismiss solo este mensaje, avanza al siguiente
+                                    let notifs = insightNotifications
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        showNotif = false
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                        currentNotifIndex += 1
+                                        // Si ya recorrió todos, ocultar
+                                        if currentNotifIndex >= notifs.count {
+                                            notifDismissed = true
+                                        } else {
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                showNotif = true
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.3))
+                                        .frame(width: 18, height: 18)
+                                        .background(Circle().fill(.white.opacity(0.08)))
+                                }
+                            }
+                        } else {
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    notifExpanded = false
+                                }
+                            } label: {
+                                Image(systemName: "chevron.up")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.3))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            notifExpanded.toggle()
                         }
                     }
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(theme.cardColor)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(notif.color.opacity(0.15), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .id(currentNotifIndex)
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.green.opacity(0.2), Color.teal.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
+        .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { _ in
+            let notifs = insightNotifications
+            guard notifs.count > 1, !notifExpanded, !notifDismissed else { return }
+
+            withAnimation(.easeOut(duration: 0.3)) {
+                showNotif = false
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                currentNotifIndex += 1
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showNotif = true
+                }
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showNotif = true
+                }
+            }
+        }
+        .onChange(of: aiAnalysis?.summary) { _ in
+            currentNotifIndex = 0
+            notifDismissed = false
+            notifExpanded = false
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                showNotif = true
+            }
+        }
+    }
+
+    private func aqiLevelColor(_ aqi: Int) -> Color {
+        switch aqi {
+        case 0..<51: return Color(hex: "#4CAF50")    // Green — Good
+        case 51..<101: return Color(hex: "#FFEB3B")   // Yellow — Moderate
+        case 101..<151: return Color(hex: "#FF9800")  // Orange — Unhealthy for sensitive
+        case 151..<201: return Color(hex: "#F44336")  // Red — Unhealthy
+        case 201..<301: return Color(hex: "#9C27B0")  // Purple — Very unhealthy
+        default: return Color(hex: "#880E4F")         // Maroon — Hazardous
+        }
     }
 
     private func formatTimeWindow(_ start: String, _ end: String) -> String {
@@ -738,238 +763,429 @@ struct AQIHomeView: View {
         return "\(extractHour(start)) - \(extractHour(end))"
     }
 
-    // MARK: - Weather Card
+    // MARK: - Hourly Section (inside single glass card)
 
-    private var weatherCard: some View {
-        VStack(spacing: 16) {
-            // Weather scale bar
-            AQIScaleBar(currentAQI: airQualityData.aqi)
-                .padding(.horizontal)
+    private var hourlySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Hourly")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
 
-            // Weather info card
-            VStack(spacing: 12) {
+                Spacer()
+
                 HStack(spacing: 0) {
-                    // Temperature
-                    WeatherInfoItem(
-                        icon: "cloud.fill",
-                        value: "\(Int(airQualityData.temperature))°",
-                        unit: "C",
-                        label: airQualityData.weatherCondition.rawValue
-                    )
-
-                    Divider()
-                        .frame(height: 60)
-                        .background(.white.opacity(0.2))
-
-                    // Humidity
-                    WeatherInfoItem(
-                        icon: "drop.fill",
-                        value: "\(airQualityData.humidity)",
-                        unit: "%",
-                        label: "Humidity"
-                    )
-
-                    Divider()
-                        .frame(height: 60)
-                        .background(.white.opacity(0.2))
-
-                    // Wind
-                    WeatherInfoItem(
-                        icon: "wind",
-                        value: "\(Int(airQualityData.windSpeed))",
-                        unit: "km/hr",
-                        label: "Wind"
-                    )
-
-                    Divider()
-                        .frame(height: 60)
-                        .background(.white.opacity(0.2))
-
-                    // UV Index
-                    WeatherInfoItem(
-                        icon: "sun.max.fill",
-                        value: "\(airQualityData.uvIndex)",
-                        unit: "",
-                        label: "UV Index"
-                    )
+                    ForecastPill(title: "Today", isSelected: selectedForecastTab == .hourly) {
+                        withAnimation(.none) { selectedForecastTab = .hourly }
+                    }
+                    ForecastPill(title: "Week", isSelected: selectedForecastTab == .daily) {
+                        withAnimation(.none) { selectedForecastTab = .daily }
+                    }
                 }
-                .padding(.vertical, 8)
-
-                // Last update
-                Text("Last Update:  \(airQualityData.timeAgo)")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
+                .background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.06)))
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial.opacity(0.3))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-            )
-            .padding(.horizontal)
+            .padding(.horizontal, 16)
+
+            if selectedForecastTab == .hourly {
+                // Hourly inline inside glass card
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        HourlyInlineItem(hour: "Now", aqi: airQualityData.aqi, icon: "cloud.fill", isNow: true)
+                        HourlyInlineItem(hour: "1PM", aqi: 45, icon: "sun.max.fill")
+                        HourlyInlineItem(hour: "2PM", aqi: 51, icon: "cloud.sun.fill")
+                        HourlyInlineItem(hour: "3PM", aqi: 58, icon: "cloud.bolt.fill")
+                        HourlyInlineItem(hour: "4PM", aqi: 48, icon: "cloud.fill")
+                        HourlyInlineItem(hour: "5PM", aqi: 39, icon: "sun.max.fill")
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                }
+                .background(glassCard)
+                .padding(.horizontal, 16)
+                .transition(.identity)
+            } else {
+                // Weekly compact list inside glass card
+                VStack(spacing: 0) {
+                    ForEach(generateDailyForecasts()) { forecast in
+                        NavigationLink(destination: DailyForecastView()) {
+                            DailyCompactRow(forecast: forecast)
+                        }
+                        if forecast.id < 4 {
+                            Rectangle().fill(.white.opacity(0.04)).frame(height: 1)
+                                .padding(.horizontal, 12)
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+                .background(glassCard)
+                .padding(.horizontal, 16)
+                .transition(.identity)
+            }
         }
     }
+
+    // MARK: - Today's Exposure (compact)
 
     private var todaysExposureView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Today's exposure")
-                .font(.title2.bold())
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
 
-            // Exposure Chart
             ExposureCircularChart()
-                .frame(height: 280)
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
         }
     }
 
-    private var mascotView: some View {
-        HStack {
-            Spacer()
-            MascotCharacter()
-                .frame(height: 180)
-                .padding(.trailing, 40)
-                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-        }
-    }
-
-    private var weatherForecast: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Weather Forecast")
-                .font(.title3.bold())
-                .foregroundColor(.white)
-                .padding(.horizontal)
-
-            // Tabs
-            HStack(spacing: 8) {
-                ForecastTabButton(
-                    title: "Hourly",
-                    isSelected: selectedForecastTab == .hourly
-                ) {
-                    withAnimation(.none) {
-                        selectedForecastTab = .hourly
-                    }
-                }
-
-                ForecastTabButton(
-                    title: "Daily",
-                    isSelected: selectedForecastTab == .daily
-                ) {
-                    withAnimation(.none) {
-                        selectedForecastTab = .daily
-                    }
-                }
-            }
-            .padding(.horizontal)
-
-            // Forecast content with sample data
-            if selectedForecastTab == .hourly {
-                hourlyForecastView
-                    .transition(.identity)
-            } else {
-                dailyForecastView
-                    .transition(.identity)
-            }
-        }
-    }
-
-    private var hourlyForecastView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
-                HourlyForecastItem(hour: "Now", temp: 16, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "19:00", temp: 15, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "20:00", temp: 15, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "21:00", temp: 14, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "22:00", temp: 14, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "23:00", temp: 14, icon: "cloud.rain.fill")
-                HourlyForecastItem(hour: "00:00", temp: 13, icon: "cloud.moon.rain.fill")
-            }
-            .padding(.horizontal)
-        }
-    }
-
-    private var dailyForecastView: some View {
-        VStack(spacing: 16) {
-            // Daily forecast cards
-            ForEach(generateDailyForecasts()) { forecast in
-                NavigationLink(destination: DailyForecastView()) {
-                    DailyForecastCard(forecast: forecast)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
+    // MARK: - Weather Forecast (removed — merged into hourly "Week" tab)
 
     private func generateDailyForecasts() -> [DailyForecastData] {
         let calendar = Calendar.current
         let today = Date()
 
         return [
-            DailyForecastData(
-                id: 0,
-                date: calendar.date(byAdding: .day, value: 0, to: today)!,
-                dayName: "Today",
-                aqi: 58,
-                temp: 16,
-                weatherIcon: "cloud.rain.fill",
-                weatherDescription: "Rainy",
-                qualityLevel: "Moderate"
-            ),
-            DailyForecastData(
-                id: 1,
-                date: calendar.date(byAdding: .day, value: 1, to: today)!,
-                dayName: "Tomorrow",
-                aqi: 45,
-                temp: 17,
-                weatherIcon: "cloud.sun.fill",
-                weatherDescription: "Partly Cloudy",
-                qualityLevel: "Good"
-            ),
-            DailyForecastData(
-                id: 2,
-                date: calendar.date(byAdding: .day, value: 2, to: today)!,
-                dayName: "Saturday",
-                aqi: 62,
-                temp: 18,
-                weatherIcon: "cloud.fill",
-                weatherDescription: "Cloudy",
-                qualityLevel: "Moderate"
-            ),
-            DailyForecastData(
-                id: 3,
-                date: calendar.date(byAdding: .day, value: 3, to: today)!,
-                dayName: "Sunday",
-                aqi: 38,
-                temp: 19,
-                weatherIcon: "sun.max.fill",
-                weatherDescription: "Sunny",
-                qualityLevel: "Good"
-            ),
-            DailyForecastData(
-                id: 4,
-                date: calendar.date(byAdding: .day, value: 4, to: today)!,
-                dayName: "Monday",
-                aqi: 71,
-                temp: 15,
-                weatherIcon: "cloud.drizzle.fill",
-                weatherDescription: "Drizzle",
-                qualityLevel: "Moderate"
-            )
+            DailyForecastData(id: 0, date: calendar.date(byAdding: .day, value: 0, to: today)!, dayName: "Today", aqi: 58, temp: 16, weatherIcon: "cloud.rain.fill", weatherDescription: "Rainy", qualityLevel: "Moderate"),
+            DailyForecastData(id: 1, date: calendar.date(byAdding: .day, value: 1, to: today)!, dayName: "Tomorrow", aqi: 45, temp: 17, weatherIcon: "cloud.sun.fill", weatherDescription: "Partly Cloudy", qualityLevel: "Good"),
+            DailyForecastData(id: 2, date: calendar.date(byAdding: .day, value: 2, to: today)!, dayName: "Saturday", aqi: 62, temp: 18, weatherIcon: "cloud.fill", weatherDescription: "Cloudy", qualityLevel: "Moderate"),
+            DailyForecastData(id: 3, date: calendar.date(byAdding: .day, value: 3, to: today)!, dayName: "Sunday", aqi: 38, temp: 19, weatherIcon: "sun.max.fill", weatherDescription: "Sunny", qualityLevel: "Good"),
+            DailyForecastData(id: 4, date: calendar.date(byAdding: .day, value: 4, to: today)!, dayName: "Monday", aqi: 71, temp: 15, weatherIcon: "cloud.drizzle.fill", weatherDescription: "Drizzle", qualityLevel: "Moderate")
         ]
     }
+
+    // MARK: - Glass Card Background
+
+    private var activeWeather: WeatherCondition {
+        appSettings.weatherOverride ?? airQualityData.weatherCondition
+    }
+
+    private var theme: WeatherTheme {
+        WeatherTheme(condition: activeWeather)
+    }
+
+    private var glassCard: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(theme.cardColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(theme.borderColor, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+    }
 }
+
+// MARK: - Insight Notification Model
+
+struct InsightNotif {
+    let icon: String
+    let color: Color
+    let text: String
+    let fullText: String
+}
+
+// MARK: - Animated Counter (uses Animatable for smooth interpolation)
+
+struct AnimatedCounter: View, Animatable {
+    var value: CGFloat
+
+    var animatableData: CGFloat {
+        get { value }
+        set { value = newValue }
+    }
+
+    var body: some View {
+        Text("\(Int(value))")
+    }
+}
+
+// MARK: - Live Indicator (pulsing red dot)
+
+struct LiveIndicator: View {
+    @State private var isPulsing = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ZStack {
+                Circle()
+                    .fill(.red.opacity(0.3))
+                    .frame(width: 12, height: 12)
+                    .scaleEffect(isPulsing ? 1.6 : 1.0)
+                    .opacity(isPulsing ? 0 : 0.6)
+
+                Circle()
+                    .fill(.red)
+                    .frame(width: 6, height: 6)
+            }
+
+            Text("Live")
+                .font(.caption2.bold())
+                .foregroundColor(.red.opacity(0.8))
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: false)) {
+                isPulsing = true
+            }
+        }
+    }
+}
+
+// MARK: - Mini Pollutant Gauge (compact, inside unified card)
+
+struct MiniPollutantGauge: View {
+    let value: Int
+    let maxValue: Int
+    let name: String
+    let color: Color
+
+    @State private var animatedProgress: CGFloat = 0
+    @State private var displayValue: Int = 0
+
+    private var percentage: CGFloat {
+        min(CGFloat(value) / CGFloat(maxValue), 1.0)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.06), lineWidth: 4)
+
+                Circle()
+                    .trim(from: 0, to: animatedProgress)
+                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 1.0).delay(0.4), value: animatedProgress)
+
+                Text("\(displayValue)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            .frame(width: 40, height: 40)
+
+            Text(name)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            animatedProgress = 0
+            displayValue = 0
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                animatedProgress = percentage
+
+                // Counter
+                let steps = 20
+                let interval = 1.0 / Double(steps)
+                for i in 0...steps {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * interval) {
+                        displayValue = Int(Double(value) * Double(i) / Double(steps))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Weather Mini Stat (compact, inside unified card)
+
+struct WeatherMiniStat: View {
+    let icon: String
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.4))
+
+            Text(value)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+
+            Text(label)
+                .font(.system(size: 8))
+                .foregroundColor(.white.opacity(0.3))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Hourly Card
+
+struct HourlyCard: View {
+    let hour: String
+    let aqi: Int
+    let icon: String
+    var isNow: Bool = false
+
+    private var aqiColor: Color {
+        switch aqi {
+        case 0..<51: return .green
+        case 51..<101: return .yellow
+        case 101..<151: return .orange
+        default: return .red
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(hour)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.white)
+                .symbolRenderingMode(.multicolor)
+
+            Text("\(aqi)")
+                .font(.headline.bold())
+                .foregroundColor(aqiColor)
+        }
+        .frame(width: 60)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white.opacity(isNow ? 0.1 : 0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(isNow ? 0.15 : 0.06), lineWidth: 1)
+                )
+        )
+    }
+}
+
+// MARK: - Forecast Pill
+
+struct ForecastPill: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.bold())
+                .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isSelected ? .white.opacity(0.15) : .clear)
+                )
+        }
+    }
+}
+
+// MARK: - Hourly Inline Item (inside single glass card)
+
+struct HourlyInlineItem: View {
+    let hour: String
+    let aqi: Int
+    let icon: String
+    var isNow: Bool = false
+
+    private var aqiColor: Color {
+        switch aqi {
+        case 0..<51: return Color(hex: "#4CAF50")
+        case 51..<101: return Color(hex: "#FFEB3B")
+        case 101..<151: return Color(hex: "#FF9800")
+        default: return Color(hex: "#F44336")
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(hour)
+                .font(.system(size: 10, weight: isNow ? .bold : .regular))
+                .foregroundColor(isNow ? .white : .white.opacity(0.4))
+
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(.white.opacity(0.7))
+                .symbolRenderingMode(.multicolor)
+
+            Text("\(aqi)")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(aqiColor)
+        }
+        .frame(width: 52)
+        .padding(.vertical, 4)
+        .background(
+            isNow ?
+                RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)) :
+                RoundedRectangle(cornerRadius: 12).fill(.clear)
+        )
+    }
+}
+
+// MARK: - Daily Compact Row (inside glass card)
+
+struct DailyCompactRow: View {
+    let forecast: DailyForecastData
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Day
+            Text(forecast.dayName)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 80, alignment: .leading)
+
+            // Weather icon
+            Image(systemName: forecast.weatherIcon)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.6))
+                .symbolRenderingMode(.multicolor)
+                .frame(width: 30)
+
+            Spacer()
+
+            // AQI bar mini
+            HStack(spacing: 6) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(.white.opacity(0.06))
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(forecast.aqiColor)
+                            .frame(width: geo.size.width * min(CGFloat(forecast.aqi) / 150.0, 1.0))
+                    }
+                }
+                .frame(height: 4)
+
+                Text("\(forecast.aqi)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(forecast.aqiColor)
+                    .frame(width: 28, alignment: .trailing)
+            }
+            .frame(width: 100)
+
+            // Temp
+            Text("\(forecast.temp)°")
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.4))
+                .frame(width: 30, alignment: .trailing)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 8))
+                .foregroundColor(.white.opacity(0.15))
+                .padding(.leading, 6)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Daily Forecast Card (Redesigned)
 
 struct DailyForecastCard: View {
     let forecast: DailyForecastData
 
     var body: some View {
         HStack(spacing: 16) {
-            // Left section - Day and Date
             VStack(alignment: .leading, spacing: 4) {
                 Text(forecast.dayName)
                     .font(.headline)
@@ -977,43 +1193,39 @@ struct DailyForecastCard: View {
 
                 Text(formatDate(forecast.date))
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.5))
             }
             .frame(width: 85, alignment: .leading)
 
-            // AQI Badge
             VStack(spacing: 4) {
                 Text("\(forecast.aqi)")
                     .font(.title2.bold())
                     .foregroundColor(.white)
-
                 Text("AQI")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.white.opacity(0.5))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(forecast.aqiColor.opacity(0.3))
+                    .fill(forecast.aqiColor.opacity(0.2))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(forecast.aqiColor, lineWidth: 2)
+                            .stroke(forecast.aqiColor.opacity(0.5), lineWidth: 1)
                     )
             )
 
             Spacer()
 
-            // Weather section
             HStack(spacing: 12) {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(forecast.weatherDescription)
                         .font(.subheadline)
                         .foregroundColor(.white)
-
                     Text("\(forecast.temp)°C")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.5))
                 }
 
                 Image(systemName: forecast.weatherIcon)
@@ -1023,21 +1235,19 @@ struct DailyForecastCard: View {
                     .frame(width: 35)
             }
 
-            // Chevron
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.white.opacity(0.3))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial.opacity(0.3))
+                .fill(.ultraThinMaterial.opacity(0.15))
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .stroke(.white.opacity(0.08), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
         )
     }
 
@@ -1048,164 +1258,40 @@ struct DailyForecastCard: View {
     }
 }
 
-extension AQIHomeView {
-    // MARK: - Location Selection Handler
-
-    fileprivate func handleLocationSelection(_ locationString: String) {
-        // Parse location string (e.g., "Mexico City, Mexico")
-        let components = locationString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        let locationName = components.first ?? locationString
-        let cityName = locationString
-
-        // Fetch AQI data for selected location
-        fetchAQIData(locationName: locationName, cityName: cityName)
-    }
-
-    // MARK: - Fetch AQI Data
-    fileprivate func fetchAQIData(locationName: String, cityName: String) {
-        // Show loading state
-        isLoadingAQI = true
-
-        // Simulate API call - En producción, aquí se haría la llamada real a NASA TEMPO o OpenAQ
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // Create new air quality data with selected location
-            let newAQI = Int.random(in: 50...150)
-            let newPM25 = Double.random(in: 15...35)
-            let newPM10 = Double.random(in: 40...80)
-
-            self.airQualityData = AirQualityData(
-                aqi: newAQI,
-                pm25: newPM25,
-                pm10: newPM10,
-                location: locationName,
-                city: cityName,
-                distance: Double.random(in: 0.5...5.0),
-                temperature: Double.random(in: 15...25),
-                humidity: Int.random(in: 50...80),
-                windSpeed: Double.random(in: 2...8),
-                uvIndex: Int.random(in: 0...5),
-                weatherCondition: .overcast,
-                lastUpdate: Date()
-            )
-
-            // Hide loading state
-            self.isLoadingAQI = false
-        }
-    }
-}
-
-// MARK: - Supporting Views
-
-struct PMIndicator: View {
-    let title: String
-    let value: Double
-    let unit: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundColor(.white.opacity(0.9))
-
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(Int(value))")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text(unit)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial.opacity(0.4))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
-    }
-}
+// MARK: - Supporting Views (preserved)
 
 struct AQIScaleBar: View {
     let currentAQI: Int
 
     var body: some View {
         VStack(spacing: 8) {
-            // Scale labels
             HStack {
-                Text("Good")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("Moderate")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("Poor")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("Unhealthy")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("Severe")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Spacer()
-                Text("Hazardous")
-                    .font(.caption2)
-                    .foregroundColor(.white)
+                Text("Good"); Spacer(); Text("Moderate"); Spacer(); Text("Poor"); Spacer(); Text("Hazardous")
             }
+            .font(.caption2)
+            .foregroundColor(.white.opacity(0.4))
 
-            // Scale bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Background gradient
                     LinearGradient(
                         colors: [
-                            Color(hex: "#E0E0E0"),
-                            Color(hex: "#F9A825"),
-                            Color(hex: "#FF6F00"),
-                            Color(hex: "#E53935"),
-                            Color(hex: "#8E24AA"),
-                            Color(hex: "#6A1B4D")
+                            Color(hex: "#4CAF50"), Color(hex: "#FFEB3B"),
+                            Color(hex: "#FF9800"), Color(hex: "#F44336"),
+                            Color(hex: "#9C27B0")
                         ],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(Capsule())
 
-                    // Current position indicator
                     Circle()
                         .fill(.white)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 16, height: 16)
                         .shadow(radius: 4)
-                        .offset(x: CGFloat(currentAQI) / 301.0 * geometry.size.width - 10)
+                        .offset(x: CGFloat(currentAQI) / 301.0 * geometry.size.width - 8)
                 }
             }
-            .frame(height: 12)
-
-            // Scale numbers
-            HStack {
-                ForEach([0, 50, 100, 150, 200, 301], id: \.self) { number in
-                    Text("\(number)")
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.8))
-                    if number != 301 {
-                        Spacer()
-                    }
-                }
-
-                Text("301+")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.8))
-            }
+            .frame(height: 10)
         }
     }
 }
@@ -1221,22 +1307,13 @@ struct WeatherInfoItem: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(.white)
-
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.title3.bold())
-                    .foregroundColor(.white)
-
+                Text(value).font(.title3.bold()).foregroundColor(.white)
                 if !unit.isEmpty {
-                    Text(unit)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+                    Text(unit).font(.caption).foregroundColor(.white.opacity(0.6))
                 }
             }
-
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.9))
+            Text(label).font(.caption2).foregroundColor(.white.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
     }
@@ -1251,12 +1328,12 @@ struct ForecastTabButton: View {
         Button(action: action) {
             Text(title)
                 .font(.subheadline.bold())
-                .foregroundColor(isSelected ? .black : .white.opacity(0.7))
+                .foregroundColor(isSelected ? .black : .white.opacity(0.5))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 15)
-                        .fill(isSelected ? .white : .white.opacity(0.1))
+                        .fill(isSelected ? .white : .white.opacity(0.08))
                 )
         }
     }
@@ -1269,27 +1346,18 @@ struct HourlyForecastItem: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(hour)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.9))
-
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.white)
-                .symbolRenderingMode(.multicolor)
-
-            Text("\(temp)°")
-                .font(.title3.bold())
-                .foregroundColor(.white)
+            Text(hour).font(.caption).foregroundColor(.white.opacity(0.6))
+            Image(systemName: icon).font(.title2).foregroundColor(.white).symbolRenderingMode(.multicolor)
+            Text("\(temp)°").font(.title3.bold()).foregroundColor(.white)
         }
         .frame(width: 60)
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 15)
-                .fill(.ultraThinMaterial.opacity(0.3))
+                .fill(.ultraThinMaterial.opacity(0.15))
                 .overlay(
                     RoundedRectangle(cornerRadius: 15)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .stroke(.white.opacity(0.08), lineWidth: 1)
                 )
         )
     }
@@ -1297,226 +1365,167 @@ struct HourlyForecastItem: View {
 
 // MARK: - Exposure Circular Chart
 
-struct ExposureCircularChart: View {
-    @State private var selectedCategory = "All"
-    let categories = ["All", "Home", "Work", "Outdoor"]
+// MARK: - Exposure Activity Rings (Apple-style)
 
-    // Sample data: hours spent in each environment (today's data)
+struct ExposureCircularChart: View {
+    @Environment(\.weatherTheme) private var theme
+    @State private var animate = false
+
     let homeHours: CGFloat = 6
     let workHours: CGFloat = 4
     let outdoorHours: CGFloat = 3
 
-    var totalHours: CGFloat {
-        homeHours + workHours + outdoorHours
-    }
+    var totalHours: CGFloat { homeHours + workHours + outdoorHours }
 
-    var showHome: Bool {
-        selectedCategory == "All" || selectedCategory == "Home"
-    }
-
-    var showWork: Bool {
-        selectedCategory == "All" || selectedCategory == "Work"
-    }
-
-    var showOutdoor: Bool {
-        selectedCategory == "All" || selectedCategory == "Outdoor"
-    }
+    private let ringSize: CGFloat = 140
+    private let strokeWidth: CGFloat = 12
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Category tabs
-            HStack(spacing: 12) {
-                ForEach(categories, id: \.self) { category in
-                    ExposureCategoryTabHome(
-                        title: category,
-                        isSelected: selectedCategory == category
-                    ) {
-                        withAnimation(.spring(response: 0.3)) {
-                            selectedCategory = category
-                        }
-                    }
-                }
-            }
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-            // Circular clock-style chart
+            // Rings
             ZStack {
-                // Hour markers and labels
-                ForEach(0..<24) { hour in
-                    HourMarker(hour: hour, totalHours: totalHours)
-                }
+                // Outdoor — outer ring
+                ExposureRing(
+                    progress: animate ? outdoorHours / 12 : 0,
+                    color: Color(hex: "#FFA726"),
+                    size: ringSize,
+                    strokeWidth: strokeWidth
+                )
 
-                // Colored segments - conditional display with animations
-                ZStack {
-                    // Home segment (Yellow)
-                    if showHome {
-                        SegmentArc(
-                            startHour: 0,
-                            endHour: homeHours,
-                            color: Color(hex: "#FFD54F"),
-                            label: "HOME",
-                            hours: homeHours
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    }
+                // Work — middle ring
+                ExposureRing(
+                    progress: animate ? workHours / 12 : 0,
+                    color: Color(hex: "#81C784"),
+                    size: ringSize - (strokeWidth * 2 + 6),
+                    strokeWidth: strokeWidth
+                )
 
-                    // Work segment (Green)
-                    if showWork {
-                        SegmentArc(
-                            startHour: homeHours,
-                            endHour: homeHours + workHours,
-                            color: Color(hex: "#81C784"),
-                            label: "WORK",
-                            hours: workHours
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    }
+                // Home — inner ring
+                ExposureRing(
+                    progress: animate ? homeHours / 12 : 0,
+                    color: Color(hex: "#FFD54F"),
+                    size: ringSize - (strokeWidth * 4 + 12),
+                    strokeWidth: strokeWidth
+                )
 
-                    // Outdoor segment (Orange)
-                    if showOutdoor {
-                        SegmentArc(
-                            startHour: homeHours + workHours,
-                            endHour: homeHours + workHours + outdoorHours,
-                            color: Color(hex: "#FFA726"),
-                            label: "OUTDOOR",
-                            hours: outdoorHours
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                }
-
-                // Center content
-                VStack(spacing: 8) {
-                    if selectedCategory == "All" {
-                        Image(systemName: "figure.stand")
-                            .font(.system(size: 60))
-                            .foregroundColor(.white.opacity(0.3))
-
-                        Text("\(Int(totalHours))h")
-                            .font(.title3.bold())
-                            .foregroundColor(.white.opacity(0.6))
-
-                        Text("Total")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                    } else {
-                        let hours = selectedCategory == "Home" ? homeHours :
-                                   selectedCategory == "Work" ? workHours : outdoorHours
-
-                        Text("\(Int(hours))h")
-                            .font(.system(size: 48, weight: .heavy))
-                            .foregroundColor(.white)
-
-                        Text(selectedCategory.uppercased())
-                            .font(.caption.bold())
-                            .foregroundColor(.white.opacity(0.7))
-                    }
+                // Center total
+                VStack(spacing: 1) {
+                    Text("\(Int(totalHours))h")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("Total")
+                        .font(.system(size: 8))
+                        .foregroundColor(.white.opacity(0.4))
                 }
             }
-            .frame(height: 240)
+            .frame(width: ringSize, height: ringSize)
+
+            Spacer(minLength: 16)
+
+            // Legend
+            VStack(alignment: .leading, spacing: 12) {
+                ExposureLegendItem(color: Color(hex: "#FFA726"), label: "Outdoor", hours: outdoorHours, total: 12)
+                ExposureLegendItem(color: Color(hex: "#81C784"), label: "Work", hours: workHours, total: 12)
+                ExposureLegendItem(color: Color(hex: "#FFD54F"), label: "Home", hours: homeHours, total: 12)
+            }
+
+            Spacer(minLength: 0)
         }
-    }
-}
-
-struct ExposureCategoryTabHome: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var categoryColor: Color {
-        switch title {
-        case "Home": return Color(hex: "#FFD54F")
-        case "Work": return Color(hex: "#81C784")
-        case "Outdoor": return Color(hex: "#FFA726")
-        default: return .white
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption.bold())
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(theme.cardColor.opacity(0.8))
+                .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? categoryColor.opacity(0.3) : Color.white.opacity(0.15))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(isSelected ? categoryColor : .clear, lineWidth: 2)
-                        )
+                        .stroke(theme.borderColor, lineWidth: 1)
                 )
-        }
-    }
-}
-
-struct CategoryTab: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(isSelected ? Color.blue : Color.white.opacity(0.2))
-                )
-        }
-    }
-}
-
-struct HourMarker: View {
-    let hour: Int
-    let totalHours: CGFloat
-
-    var body: some View {
-        VStack {
-            Rectangle()
-                .fill(.white.opacity(0.3))
-                .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 12 : 6)
-
-            Spacer()
-
-            if hour % 3 == 0 {
-                Text("\(hour)")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.6))
-                    .offset(y: -10)
+        )
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
+                animate = true
             }
         }
-        .frame(width: 100, height: 100)
-        .rotationEffect(.degrees(Double(hour) * 15))
     }
 }
 
-struct SegmentArc: View {
-    let startHour: CGFloat
-    let endHour: CGFloat
+struct ExposureRing: View {
+    let progress: CGFloat
     let color: Color
-    let label: String
-    let hours: CGFloat
+    let size: CGFloat
+    let strokeWidth: CGFloat
 
     var body: some View {
         ZStack {
             Circle()
-                .trim(from: startHour / 24, to: endHour / 24)
+                .stroke(color.opacity(0.12), lineWidth: strokeWidth)
+                .frame(width: size, height: size)
+
+            Circle()
+                .trim(from: 0, to: progress)
                 .stroke(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.7)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 35
+                    LinearGradient(colors: [color, color.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
                 )
-                .frame(width: 180, height: 180)
+                .frame(width: size, height: size)
                 .rotationEffect(.degrees(-90))
-                .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 0)
+                .shadow(color: color.opacity(0.4), radius: 4)
         }
+    }
+}
+
+struct ExposureLegendItem: View {
+    let color: Color
+    let label: String
+    let hours: CGFloat
+    let total: CGFloat
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
+
+                HStack(spacing: 4) {
+                    Text("\(Int(hours))h")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text("/ \(Int(total))h")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.3))
+                }
+            }
+        }
+    }
+}
+
+struct PMIndicator: View {
+    let title: String
+    let value: Double
+    let unit: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline.bold()).foregroundColor(.white.opacity(0.7))
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(Int(value))").font(.system(size: 32, weight: .bold)).foregroundColor(.white)
+                Text(unit).font(.caption).foregroundColor(.white.opacity(0.6))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial.opacity(0.15))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
+        )
     }
 }
 
@@ -1538,38 +1547,24 @@ struct LocationSearchModal: View {
 
     var body: some View {
         ZStack {
-            // Background gradient - Using app colors
-            LinearGradient(
-                colors: [
-                    Color("Secondary"),
-                    Color("Primary"),
-                    Color("Secondary")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color(hex: "#0A0A0F").ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Header with close button
                 HStack {
                     Spacer()
-                    Button(action: {
-                        dismiss()
-                    }) {
+                    Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.white.opacity(0.6))
                     }
                 }
                 .padding()
                 .padding(.top, 10)
 
-                // Enhanced Search bar
                 HStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.title3)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.6))
 
                     TextField("Search location...", text: $searchText)
                         .font(.body)
@@ -1577,12 +1572,10 @@ struct LocationSearchModal: View {
                         .autocorrectionDisabled()
 
                     if !searchText.isEmpty {
-                        Button(action: {
-                            searchText = ""
-                        }) {
+                        Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.title3)
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(.white.opacity(0.4))
                         }
                     }
                 }
@@ -1590,28 +1583,24 @@ struct LocationSearchModal: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial.opacity(0.4))
+                        .fill(.ultraThinMaterial.opacity(0.15))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(.white.opacity(0.3), lineWidth: 1.5)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
                         )
-                        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
                 )
                 .padding(.horizontal, 20)
                 .padding(.bottom, 10)
 
-                // Results or Quick Navigation
                 ScrollView {
                     if searchText.isEmpty {
                         VStack(alignment: .leading, spacing: 20) {
-                            // Quick Navigation Header
                             Text("Quick Navigation")
                                 .font(.title2.bold())
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 20)
                                 .padding(.top, 20)
 
-                            // Quick location buttons
                             VStack(spacing: 12) {
                                 ForEach(quickLocations, id: \.0) { location in
                                     Button(action: {
@@ -1620,33 +1609,19 @@ struct LocationSearchModal: View {
                                     }) {
                                         HStack(spacing: 16) {
                                             Image(systemName: location.1)
-                                                .font(.title2)
-                                                .foregroundColor(.white)
-                                                .frame(width: 40)
-
+                                                .font(.title2).foregroundColor(.white).frame(width: 40)
                                             VStack(alignment: .leading, spacing: 4) {
-                                                Text(location.0)
-                                                    .font(.body.bold())
-                                                    .foregroundColor(.white)
-
-                                                Text("View air quality")
-                                                    .font(.caption)
-                                                    .foregroundColor(.white.opacity(0.7))
+                                                Text(location.0).font(.body.bold()).foregroundColor(.white)
+                                                Text("View air quality").font(.caption).foregroundColor(.white.opacity(0.5))
                                             }
-
                                             Spacer()
-
-                                            Image(systemName: "chevron.right")
-                                                .foregroundColor(.white.opacity(0.5))
+                                            Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.3))
                                         }
                                         .padding()
                                         .background(
                                             RoundedRectangle(cornerRadius: 16)
-                                                .fill(.white.opacity(0.15))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 16)
-                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                )
+                                                .fill(.white.opacity(0.08))
+                                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
                                         )
                                     }
                                 }
@@ -1661,34 +1636,19 @@ struct LocationSearchModal: View {
                                     dismiss()
                                 }) {
                                     HStack(spacing: 16) {
-                                        Image(systemName: "mappin.circle.fill")
-                                            .font(.title2)
-                                            .foregroundColor(.white)
-                                            .frame(width: 40)
-
+                                        Image(systemName: "mappin.circle.fill").font(.title2).foregroundColor(.white).frame(width: 40)
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(location)
-                                                .font(.body.bold())
-                                                .foregroundColor(.white)
-
-                                            Text("Tap to view air quality")
-                                                .font(.caption)
-                                                .foregroundColor(.white.opacity(0.7))
+                                            Text(location).font(.body.bold()).foregroundColor(.white)
+                                            Text("Tap to view air quality").font(.caption).foregroundColor(.white.opacity(0.5))
                                         }
-
                                         Spacer()
-
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(.white.opacity(0.5))
+                                        Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.3))
                                     }
                                     .padding()
                                     .background(
                                         RoundedRectangle(cornerRadius: 16)
-                                            .fill(.white.opacity(0.15))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 16)
-                                                    .stroke(.white.opacity(0.2), lineWidth: 1)
-                                            )
+                                            .fill(.white.opacity(0.08))
+                                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
                                     )
                                 }
                             }
@@ -1703,24 +1663,14 @@ struct LocationSearchModal: View {
 
     var filteredLocations: [String] {
         let sampleLocations = [
-            "Mexico City, Mexico",
-            "New York, USA",
-            "Los Angeles, USA",
-            "London, UK",
-            "Tokyo, Japan",
-            "Paris, France",
-            "Berlin, Germany",
-            "Madrid, Spain"
+            "Mexico City, Mexico", "New York, USA", "Los Angeles, USA",
+            "London, UK", "Tokyo, Japan", "Paris, France",
+            "Berlin, Germany", "Madrid, Spain"
         ]
-
-        if searchText.isEmpty {
-            return sampleLocations
-        } else {
-            return sampleLocations.filter { $0.lowercased().contains(searchText.lowercased()) }
-        }
+        if searchText.isEmpty { return sampleLocations }
+        return sampleLocations.filter { $0.lowercased().contains(searchText.lowercased()) }
     }
 }
-
 
 // MARK: - Day Comparison Dot
 
@@ -1739,17 +1689,9 @@ struct DayDot: View {
 
     var body: some View {
         VStack(spacing: 3) {
-            Circle()
-                .fill(dotColor)
-                .frame(width: 12, height: 12)
-                .overlay(
-                    Circle()
-                        .stroke(.white.opacity(0.4), lineWidth: 1)
-                )
-
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
+            Circle().fill(dotColor).frame(width: 12, height: 12)
+                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.white.opacity(0.6))
         }
     }
 }
@@ -1768,7 +1710,7 @@ struct DailyForecastData: Identifiable {
 
     var aqiColor: Color {
         switch aqi {
-        case 0..<51: return Color(hex: "#E0E0E0")
+        case 0..<51: return Color(hex: "#4CAF50")
         case 51..<101: return Color(hex: "#FDD835")
         case 101..<151: return Color(hex: "#FF9800")
         default: return Color(hex: "#E53935")
@@ -1776,7 +1718,41 @@ struct DailyForecastData: Identifiable {
     }
 }
 
+extension AQIHomeView {
+    fileprivate func handleLocationSelection(_ locationString: String) {
+        let components = locationString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        let locationName = components.first ?? locationString
+        let cityName = locationString
+        fetchAQIData(locationName: locationName, cityName: cityName)
+    }
+
+    fileprivate func fetchAQIData(locationName: String, cityName: String) {
+        isLoadingAQI = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            let newAQI = Int.random(in: 50...150)
+            let newPM25 = Double.random(in: 15...35)
+            let newPM10 = Double.random(in: 40...80)
+
+            self.airQualityData = AirQualityData(
+                aqi: newAQI,
+                pm25: newPM25,
+                pm10: newPM10,
+                location: locationName,
+                city: cityName,
+                distance: Double.random(in: 0.5...5.0),
+                temperature: Double.random(in: 15...25),
+                humidity: Int.random(in: 50...80),
+                windSpeed: Double.random(in: 2...8),
+                uvIndex: Int.random(in: 0...5),
+                weatherCondition: .overcast,
+                lastUpdate: Date()
+            )
+            self.isLoadingAQI = false
+        }
+    }
+}
+
 #Preview {
     AQIHomeView(showBusinessPulse: .constant(false))
 }
-

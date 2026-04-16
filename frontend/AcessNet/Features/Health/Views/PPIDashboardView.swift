@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct PPIDashboardView: View {
+    @Environment(\.weatherTheme) private var theme
     @ObservedObject var connectivityManager = PhoneConnectivityManager.shared
 
     // Local state
@@ -91,12 +92,7 @@ struct PPIDashboardView: View {
             }
             .padding(.horizontal)
         }
-        .background(
-            LinearGradient(
-                colors: [Color(hex: "#0A1D4D"), Color(hex: "#132D5E"), Color(hex: "#1A3A6E")],
-                startPoint: .top, endPoint: .bottom
-            ).ignoresSafeArea()
-        )
+        .background(theme.pageBackground.ignoresSafeArea())
         .sheet(isPresented: $showingVulnerabilityProfile) {
             VulnerabilityProfileView(
                 profile: profile,
@@ -189,7 +185,7 @@ struct PPIDashboardView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.cardColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
@@ -278,7 +274,7 @@ struct PPIDashboardView: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(theme.cardColor)
                             .frame(height: 6)
 
                         // WHO marker
@@ -358,7 +354,7 @@ struct PPIDashboardView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.1))
+                .fill(theme.cardColor)
         )
     }
 
@@ -412,7 +408,7 @@ struct PPIDashboardView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.cardColor)
         )
     }
 
@@ -482,7 +478,7 @@ struct PPIDashboardView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.cardColor)
         )
     }
 
@@ -525,7 +521,7 @@ struct PPIDashboardView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white.opacity(0.03))
+                .fill(theme.cardColor.opacity(0.7))
         )
     }
 
@@ -581,7 +577,7 @@ struct PPIDashboardView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.cardColor)
         )
     }
 
@@ -605,7 +601,7 @@ struct PPIDashboardView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.cardColor)
         )
     }
 

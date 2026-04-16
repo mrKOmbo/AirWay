@@ -62,6 +62,19 @@ class AppSettings: ObservableObject {
         return proximityRadiusKm * 1000
     }
 
+    // MARK: - Weather Override (Debug/Demo)
+
+    /// Override manual del clima para testing
+    @AppStorage("weatherOverride")
+    var weatherOverrideRaw: String = "" {
+        willSet { objectWillChange.send() }
+    }
+
+    var weatherOverride: WeatherCondition? {
+        get { WeatherCondition(rawValue: weatherOverrideRaw) }
+        set { weatherOverrideRaw = newValue?.rawValue ?? "" }
+    }
+
     // MARK: - General Preferences
 
     /// Unidad de distancia preferida

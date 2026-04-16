@@ -30,18 +30,12 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        let theme = WeatherTheme(condition: WeatherCondition(rawValue: appSettings.weatherOverrideRaw) ?? .overcast)
+
         ZStack {
-            // Background gradient - Deep blue to purple
-            LinearGradient(
-                colors: [
-                    Color(hex: "#1a1a2e"),
-                    Color(hex: "#16213e"),
-                    Color(hex: "#0f3460")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Background — dynamic
+            theme.pageBackground
+                .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 32) {
@@ -87,7 +81,7 @@ struct SettingsView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.1))
+                                .fill(theme.cardColor)
                         )
                     }
                     .padding(.horizontal)
@@ -120,7 +114,7 @@ struct SettingsView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.1))
+                                .fill(theme.cardColor)
                         )
                     }
                     .padding(.horizontal)
@@ -153,8 +147,88 @@ struct SettingsView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.1))
+                                .fill(theme.cardColor)
                         )
+                    }
+                    .padding(.horizontal)
+
+                    // Weather Override Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("WEATHER SIMULATION")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.7))
+                            .tracking(1)
+
+                        Text("Changes the app's visual theme")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.4))
+
+                        let conditions: [(WeatherCondition, String, String)] = [
+                            (.sunny, "sun.max.fill", "#FFB830"),
+                            (.cloudy, "cloud.fill", "#8EACC0"),
+                            (.overcast, "smoke.fill", "#7A8A9A"),
+                            (.rainy, "cloud.rain.fill", "#5080C0"),
+                            (.stormy, "cloud.bolt.rain.fill", "#8060C0")
+                        ]
+
+                        HStack(spacing: 8) {
+                            // Auto button
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    appSettings.weatherOverride = nil
+                                }
+                            } label: {
+                                VStack(spacing: 6) {
+                                    Image(systemName: "a.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(appSettings.weatherOverrideRaw.isEmpty ? .white : .white.opacity(0.4))
+
+                                    Text("Auto")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundColor(appSettings.weatherOverrideRaw.isEmpty ? .white : .white.opacity(0.4))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(appSettings.weatherOverrideRaw.isEmpty ? .white.opacity(0.15) : .white.opacity(0.05))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(appSettings.weatherOverrideRaw.isEmpty ? .white.opacity(0.3) : .clear, lineWidth: 1)
+                                        )
+                                )
+                            }
+
+                            ForEach(conditions, id: \.0) { condition, icon, color in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                        appSettings.weatherOverride = condition
+                                    }
+                                } label: {
+                                    let isSelected = appSettings.weatherOverride == condition
+                                    VStack(spacing: 6) {
+                                        Image(systemName: icon)
+                                            .font(.title2)
+                                            .foregroundColor(isSelected ? Color(hex: color) : .white.opacity(0.4))
+                                            .symbolRenderingMode(.multicolor)
+
+                                        Text(condition.rawValue)
+                                            .font(.system(size: 9, weight: .semibold))
+                                            .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(isSelected ? Color(hex: color).opacity(0.15) : .white.opacity(0.05))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(isSelected ? Color(hex: color).opacity(0.4) : .clear, lineWidth: 1)
+                                            )
+                                    )
+                                }
+                            }
+                        }
                     }
                     .padding(.horizontal)
 
@@ -285,7 +359,7 @@ struct SettingsView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.white.opacity(0.05))
+                                .fill(theme.cardColor)
                         )
                         .padding(.horizontal)
                     }
@@ -302,6 +376,7 @@ struct SettingsView: View {
 // MARK: - Supporting Views
 
 struct SegmentButton: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -310,7 +385,7 @@ struct SegmentButton: View {
         Button(action: action) {
             Text(title)
                 .font(.body.bold())
-                .foregroundColor(isSelected ? Color(hex: "#0D1B3E") : .white.opacity(0.7))
+                .foregroundColor(isSelected ? .black : .white.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(

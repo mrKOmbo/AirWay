@@ -112,7 +112,7 @@ extension AirQualityData {
         humidity: 68,
         windSpeed: 4.0,
         uvIndex: 0,
-        weatherCondition: .overcast,
+        weatherCondition: .sunny,
         lastUpdate: Date().addingTimeInterval(-360)
     )
 }

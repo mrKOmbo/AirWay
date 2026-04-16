@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DailyForecastView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.weatherTheme) private var theme
     @State private var selectedDay: DailyForecast = DailyForecast.selected
     @State private var selectedTab: ForecastPeriod = .day
     @State private var hourlyData: [HourlyAQIData] = HourlyAQIData.generateSampleDay()
@@ -27,17 +28,9 @@ struct DailyForecastView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            LinearGradient(
-                colors: [
-                    Color(hex: "#0D1B3E"),
-                    Color(hex: "#1A2847"),
-                    Color(hex: "#0D1B3E")
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // Background — matching home dark theme
+            theme.pageBackground
+                .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
@@ -99,12 +92,13 @@ struct DailyForecastView: View {
                 // Back button
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
-                        .font(.title2)
+                        .font(.title3.weight(.semibold))
                         .foregroundColor(.white)
-                        .padding()
+                        .frame(width: 40, height: 40)
                         .background(
                             Circle()
-                                .fill(.ultraThinMaterial.opacity(0.5))
+                                .fill(theme.cardColor)
+                                .overlay(Circle().stroke(.white.opacity(0.08), lineWidth: 1))
                         )
                 }
 
@@ -277,21 +271,11 @@ struct DailyForecastView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color("Secondary").opacity(0.9),
-                            Color("Secondary").opacity(0.6)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(theme.cardColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(.white.opacity(0.08), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
         )
         .padding(.horizontal)
     }
@@ -407,7 +391,7 @@ struct DailyForecastView: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color("Secondary").opacity(0.6))
+                    .fill(theme.cardColor)
             )
             .padding(.horizontal)
         }
@@ -431,7 +415,7 @@ struct DailyForecastView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color("Secondary").opacity(0.6))
+                    .fill(theme.cardColor)
             )
             .padding(.horizontal)
         }
@@ -513,6 +497,7 @@ struct DailyForecastView: View {
 // MARK: - Supporting Views
 
 struct ComparisonDayCard: View {
+    @Environment(\.weatherTheme) private var theme
     let day: DailyForecast
     let label: String
     let isMain: Bool
@@ -583,6 +568,7 @@ struct ComparisonDayCard: View {
 }
 
 struct PollutantBadge: View {
+    @Environment(\.weatherTheme) private var theme
     let label: String
     let value: Int
 
@@ -600,10 +586,10 @@ struct PollutantBadge: View {
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(.white.opacity(0.15))
+                .fill(theme.cardColor)
                 .overlay(
                     Capsule()
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
     }
@@ -632,6 +618,7 @@ struct TabButton: View {
 }
 
 struct DayButton: View {
+    @Environment(\.weatherTheme) private var theme
     let day: DailyForecast
     let isSelected: Bool
     let action: () -> Void
@@ -657,7 +644,7 @@ struct DayButton: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color("Secondary").opacity(0.8) : .clear)
+                    .fill(isSelected ? theme.cardColor : .clear)
             )
         }
     }
@@ -829,6 +816,7 @@ struct AQIBarChart: View {
 }
 
 struct TipCategoryCard: View {
+    @Environment(\.weatherTheme) private var theme
     let category: TipCategory
     let action: () -> Void
 
@@ -841,7 +829,7 @@ struct TipCategoryCard: View {
                     .frame(width: 80, height: 80)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color("Secondary").opacity(0.6))
+                            .fill(theme.cardColor)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
                                     .stroke(Color(hex: category.color).opacity(0.3), lineWidth: 2)
@@ -855,6 +843,7 @@ struct TipCategoryCard: View {
 // MARK: - Tip Popup View
 
 struct TipPopupView: View {
+    @Environment(\.weatherTheme) private var theme
     let category: TipCategory
     let currentTip: String
     let onDismiss: () -> Void
@@ -935,8 +924,8 @@ struct TipPopupView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color("Secondary").opacity(0.95),
-                                Color("Secondary").opacity(0.85)
+                                theme.cardColor,
+                                theme.cardColor.opacity(0.8)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -1268,6 +1257,7 @@ struct ExposureSegmentArc: View {
 // MARK: - Monthly View Components
 
 struct MonthlyStatsCard: View {
+    @Environment(\.weatherTheme) private var theme
     let selectedMonth: String
 
     // Data structure for multiple months (July - October 2025)
@@ -1415,8 +1405,8 @@ struct MonthlyStatsCard: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color("Secondary").opacity(0.9),
-                            Color("Secondary").opacity(0.6)
+                            theme.cardColor,
+                            theme.cardColor.opacity(0.8)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1466,6 +1456,7 @@ struct StatBox: View {
 }
 
 struct MonthlyCalendarHeatMap: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var selectedMonth: String
     let days = ["S", "M", "T", "W", "T", "F", "S"]
 
@@ -1622,7 +1613,7 @@ struct MonthlyCalendarHeatMap: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color("Secondary").opacity(0.6))
+                    .fill(theme.cardColor)
             )
             .padding(.horizontal)
         }
@@ -1670,6 +1661,7 @@ struct CalendarDayCell: View {
 }
 
 struct MonthlyTrendGraph: View {
+    @Environment(\.weatherTheme) private var theme
     let selectedMonth: String
 
     // Data structure for multiple months (July - October 2025)
@@ -1722,7 +1714,7 @@ struct MonthlyTrendGraph: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color("Secondary").opacity(0.6))
+                    .fill(theme.cardColor)
             )
             .padding(.horizontal)
         }
@@ -1730,6 +1722,7 @@ struct MonthlyTrendGraph: View {
 }
 
 struct BestDaysInsightCard: View {
+    @Environment(\.weatherTheme) private var theme
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -1766,8 +1759,8 @@ struct BestDaysInsightCard: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color("Secondary").opacity(0.9),
-                            Color("Secondary").opacity(0.6)
+                            theme.cardColor,
+                            theme.cardColor.opacity(0.8)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
