@@ -263,7 +263,7 @@ Genera el análisis en formato JSON."""
             },
         }
 
-        r = requests.post(url, params=params, json=payload, timeout=15)
+        r = requests.post(url, params=params, json=payload, timeout=45)
         r.raise_for_status()
         data = r.json()
 
@@ -293,7 +293,7 @@ Genera el análisis en formato JSON."""
             ],
         }
 
-        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        r = requests.post(url, headers=headers, json=payload, timeout=45)
         r.raise_for_status()
         data = r.json()
 
