@@ -87,13 +87,18 @@ class DepartureOptimizer:
 
         # 1. OSRM base: una sola llamada, reutilizable para todas las ventanas
         route = self._route_safe([origin, destination])
-        if not route:
-            logger.error("departure.suggest_windows no OSRM route")
-            return {"error": "No se pudo calcular la ruta base"}
-
-        base_distance_km = route["distance"] / 1000
-        base_duration_min = route["duration"] / 60
-        geometry = route["geometry"]
+        if route:
+            base_distance_km = route["distance"] / 1000
+            base_duration_min = route["duration"] / 60
+            geometry = route["geometry"]
+            logger.info("departure.suggest_windows using OSRM route: %.2fkm %.1fmin",
+                        base_distance_km, base_duration_min)
+        else:
+            # Fallback heurístico: Haversine + velocidad promedio urbana CDMX
+            logger.warning("departure.suggest_windows OSRM unavailable, using Haversine fallback")
+            base_distance_km = self._haversine_km(origin, destination) * 1.35  # factor urbano
+            base_duration_min = (base_distance_km / 28.0) * 60  # 28 km/h promedio CDMX
+            geometry = self._simple_polyline([origin, destination])
 
         # 2. AQI actual en midpoint (para predicciones relativas)
         mid_lat, mid_lon = self._midpoint(origin, destination)
@@ -285,6 +290,25 @@ class DepartureOptimizer:
     @staticmethod
     def _midpoint(origin, dest):
         return ((origin[0] + dest[0]) / 2, (origin[1] + dest[1]) / 2)
+
+    @staticmethod
+    def _haversine_km(origin, dest):
+        """Distancia en km entre dos (lat, lon)."""
+        import math
+        R = 6371
+        lat1, lon1 = math.radians(origin[0]), math.radians(origin[1])
+        lat2, lon2 = math.radians(dest[0]), math.radians(dest[1])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
+
+    @staticmethod
+    def _simple_polyline(coords):
+        """Codifica lista de (lat, lon) a formato Google Encoded Polyline (precision 5)."""
+        import polyline
+        return polyline.encode(coords, precision=5)
 
     @staticmethod
     def _vulnerability_multiplier(profile: dict) -> float:

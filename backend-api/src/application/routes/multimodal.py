@@ -261,13 +261,46 @@ class MultimodalRouter:
 
     # ── Helpers ──────────────────────────────────────────────────────────────
     def _route_safe(self, coords, profile):
+        """Intenta OSRM; si falla, usa Haversine como fallback."""
         logger.debug("multimodal._route_safe osrm profile=%s", profile)
         try:
             routes = self.osrm.route(coords, profile=profile, alternatives=0)
-            return routes[0] if routes else None
+            if routes:
+                return routes[0]
         except Exception as exc:
             logger.warning("multimodal.osrm %s failed: %s", profile, exc)
-            return None
+
+        # Fallback heurístico cuando OSRM no disponible (Render no lo tiene)
+        logger.warning("multimodal using Haversine fallback for profile=%s", profile)
+        dist_m = self._haversine_m(coords[0], coords[-1])
+        # Factor por tipo de ruta (urbano CDMX)
+        if profile == "bike":
+            dist_m *= 1.3   # rutas ciclistas con desvíos
+            speed_kmh = 15.0
+        else:  # car
+            dist_m *= 1.35  # rutas vehiculares con vueltas
+            speed_kmh = 28.0
+        duration_s = (dist_m / 1000) / speed_kmh * 3600
+        return {
+            "distance": dist_m,
+            "duration": duration_s,
+            "geometry": self._encode_polyline(coords),
+        }
+
+    @staticmethod
+    def _haversine_m(a, b):
+        import math
+        R = 6371000
+        lat1, lon1 = math.radians(a[0]), math.radians(a[1])
+        lat2, lon2 = math.radians(b[0]), math.radians(b[1])
+        dlat, dlon = lat2 - lat1, lon2 - lon1
+        h = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+        return 2 * R * math.atan2(math.sqrt(h), math.sqrt(1 - h))
+
+    @staticmethod
+    def _encode_polyline(coords):
+        import polyline
+        return polyline.encode(coords, precision=5)
 
     @staticmethod
     def _estimate_tolls(route: dict) -> float:
