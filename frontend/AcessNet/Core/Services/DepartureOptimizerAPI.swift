@@ -71,6 +71,13 @@ final class DepartureOptimizerAPI {
             throw FuelAPIError.serverError(http.statusCode, errText)
         }
 
+        // Check for {"error": "..."} response with 200 status (backend fallback)
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let errMsg = json["error"] as? String {
+            AirWayLogger.departure.error("DepartureOptimizerAPI error in body: \(errMsg, privacy: .public)")
+            throw FuelAPIError.serverError(200, errMsg)
+        }
+
         let response = try decoder.decode(OptimalDepartureResponse.self, from: data)
         AirWayLogger.departure.info(
             "DepartureOptimizerAPI result windows=\(response.windows.count, privacy: .public) best_at=\(response.best?.departTimeLabel ?? "-", privacy: .public) score=\(String(format: "%.1f", response.best?.score ?? 0), privacy: .public)"

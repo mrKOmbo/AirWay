@@ -17,28 +17,10 @@ struct WeatherBackground: View {
 
     var body: some View {
         ZStack {
-            // Layer 1: Gradient
+            // Layer 1: Gradient oscuro limpio (sin nubes, sin lottie, sin partículas, sin glow)
             LinearGradient(colors: gradientColors, startPoint: .top, endPoint: .bottom)
 
-            // Layer 2: Ambient glow
-            RadialGradient(colors: glowColors, center: glowCenter, startRadius: 20, endRadius: 400)
-                .opacity(0.7)
-
-            // Layer 3: Nubes animadas
-            if condition != .sunny {
-                animatedClouds
-            }
-
-            // Layer 4: Lottie animation si existe
-            if lottieFileExists {
-                LottieWeatherView(filename: lottieFilename)
-                    .opacity(0.5)
-            }
-
-            // Layer 5: Partículas SwiftUI
-            particleLayer
-
-            // Layer 6: Vignette
+            // Layer 2: Vignette sutil para profundidad
             RadialGradient(colors: [.clear, .black.opacity(0.35)], center: .center, startRadius: 150, endRadius: 500)
         }
         .ignoresSafeArea()
@@ -47,9 +29,9 @@ struct WeatherBackground: View {
 
     // MARK: - Lottie
 
-    private var lottieFilename: String {
+    private var lottieFilename: String? {
         switch condition {
-        case .sunny: return "sunny"
+        case .sunny: return nil                   // Sol removido por preferencia del usuario
         case .cloudy: return "Weather-windy"
         case .overcast: return "overcast"
         case .rainy: return "rain"
@@ -58,7 +40,8 @@ struct WeatherBackground: View {
     }
 
     private var lottieFileExists: Bool {
-        Bundle.main.path(forResource: lottieFilename, ofType: "json") != nil
+        guard let name = lottieFilename else { return false }
+        return Bundle.main.path(forResource: name, ofType: "json") != nil
     }
 
     // MARK: - Particle Layer
@@ -72,7 +55,7 @@ struct WeatherBackground: View {
             RainView(intensity: 180)
             StormFlashView()
         case .sunny:
-            SunRaysView()
+            // Sol removido por preferencia del usuario — solo polvo flotante sutil
             FloatingDustView()
         case .cloudy:
             FloatingDustView()
@@ -95,7 +78,8 @@ struct WeatherBackground: View {
 
     private var glowColors: [Color] {
         switch condition {
-        case .sunny:  return [Color(hex: "#FFD870").opacity(0.5), Color(hex: "#87CEEB").opacity(0.1), .clear]
+        // Sol removido: glow neutro azulado en lugar del halo dorado
+        case .sunny:  return [Color(hex: "#4A6080").opacity(0.12), .clear]
         case .cloudy: return [Color(hex: "#4A6080").opacity(0.12), .clear]
         case .overcast: return [Color(hex: "#5A6A7A").opacity(0.2), .clear]
         case .rainy:  return [Color(hex: "#2050B0").opacity(0.15), .clear]
@@ -104,7 +88,8 @@ struct WeatherBackground: View {
     }
 
     private var glowCenter: UnitPoint {
-        condition == .sunny ? .topTrailing : .top
+        // Siempre desde arriba, sin el offset a topTrailing del sol
+        .top
     }
 
     // MARK: - Animated Clouds

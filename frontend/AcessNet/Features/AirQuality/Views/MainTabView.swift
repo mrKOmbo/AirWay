@@ -15,6 +15,7 @@ struct MainTabView: View {
     enum Tab {
         case home
         case map
+        case fuel
         case health
         case settings
     }
@@ -38,6 +39,9 @@ struct MainTabView: View {
                 case .map:
                     ContentView(showBusinessPulse: $showBusinessPulse)
                         .id(Tab.map)
+                case .fuel:
+                    GasolinaMeterHubView()
+                        .id(Tab.fuel)
                 case .health:
                     PPIDashboardView()
                         .id(Tab.health)

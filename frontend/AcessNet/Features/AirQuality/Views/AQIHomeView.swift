@@ -18,6 +18,7 @@ struct AQIHomeView: View {
     @State private var showSearchModal = false
     @State private var searchText = ""
     @State private var showARView = false
+    @State private var showContingencyCast = false
     @State private var isLoadingAQI: Bool = false
 
     // ML Prediction data
@@ -61,19 +62,6 @@ struct AQIHomeView: View {
                         // AI Insight banner (collapsible, below AQI)
                         insightBanner
 
-                        // Subtle refresh indicator (non-blocking)
-                        if isRefreshing {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .tint(.white.opacity(0.5))
-                                    .scaleEffect(0.7)
-                                Text("Actualizando...")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.white.opacity(0.4))
-                            }
-                            .transition(.opacity)
-                        }
-
                         // Error message
                         if let error = dataLoadError, !hasLoadedBackend {
                             Text(error)
@@ -103,6 +91,11 @@ struct AQIHomeView: View {
         .navigationViewStyle(.stack)
         .fullScreenCover(isPresented: $showARView) {
             ARParticlesView()
+        }
+        .sheet(isPresented: $showContingencyCast) {
+            NavigationStack {
+                ContingencyCastView()
+            }
         }
         .sheet(isPresented: $showSearchModal) {
             LocationSearchModal(searchText: $searchText, onLocationSelected: handleLocationSelection)
@@ -372,6 +365,22 @@ struct AQIHomeView: View {
             Spacer()
 
             HStack(spacing: 16) {
+                // ContingencyCast — pronóstico probabilístico 48-72h
+                Button(action: { showContingencyCast = true }) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [.orange.opacity(0.35), .red.opacity(0.25)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "wind.circle.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+
                 Button(action: {}) {
                     Image(systemName: "bell")
                         .font(.title3)

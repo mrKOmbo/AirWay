@@ -13,7 +13,6 @@ struct SettingsView: View {
     @State private var selectedAQI: AQIStandard = .european
     @State private var selectedTemperature: TemperatureUnit = .celsius
     @State private var selectedWindSpeed: WindSpeedUnit = .kmh
-    @State private var showingGasolinaMeter = false
 
     enum AQIStandard {
         case european
@@ -53,67 +52,6 @@ struct SettingsView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 60)
-
-                    // ⛽️ GasolinaMeter Hub — ACCESO A LAS 8 FASES NUEVAS
-                    Button(action: {
-                        showingGasolinaMeter = true
-                    }) {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(LinearGradient(
-                                        colors: [.green, .teal],
-                                        startPoint: .topLeading, endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 52, height: 52)
-                                    .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
-                                Image(systemName: "fuelpump.circle.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.white)
-                            }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
-                                    Text("GasolinaMeter")
-                                        .font(.headline.bold())
-                                        .foregroundColor(.white)
-                                    Text("NUEVO")
-                                        .font(.caption2.bold())
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.green)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(4)
-                                }
-                                Text("8 fases: vehículo · gasolineras · multimodal · OBD-II")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.body.bold())
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(LinearGradient(
-                                    colors: [
-                                        Color.green.opacity(0.25),
-                                        Color.teal.opacity(0.15)
-                                    ],
-                                    startPoint: .topLeading, endPoint: .bottomTrailing
-                                ))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.green.opacity(0.4), lineWidth: 1.5)
-                        )
-                        .padding(.horizontal)
-                    }
-                    .buttonStyle(.plain)
 
                     // Air Quality Index Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -432,9 +370,6 @@ struct SettingsView: View {
             }
         }
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingGasolinaMeter) {
-            GasolinaMeterHubView()
-        }
     }
 }
 

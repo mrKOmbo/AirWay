@@ -43,6 +43,18 @@ final class OBD2Service: NSObject, ObservableObject {
         CBUUID(string: "E7810A71-73AE-499D-8C15-FAA9AEF0C3F2"),  // OBDLink MX+
     ]
 
+    // MARK: - Simulation
+
+    /// Modo simulación para demos/hackathon sin dongle físico.
+    @Published var useSimulation: Bool = true
+    private var simulationTimer: Timer?
+    private var simElapsed: Double = 0
+    private var simCurrentSpeed: Double = 0
+    private var simTargetSpeed: Double = 35
+    private var simRPM: Double = 800
+    private var simThrottle: Double = 0
+    private var simFuelLevel: Double = 68
+
     // MARK: - Init
 
     override init() {
@@ -55,6 +67,10 @@ final class OBD2Service: NSObject, ObservableObject {
     // MARK: - Public API
 
     func scan() {
+        if useSimulation {
+            startSimulation()
+            return
+        }
         guard central.state == .poweredOn else {
             AirWayLogger.obd.warning("scan() attempted but BLE not powered on (state=\(String(describing: self.central.state), privacy: .public))")
             state = .failed(reason: "Bluetooth apagado")
@@ -70,6 +86,7 @@ final class OBD2Service: NSObject, ObservableObject {
 
     func disconnect() {
         AirWayLogger.obd.notice("disconnect() called")
+        stopSimulation()
         stopPolling()
         if let p = peripheral {
             central.cancelPeripheralConnection(p)
@@ -78,6 +95,120 @@ final class OBD2Service: NSObject, ObservableObject {
         writeChar = nil
         notifyChar = nil
         state = .disconnected
+    }
+
+    // MARK: - Simulation
+
+    private func startSimulation() {
+        AirWayLogger.obd.notice("OBD-II starting SIMULATION (Vgate iCar Pro demo)")
+        state = .scanning
+        // Simula descubrimiento después de 1.2s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self = self else { return }
+            self.state = .connecting(peripheralName: "Vgate iCar Pro BLE [SIM]")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.state = .connected(peripheralName: "Vgate iCar Pro BLE [SIM]")
+                self.recentResponses.append("ELM327 v1.5")
+                self.recentResponses.append("ATZ → OK")
+                self.recentResponses.append("ATSP0 → AUTO: ISO 15765-4 CAN (11/500)")
+                self.startSimulationTicker()
+            }
+        }
+    }
+
+    private func startSimulationTicker() {
+        simElapsed = 0
+        simCurrentSpeed = 0
+        simTargetSpeed = 40
+        simRPM = 800
+
+        simulationTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.simulationTick() }
+        }
+        RunLoop.main.add(simulationTimer!, forMode: .common)
+    }
+
+    private func simulationTick() {
+        simElapsed += 0.3
+
+        // Cambiar target cada 6s (simula semáforos + tráfico CDMX)
+        if Int(simElapsed * 10) % 60 == 0 {
+            let rand = Double.random(in: 0...1)
+            if rand < 0.15 {
+                simTargetSpeed = 0                              // rojo
+            } else if rand < 0.55 {
+                simTargetSpeed = Double.random(in: 25...45)     // ciudad
+            } else {
+                simTargetSpeed = Double.random(in: 50...75)     // avenida
+            }
+        }
+
+        // Suavizado
+        simCurrentSpeed = max(0, simCurrentSpeed + (simTargetSpeed - simCurrentSpeed) * 0.12)
+
+        // RPM: en ralentí 800, escala con speed y acceleration
+        let speedRatio = simCurrentSpeed / 80.0
+        let accel = simTargetSpeed - simCurrentSpeed
+        simRPM = 800 + speedRatio * 1800 + max(0, accel) * 40
+        simRPM = max(700, min(simRPM, 4500))
+
+        // Throttle: en aceleración alta
+        if accel > 5 {
+            simThrottle = min(100, simThrottle + 8)
+        } else if accel < -5 {
+            simThrottle = max(0, simThrottle - 12)
+        } else {
+            simThrottle = max(8, simThrottle - 1.5)    // ralentí ~8-15%
+        }
+
+        // Consumo combustible va bajando gradualmente
+        if Int(simElapsed) % 20 == 0 && simCurrentSpeed > 10 {
+            simFuelLevel = max(5, simFuelLevel - 0.05)
+        }
+
+        // MAF estimado (g/s): proporcional a RPM y throttle
+        let maf = (simRPM / 1000.0) * (simThrottle / 100.0 + 0.3) * 4.5
+
+        // Fuel rate directo L/hr = (MAF_g_s * 3600) / (14.7 * 740)
+        let fuelRate = (maf * 3600) / (14.7 * 740)
+
+        // Temp motor: calienta al arrancar y estabiliza ~92°C
+        let targetTemp = 92.0
+        let temp = 40.0 + min(simElapsed / 2.5, 1.0) * (targetTemp - 40.0)
+        let intakeTemp = 28.0 + sin(simElapsed / 10) * 3
+
+        // Engine load estimado
+        let load = (simRPM - 800) / 3700 * 100
+
+        liveData = OBD2LiveData(
+            timestamp: Date(),
+            rpm: Int(simRPM),
+            speedKmh: Int(simCurrentSpeed),
+            throttlePct: simThrottle,
+            mafGs: maf,
+            fuelRateLh: fuelRate,
+            engineTempC: Int(temp),
+            intakeTempC: Int(intakeTemp),
+            baroPressureKpa: 77,  // CDMX ~2240m
+            fuelLevelPct: simFuelLevel,
+            engineLoadPct: max(10, min(load, 95))
+        )
+
+        // Log trace con los PIDs simulados
+        if Int(simElapsed * 10) % 10 == 0 {
+            recentResponses.append("41 0C \(String(format: "%02X %02X", Int(simRPM * 4) / 256, Int(simRPM * 4) % 256)) → \(Int(simRPM)) RPM")
+            if recentResponses.count > 20 {
+                recentResponses.removeFirst(recentResponses.count - 20)
+            }
+        }
+    }
+
+    private func stopSimulation() {
+        simulationTimer?.invalidate()
+        simulationTimer = nil
+        if useSimulation {
+            AirWayLogger.obd.info("OBD-II simulation stopped")
+        }
     }
 
     // MARK: - Private commands

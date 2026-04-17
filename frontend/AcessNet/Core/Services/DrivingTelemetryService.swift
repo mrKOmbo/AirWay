@@ -50,6 +50,19 @@ final class DrivingTelemetryService: NSObject, ObservableObject {
 
     private let pastTripsKey = "airway.telemetry.pastTrips"
 
+    // MARK: - Simulation
+
+    /// Modo simulación: genera datos realistas sin CoreMotion ni GPS.
+    /// Útil para demos en simulador y hackathon sin hardware.
+    @Published var useSimulation: Bool = true
+    private var simulationTimer: Timer?
+    private var simStartTime: Date = Date()
+    private var simCumulativeDistance: Double = 0   // km
+    private var simCurrentSpeed: Double = 0         // km/h
+    private var simTargetSpeed: Double = 40         // km/h objetivo cambiante
+    private var simElevationGain: Double = 0        // m
+    private var simElapsedSec: Double = 0
+
     // MARK: - Lifecycle
 
     override init() {
@@ -78,12 +91,18 @@ final class DrivingTelemetryService: NSObject, ObservableObject {
             AirWayLogger.telemetry.warning("startTrip called but already recording")
             return
         }
-        requestAuthorizationsIfNeeded()
 
         currentTrip = TripTelemetry(vehicleProfileId: vehicleId)
         liveStats = .empty
         lastLocation = nil
         isRecording = true
+
+        if useSimulation {
+            startSimulation()
+            return
+        }
+
+        requestAuthorizationsIfNeeded()
 
         AirWayLogger.telemetry.notice(
             "startTrip vehicleId=\(vehicleId?.uuidString ?? "nil", privacy: .public) accelAvailable=\(self.motion.isAccelerometerAvailable, privacy: .public) activityAvailable=\(CMMotionActivityManager.isActivityAvailable(), privacy: .public)"
@@ -113,6 +132,92 @@ final class DrivingTelemetryService: NSObject, ObservableObject {
         locationManager.startUpdatingLocation()
     }
 
+    // MARK: - Simulation
+
+    /// Inicia un viaje simulado realista (Zócalo → Polanco 8 km aprox).
+    private func startSimulation() {
+        simStartTime = Date()
+        simCumulativeDistance = 0
+        simCurrentSpeed = 0
+        simTargetSpeed = 35
+        simElevationGain = 0
+        simElapsedSec = 0
+
+        AirWayLogger.telemetry.notice("startTrip [SIMULATION] — generando datos realistas")
+
+        // Tick cada 500ms simulando ~2 Hz de GPS
+        simulationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.simulationTick() }
+        }
+        RunLoop.main.add(simulationTimer!, forMode: .common)
+    }
+
+    private func simulationTick() {
+        guard isRecording, var trip = currentTrip else { return }
+
+        simElapsedSec += 0.5
+
+        // Cambiar velocidad objetivo cada 8s (simula tráfico + semáforos)
+        if Int(simElapsedSec) % 8 == 0 {
+            let rand = Double.random(in: 0...1)
+            if rand < 0.15 {
+                simTargetSpeed = Double.random(in: 0...8)       // stop / semáforo
+            } else if rand < 0.55 {
+                simTargetSpeed = Double.random(in: 20...45)     // ciudad
+            } else {
+                simTargetSpeed = Double.random(in: 45...70)     // avenida
+            }
+        }
+
+        // Suavizado hacia target
+        let prevSpeed = simCurrentSpeed
+        let delta = simTargetSpeed - simCurrentSpeed
+        simCurrentSpeed = max(0, simCurrentSpeed + delta * 0.15)
+
+        // Detectar harsh accel/brake (|Δspeed| > 6 km/h en 0.5s ≈ 3.3 m/s²)
+        let speedDelta = simCurrentSpeed - prevSpeed
+        if abs(speedDelta) > 6 {
+            if speedDelta > 0 {
+                trip.harshAccels += 1
+                AirWayLogger.telemetry.debug("SIM harsh ACCEL Δ=\(String(format: "%.1f", speedDelta), privacy: .public) km/h")
+            } else {
+                trip.harshBrakes += 1
+                AirWayLogger.telemetry.debug("SIM harsh BRAKE Δ=\(String(format: "%.1f", speedDelta), privacy: .public) km/h")
+            }
+        }
+
+        // Idle detection
+        if simCurrentSpeed < 3 {
+            trip.idleSeconds += 1   // ~0.5s pero contamos como 1 para ser generoso
+        }
+
+        // Distancia acumulada
+        let distKmThisTick = simCurrentSpeed * (0.5 / 3600)
+        simCumulativeDistance += distKmThisTick
+        trip.totalDistanceKm = simCumulativeDistance
+        trip.maxSpeedKmh = max(trip.maxSpeedKmh, simCurrentSpeed)
+
+        // Elevación ligera oscilante
+        let elevDelta = sin(simElapsedSec / 15) * 0.3
+        if elevDelta > 0 {
+            simElevationGain += elevDelta
+            trip.elevationGainM = simElevationGain
+        }
+
+        currentTrip = trip
+        liveStats = LiveStats(
+            speedKmh: simCurrentSpeed,
+            harshEvents: trip.harshAccels + trip.harshBrakes,
+            durationMin: trip.durationMinutes,
+            distanceKm: trip.totalDistanceKm
+        )
+    }
+
+    private func stopSimulation() {
+        simulationTimer?.invalidate()
+        simulationTimer = nil
+    }
+
     /// Finaliza el viaje y retorna el TripTelemetry final.
     @discardableResult
     func endTrip() -> TripTelemetry? {
@@ -122,6 +227,7 @@ final class DrivingTelemetryService: NSObject, ObservableObject {
         }
         isRecording = false
 
+        stopSimulation()
         motion.stopAccelerometerUpdates()
         activityManager.stopActivityUpdates()
         locationManager.stopUpdatingLocation()
@@ -152,6 +258,7 @@ final class DrivingTelemetryService: NSObject, ObservableObject {
     func cancelTrip() {
         AirWayLogger.telemetry.notice("cancelTrip")
         isRecording = false
+        stopSimulation()
         motion.stopAccelerometerUpdates()
         activityManager.stopActivityUpdates()
         locationManager.stopUpdatingLocation()
