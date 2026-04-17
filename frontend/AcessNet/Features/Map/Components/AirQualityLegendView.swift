@@ -18,76 +18,59 @@ struct AirQualityLegendView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header compacto (siempre visible)
             Button(action: {
+                HapticFeedback.light()
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     isExpanded.toggle()
                 }
             }) {
                 HStack(spacing: 10) {
-                    // Icono pulsante
                     ZStack {
                         Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [
-                                        .blue.opacity(glowIntensity),
-                                        .blue.opacity(glowIntensity * 0.5),
-                                        .clear
-                                    ],
-                                    center: .center,
-                                    startRadius: 8,
-                                    endRadius: 18
-                                )
-                            )
+                            .fill(Color(hex: "#3B82F6").opacity(glowIntensity))
                             .frame(width: 36, height: 36)
-                            .blur(radius: 4)
-
+                            .blur(radius: 6)
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [.blue.opacity(0.95), .blue.opacity(0.85)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
                                 )
                             )
                             .frame(width: 28, height: 28)
-
                         Image(systemName: "aqi.medium")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundColor(.white)
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Air Quality")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.primary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Calidad del aire")
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundColor(.white)
 
                         if let stats = statistics {
                             Text("AQI \(Int(stats.averageAQI))")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(.white.opacity(0.55))
                         }
                     }
 
                     Spacer()
 
-                    // Chevron
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.6))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
             }
+            .buttonStyle(.plain)
 
-            // Contenido expandido
             if isExpanded {
-                VStack(spacing: 12) {
-                    Divider()
+                VStack(spacing: 10) {
+                    Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
 
-                    // Niveles de AQI
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         ForEach(AQILevel.allCases, id: \.self) { level in
                             AirQualityLegendRow(
                                 level: level,
@@ -96,33 +79,33 @@ struct AirQualityLegendView: View {
                         }
                     }
 
-                    // Estadísticas generales
                     if let stats = statistics {
-                        Divider()
+                        Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
 
-                        HStack(spacing: 16) {
-                            VStack(spacing: 4) {
+                        HStack(spacing: 12) {
+                            VStack(spacing: 1) {
                                 Text("\(stats.totalZones)")
-                                    .font(.headline.weight(.bold))
-                                    .foregroundStyle(.primary)
-
-                                Text("Zones")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .monospacedDigit()
+                                Text("ZONAS")
+                                    .font(.system(size: 8, weight: .heavy))
+                                    .tracking(0.8)
+                                    .foregroundColor(.white.opacity(0.5))
                             }
                             .frame(maxWidth: .infinity)
 
-                            Divider()
-                                .frame(height: 30)
+                            Rectangle().fill(.white.opacity(0.1)).frame(width: 1, height: 28)
 
-                            VStack(spacing: 4) {
+                            VStack(spacing: 1) {
                                 Text("\(Int(stats.averageAQI))")
-                                    .font(.headline.weight(.bold))
-                                    .foregroundStyle(colorForAQI(stats.averageAQI))
-
-                                Text("Avg AQI")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    .foregroundColor(colorForAQI(stats.averageAQI))
+                                    .monospacedDigit()
+                                Text("AQI PROM")
+                                    .font(.system(size: 8, weight: .heavy))
+                                    .tracking(0.8)
+                                    .foregroundColor(.white.opacity(0.5))
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -134,9 +117,20 @@ struct AirQualityLegendView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 5)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.black.opacity(0.7))
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.35), radius: 12, y: 5)
         .onAppear {
             startGlowAnimation()
         }
@@ -160,12 +154,12 @@ struct AirQualityLegendView: View {
     private func colorForAQI(_ aqi: Double) -> Color {
         let level = AQILevel.from(aqi: Int(aqi))
         switch level {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good: return Color(hex: "#34D399")
+        case .moderate: return Color(hex: "#FBBF24")
+        case .poor: return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe: return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 
@@ -188,51 +182,50 @@ struct AirQualityLegendRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Color indicator
             Circle()
                 .fill(color)
-                .frame(width: 12, height: 12)
+                .frame(width: 11, height: 11)
                 .overlay(
-                    Circle()
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1.5)
+                    Circle().stroke(.white.opacity(0.35), lineWidth: 1)
                 )
-                .shadow(color: color.opacity(0.4), radius: 3, x: 0, y: 1)
+                .shadow(color: color.opacity(0.4), radius: 3)
 
-            // Level name
             Text(level.rawValue)
-                .font(.caption)
-                .foregroundStyle(.primary)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(0.85))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Count badge
             if count > 0 {
                 Text("\(count)")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(color.opacity(0.8))
-                    .clipShape(Capsule())
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(color))
             } else {
-                Text("-")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Text("0")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.35))
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(.white.opacity(0.06)))
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(count > 0 ? color.opacity(0.08) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(count > 0 ? color.opacity(0.08) : Color.clear)
+        )
     }
 
     private var color: Color {
         switch level {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 }
@@ -249,14 +242,21 @@ struct CompactAirQualityIndicator: View {
             Circle()
                 .fill(color)
                 .frame(width: 8, height: 8)
+                .shadow(color: color.opacity(0.6), radius: 3)
 
             Text("AQI \(Int(averageAQI))")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isActive ? .primary : .secondary)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(isActive ? 1.0 : 0.5))
+                .monospacedDigit()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.ultraThinMaterial)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.6))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1))
         .clipShape(Capsule())
         .opacity(isActive ? 1.0 : 0.6)
     }
@@ -264,12 +264,12 @@ struct CompactAirQualityIndicator: View {
     private var color: Color {
         let level = AQILevel.from(aqi: Int(averageAQI))
         switch level {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 }

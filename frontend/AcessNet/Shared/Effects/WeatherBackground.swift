@@ -3,11 +3,9 @@
 //  AcessNet
 //
 //  Fondo dinámico con animaciones SwiftUI (Canvas + TimelineView)
-//  + soporte Lottie para animaciones premium cuando los archivos existan
 //
 
 import SwiftUI
-import Lottie
 
 // MARK: - Weather Background
 
@@ -25,23 +23,6 @@ struct WeatherBackground: View {
         }
         .ignoresSafeArea()
         .animation(.easeInOut(duration: 2.0), value: condition)
-    }
-
-    // MARK: - Lottie
-
-    private var lottieFilename: String? {
-        switch condition {
-        case .sunny: return nil                   // Sol removido por preferencia del usuario
-        case .cloudy: return "Weather-windy"
-        case .overcast: return "overcast"
-        case .rainy: return "rain"
-        case .stormy: return "lightning(neon)"
-        }
-    }
-
-    private var lottieFileExists: Bool {
-        guard let name = lottieFilename else { return false }
-        return Bundle.main.path(forResource: name, ofType: "json") != nil
     }
 
     // MARK: - Particle Layer
@@ -150,37 +131,6 @@ struct WeatherBackground: View {
             }
         }
     }
-}
-
-// MARK: - Lottie Weather View
-
-struct LottieWeatherView: UIViewRepresentable {
-    let filename: String
-
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView(frame: .zero)
-        container.backgroundColor = .clear
-
-        let animationView = LottieAnimationView(name: filename)
-        animationView.contentMode = .scaleAspectFill
-        animationView.loopMode = .loop
-        animationView.backgroundBehavior = .pauseAndRestore
-        animationView.translatesAutoresizingMaskIntoConstraints = false
-        animationView.backgroundColor = .clear
-
-        container.addSubview(animationView)
-        NSLayoutConstraint.activate([
-            animationView.topAnchor.constraint(equalTo: container.topAnchor),
-            animationView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            animationView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            animationView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
-        ])
-
-        animationView.play()
-        return container
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
 // MARK: - Rain View

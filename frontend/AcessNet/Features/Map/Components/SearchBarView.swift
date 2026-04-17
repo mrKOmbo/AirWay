@@ -32,146 +32,117 @@ struct SearchBarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                // Icono de búsqueda con animación
-                ZStack {
-                    Circle()
-                        .fill(isFocused ? Color.blue.opacity(0.12) : Color.clear)
-                        .frame(width: 32, height: 32)
-
-                    Image(systemName: isFocused ? "magnifyingglass.circle.fill" : "magnifyingglass")
-                        .font(.system(size: 18, weight: isFocused ? .semibold : .regular))
-                        .foregroundStyle(
-                            isFocused ?
-                            LinearGradient(
-                                colors: [.blue, .blue.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ) :
-                            LinearGradient(
-                                colors: [.gray, .gray.opacity(0.9)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
-
-                // Campo de texto
-                TextField(placeholder, text: $searchText)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.primary)
-                    .focused($isFocused)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        let impact = UIImpactFeedbackGenerator(style: .light)
-                        impact.impactOccurred()
-                        onSubmit()
-                    }
-                    .autocorrectionDisabled()
-                    .onChange(of: isFocused) { newValue in
-                        if newValue {
-                            let impact = UIImpactFeedbackGenerator(style: .light)
-                            impact.impactOccurred()
-                        }
-                    }
-
-                // Botón de limpiar con animación mejorada
-                if !searchText.isEmpty {
-                    Button(action: {
-                        let impact = UIImpactFeedbackGenerator(style: .light)
-                        impact.impactOccurred()
-
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            searchText = ""
-                            onClear()
-                        }
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 24, height: 24)
-
-                            Image(systemName: "xmark")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .transition(.scale.combined(with: .opacity))
-                }
-
-                // Botón de cancelar cuando está enfocado
-                if isFocused {
-                    Button("Cancel") {
-                        let impact = UIImpactFeedbackGenerator(style: .light)
-                        impact.impactOccurred()
-
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            searchText = ""
-                            isFocused = false
-                            onClear()
-                        }
-                    }
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.blue, .blue.opacity(0.9)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+        HStack(spacing: 10) {
+            // Icono con avatar glass
+            ZStack {
+                Circle()
+                    .fill(
+                        isFocused
+                            ? LinearGradient(
+                                colors: [Color(hex: "#3B82F6").opacity(0.9),
+                                         Color(hex: "#1E40AF").opacity(0.9)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing)
+                            : LinearGradient(
+                                colors: [.white.opacity(0.12), .white.opacity(0.06)],
+                                startPoint: .top, endPoint: .bottom)
                     )
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
+                    .frame(width: 32, height: 32)
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white)
             }
-            .padding(.horizontal, isFocused ? 18 : 16)
-            .padding(.vertical, isFocused ? 14 : 12)
-            .background(
-                ZStack {
-                    // Fondo con blur
-                    RoundedRectangle(cornerRadius: isFocused ? 28 : 25)
-                        .fill(.ultraThinMaterial)
+            .shadow(
+                color: isFocused ? Color(hex: "#3B82F6").opacity(0.5) : .clear,
+                radius: 6
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFocused)
 
-                    // Overlay de gradiente sutil
-                    RoundedRectangle(cornerRadius: isFocused ? 28 : 25)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(isFocused ? 0.15 : 0.1),
-                                    .white.opacity(isFocused ? 0.05 : 0.02)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+            // Campo de texto
+            TextField(placeholder, text: $searchText, prompt:
+                Text(placeholder)
+                    .foregroundColor(.white.opacity(0.4))
+            )
+            .font(.system(size: 15, weight: .heavy))
+            .foregroundColor(.white)
+            .tint(Color(hex: "#3B82F6"))
+            .focused($isFocused)
+            .submitLabel(.search)
+            .onSubmit {
+                HapticFeedback.light()
+                onSubmit()
+            }
+            .autocorrectionDisabled()
+            .onChange(of: isFocused) { newValue in
+                if newValue { HapticFeedback.light() }
+            }
 
-                    // Borde con gradiente
-                    RoundedRectangle(cornerRadius: isFocused ? 28 : 25)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: isFocused ?
-                                [Color.blue.opacity(0.4), Color.blue.opacity(0.2)] :
-                                [Color.gray.opacity(0.15), Color.gray.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: isFocused ? 2 : 1
+            // Botón limpiar (cuando hay texto)
+            if !searchText.isEmpty {
+                Button {
+                    HapticFeedback.light()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        searchText = ""
+                        onClear()
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.8))
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(.white.opacity(0.12)))
+                }
+                .buttonStyle(.plain)
+                .transition(.scale.combined(with: .opacity))
+            }
+
+            // Botón cancelar enfocado
+            if isFocused {
+                Button {
+                    HapticFeedback.light()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        searchText = ""
+                        isFocused = false
+                        onClear()
+                    }
+                } label: {
+                    Text("Cancelar")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(
+                            Capsule().fill(Color(hex: "#3B82F6"))
                         )
                 }
-            )
-            .shadow(
-                color: isFocused ? Color.blue.opacity(0.15) : .black.opacity(0.12),
-                radius: isFocused ? 20 : 15,
-                x: 0,
-                y: isFocused ? 8 : 5
-            )
-            .shadow(
-                color: .black.opacity(0.08),
-                radius: 4,
-                x: 0,
-                y: 2
-            )
+                .buttonStyle(.plain)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.55))
+                .background(
+                    Capsule().fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            Capsule().stroke(
+                LinearGradient(
+                    colors: isFocused
+                        ? [Color(hex: "#3B82F6").opacity(0.55), Color.white.opacity(0.1)]
+                        : [Color.white.opacity(0.12), Color.white.opacity(0.04)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                ),
+                lineWidth: isFocused ? 1.5 : 1
+            )
+        )
+        .clipShape(Capsule())
+        .shadow(
+            color: isFocused ? Color(hex: "#3B82F6").opacity(0.35) : .black.opacity(0.35),
+            radius: isFocused ? 16 : 10,
+            y: isFocused ? 6 : 4
+        )
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFocused)
     }
 }

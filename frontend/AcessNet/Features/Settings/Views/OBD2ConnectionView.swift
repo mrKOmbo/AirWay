@@ -2,186 +2,552 @@
 //  OBD2ConnectionView.swift
 //  AcessNet
 //
-//  Vista de conexión a dongle OBD-II Bluetooth.
-//  Muestra: estado BLE, datos live (RPM/velocidad/MAF/fuel rate), instant km/L.
+//  Rediseño premium: status pill animado, dashboard hero, gauges grid, log glass.
 //
 
 import SwiftUI
 
 struct OBD2ConnectionView: View {
     @StateObject private var obd = OBD2Service.shared
+    @EnvironmentObject private var appSettings: AppSettings
+    @Environment(\.dismiss) private var dismiss
+
+    private var theme: WeatherTheme {
+        WeatherTheme(condition: appSettings.weatherOverride ?? .overcast)
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    header
+            ZStack {
+                theme.pageBackground.ignoresSafeArea()
 
-                    statusCard
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        heroHeader
+                        statusPill
 
-                    if obd.state.isConnected {
-                        liveDashboard
-                        rawResponses
-                    } else {
-                        instructions
+                        if obd.state.isConnected {
+                            liveHero
+                            metricsGrid
+                            bleLogCard
+                        } else {
+                            instructionsCard
+                        }
+
+                        primaryControls
                     }
-
-                    controls
+                    .padding(16)
+                    .padding(.bottom, 30)
                 }
-                .padding()
             }
-            .navigationTitle("OBD-II")
+            .navigationTitle("OBD-II Premium")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(theme.pageBackground, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        HapticFeedback.light()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.1)))
+                    }
+                }
+            }
+            .environment(\.weatherTheme, theme)
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Hero
 
-    private var header: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "car.fill")
-                .font(.system(size: 52))
-                .foregroundStyle(LinearGradient(
-                    colors: [.blue, .cyan], startPoint: .top, endPoint: .bottom
-                ))
-            Text("Conecta tu dongle")
-                .font(.title3.bold())
-            Text("Compatible con ELM327 BLE: Vgate iCar Pro, OBDLink MX+, Kiwi 3, vLinker MC+.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var statusCard: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 10, height: 10)
-            Text(obd.state.label)
-                .font(.callout.weight(.semibold))
-            Spacer()
-            if case .scanning = obd.state {
-                ProgressView()
+    private var heroHeader: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [Color(hex: "#06B6D4").opacity(0.35),
+                                 Color(hex: "#0E7490").opacity(0.15)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 86, height: 86)
+                    .blur(radius: 1)
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 32, weight: .heavy))
+                    .foregroundStyle(LinearGradient(
+                        colors: [Color(hex: "#22D3EE"), Color(hex: "#06B6D4")],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+            }
+            VStack(spacing: 2) {
+                Text("OBD-II Hardware Premium")
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(.white)
+                Text("ELM327 BLE · Vgate · OBDLink · Kiwi 3 · vLinker MC+")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
             }
         }
-        .padding(12)
-        .background(statusColor.opacity(0.12))
-        .cornerRadius(10)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 10)
+    }
+
+    // MARK: - Status Pill
+
+    private var statusPill: some View {
+        HStack(spacing: 10) {
+            statusIndicator
+
+            Text(obd.state.label)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundColor(.white)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            if case .scanning = obd.state {
+                ProgressView().tint(statusColor).scaleEffect(0.7)
+            } else if case .connecting = obd.state {
+                ProgressView().tint(statusColor).scaleEffect(0.7)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(statusColor.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(statusColor.opacity(0.4), lineWidth: 1)
+        )
+    }
+
+    private var statusIndicator: some View {
+        Group {
+            if obd.state.isConnected {
+                BluetoothPulseDot(color: statusColor)
+            } else {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: statusColor.opacity(0.6), radius: 4)
+            }
+        }
     }
 
     private var statusColor: Color {
         switch obd.state {
-        case .connected: return .green
-        case .scanning, .connecting: return .blue
-        case .failed: return .red
-        case .disconnected: return .secondary
+        case .connected: return Color(hex: "#34D399")
+        case .scanning, .connecting: return Color(hex: "#60A5FA")
+        case .failed: return Color(hex: "#F87171")
+        case .disconnected: return Color(hex: "#94A3B8")
         }
     }
 
-    private var liveDashboard: some View {
-        VStack(spacing: 12) {
-            // Gran número central = instant km/L o fuel rate
-            VStack {
-                if let kmL = obd.liveData.instantKmPerL {
-                    Text(String(format: "%.1f", kmL))
-                        .font(.system(size: 80, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                    Text("km/L (instantáneo)")
-                        .font(.caption).foregroundColor(.secondary)
-                } else {
-                    Text(String(format: "%.2f", obd.liveData.computedFuelRateLh))
-                        .font(.system(size: 80, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                    Text("L/hr (consumo actual)")
-                        .font(.caption).foregroundColor(.secondary)
+    // MARK: - Live Hero (gran número central)
+
+    private var liveHero: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: "waveform.badge.magnifyingglass")
+                    .font(.system(size: 9, weight: .heavy))
+                Text("EN VIVO")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(1.2)
+            }
+            .foregroundColor(Color(hex: "#22D3EE"))
+
+            if let kmL = obd.liveData.instantKmPerL {
+                Text(String(format: "%.1f", kmL))
+                    .font(.system(size: 72, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .shadow(color: Color(hex: "#22D3EE").opacity(0.5), radius: 12)
+                HStack(spacing: 4) {
+                    Image(systemName: "gauge.with.dots.needle.67percent")
+                        .font(.system(size: 10, weight: .heavy))
+                    Text("km/L instantáneo")
+                        .font(.system(size: 11, weight: .heavy))
                 }
+                .foregroundColor(.white.opacity(0.6))
+            } else {
+                Text(String(format: "%.2f", obd.liveData.computedFuelRateLh))
+                    .font(.system(size: 72, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .shadow(color: Color(hex: "#FBBF24").opacity(0.5), radius: 12)
+                HStack(spacing: 4) {
+                    Image(systemName: "fuelpump.fill")
+                        .font(.system(size: 10, weight: .heavy))
+                    Text("L/hr consumo actual")
+                        .font(.system(size: 11, weight: .heavy))
+                }
+                .foregroundColor(.white.opacity(0.6))
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(LinearGradient(
-                colors: [.blue.opacity(0.15), .cyan.opacity(0.1)],
-                startPoint: .top, endPoint: .bottom
-            ))
-            .cornerRadius(14)
-
-            // Grid de métricas
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 10) {
-                metric(icon: "gauge", label: "Velocidad", value: "\(obd.liveData.speedKmh)", unit: "km/h")
-                metric(icon: "speedometer", label: "RPM", value: "\(obd.liveData.rpm)", unit: "")
-                metric(icon: "wind", label: "MAF", value: String(format: "%.1f", obd.liveData.mafGs), unit: "g/s")
-                metric(icon: "gearshape.fill", label: "Carga motor", value: String(format: "%.0f", obd.liveData.engineLoadPct), unit: "%")
-                metric(icon: "thermometer.high", label: "Temp motor", value: "\(obd.liveData.engineTempC)", unit: "°C")
-                metric(icon: "hand.raised.fill", label: "Acelerador", value: String(format: "%.0f", obd.liveData.throttlePct), unit: "%")
-            }
-        }
-    }
-
-    private func metric(icon: String, label: String, value: String, unit: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundColor(.blue)
-            Text(value)
-                .font(.title3.bold())
-                .monospacedDigit()
-            Text("\(label) \(unit)")
-                .font(.caption2)
-                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(Color.secondary.opacity(0.08))
-        .cornerRadius(10)
+        .padding(.vertical, 20).padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "#22D3EE").opacity(0.12),
+                                 Color(hex: "#06B6D4").opacity(0.04)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "#22D3EE").opacity(0.5),
+                                 Color(hex: "#0E7490").opacity(0.15)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        )
     }
 
-    private var rawResponses: some View {
-        DisclosureGroup("Log BLE") {
+    // MARK: - Metrics Grid
+
+    private var metricsGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("TELEMETRÍA LIVE")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.2)
+                    .foregroundColor(.white.opacity(0.5))
+                Spacer()
+                HStack(spacing: 3) {
+                    Circle().fill(.green).frame(width: 4, height: 4)
+                    Text("1 Hz")
+                        .font(.system(size: 9, weight: .heavy))
+                }
+                .foregroundColor(.white.opacity(0.45))
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8),
+                                GridItem(.flexible(), spacing: 8)],
+                      spacing: 8) {
+                gaugeCard(
+                    icon: "gauge.open.with.lines.needle.33percent",
+                    label: "Velocidad",
+                    value: "\(obd.liveData.speedKmh)",
+                    unit: "km/h",
+                    color: Color(hex: "#60A5FA"),
+                    progress: min(Double(obd.liveData.speedKmh) / 180, 1)
+                )
+                gaugeCard(
+                    icon: "waveform.path.ecg",
+                    label: "RPM",
+                    value: "\(obd.liveData.rpm)",
+                    unit: "rpm",
+                    color: Color(hex: "#EF4444"),
+                    progress: min(Double(obd.liveData.rpm) / 7000, 1)
+                )
+                gaugeCard(
+                    icon: "wind",
+                    label: "MAF",
+                    value: String(format: "%.1f", obd.liveData.mafGs),
+                    unit: "g/s",
+                    color: Color(hex: "#A78BFA"),
+                    progress: min(obd.liveData.mafGs / 100, 1)
+                )
+                gaugeCard(
+                    icon: "gearshape.2.fill",
+                    label: "Carga",
+                    value: String(format: "%.0f", obd.liveData.engineLoadPct),
+                    unit: "%",
+                    color: Color(hex: "#FBBF24"),
+                    progress: obd.liveData.engineLoadPct / 100
+                )
+                gaugeCard(
+                    icon: "thermometer.high",
+                    label: "Temp motor",
+                    value: "\(obd.liveData.engineTempC)",
+                    unit: "°C",
+                    color: Color(hex: "#F87171"),
+                    progress: min(Double(obd.liveData.engineTempC) / 110, 1)
+                )
+                gaugeCard(
+                    icon: "hand.raised.fill",
+                    label: "Acelerador",
+                    value: String(format: "%.0f", obd.liveData.throttlePct),
+                    unit: "%",
+                    color: Color(hex: "#34D399"),
+                    progress: obd.liveData.throttlePct / 100
+                )
+            }
+        }
+    }
+
+    private func gaugeCard(icon: String, label: String, value: String, unit: String,
+                           color: Color, progress: Double) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(color)
+                Text(label.uppercased())
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(.white.opacity(0.55))
+                Spacer()
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Text(unit)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.08))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.55)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(4, geo.size.width * CGFloat(progress)))
+                        .animation(.easeOut(duration: 0.4), value: progress)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(theme.cardColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(color.opacity(0.22), lineWidth: 1)
+        )
+    }
+
+    // MARK: - Instructions Card
+
+    private var instructionsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "list.number")
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(Color(hex: "#22D3EE"))
+                Text("CÓMO CONECTAR")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.2)
+                    .foregroundColor(.white.opacity(0.55))
+            }
+
+            VStack(spacing: 8) {
+                instructionStep(
+                    number: "1",
+                    icon: "bolt.car.fill",
+                    title: "Enchufa el dongle",
+                    subtitle: "Puerto OBD-II abajo del volante"
+                )
+                instructionStep(
+                    number: "2",
+                    icon: "key.fill",
+                    title: "Enciende el auto",
+                    subtitle: "Ignición en ON, no necesita arrancar"
+                )
+                instructionStep(
+                    number: "3",
+                    icon: "dot.radiowaves.left.and.right",
+                    title: "Permite Bluetooth",
+                    subtitle: "Ajustes → AirWay → Bluetooth"
+                )
+                instructionStep(
+                    number: "4",
+                    icon: "antenna.radiowaves.left.and.right.circle.fill",
+                    title: "Buscar dongles",
+                    subtitle: "Toca el botón abajo"
+                )
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(theme.cardColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.borderColor, lineWidth: 1)
+        )
+    }
+
+    private func instructionStep(number: String, icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#22D3EE").opacity(0.15))
+                    .frame(width: 34, height: 34)
+                Circle()
+                    .stroke(Color(hex: "#22D3EE").opacity(0.4), lineWidth: 1)
+                    .frame(width: 34, height: 34)
+                Text(number)
+                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .foregroundColor(Color(hex: "#22D3EE"))
+                    .monospacedDigit()
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 5) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.65))
+                    Text(title)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.white)
+                }
+                Text(subtitle)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - BLE Log
+
+    private var bleLogCard: some View {
+        DisclosureGroup {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(obd.recentResponses.suffix(10), id: \.self) { r in
-                    Text(r)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 7, weight: .heavy))
+                            .foregroundColor(Color(hex: "#22D3EE"))
+                        Text(r)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.75))
+                            .lineLimit(1)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 8)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "doc.text.fill")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(Color(hex: "#22D3EE"))
+                Text("Log BLE")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white)
+                Spacer()
+                Text("\(obd.recentResponses.suffix(10).count)")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.5))
+            }
         }
-        .font(.caption)
+        .tint(.white.opacity(0.6))
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(theme.cardColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(theme.borderColor, lineWidth: 1)
+        )
     }
 
-    private var instructions: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Cómo conectar")
-                .font(.headline)
-            Label("Enchufa el dongle en el puerto OBD-II (abajo del volante)", systemImage: "1.circle.fill")
-            Label("Enciende el auto (ignición en ON, no necesita arrancar)", systemImage: "2.circle.fill")
-            Label("Permite Bluetooth a AirWay en Ajustes → AirWay → Bluetooth", systemImage: "3.circle.fill")
-            Label("Toca 'Buscar dongles' abajo", systemImage: "4.circle.fill")
-        }
-        .font(.callout)
-        .padding()
-        .background(Color.blue.opacity(0.08))
-        .cornerRadius(12)
-    }
+    // MARK: - Controls
 
-    private var controls: some View {
-        VStack(spacing: 10) {
+    private var primaryControls: some View {
+        Group {
             if obd.state.isConnected {
-                Button(role: .destructive) {
+                Button {
+                    HapticFeedback.warning()
                     obd.disconnect()
                 } label: {
-                    Label("Desconectar", systemImage: "xmark.circle.fill")
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 8) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13, weight: .heavy))
+                        Text("Desconectar dongle")
+                            .font(.system(size: 14, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(hex: "#EF4444").opacity(0.2))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color(hex: "#EF4444").opacity(0.45), lineWidth: 1)
+                    )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
             } else {
                 Button {
+                    HapticFeedback.confirm()
                     obd.scan()
                 } label: {
-                    Label("Buscar dongles", systemImage: "antenna.radiowaves.left.and.right")
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 8) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 13, weight: .heavy))
+                        Text("Buscar dongles BLE")
+                            .font(.system(size: 14, weight: .heavy))
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "#22D3EE"), Color(hex: "#0E7490")],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: Color(hex: "#22D3EE").opacity(0.45), radius: 10, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Bluetooth Pulse Dot
+
+private struct BluetoothPulseDot: View {
+    let color: Color
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(color.opacity(0.5))
+                .frame(width: 12, height: 12)
+                .scaleEffect(pulse ? 1.8 : 1.0)
+                .opacity(pulse ? 0 : 0.6)
+            Circle()
+                .fill(color)
+                .frame(width: 9, height: 9)
+                .shadow(color: color.opacity(0.7), radius: 4)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: false)) {
+                pulse = true
             }
         }
     }

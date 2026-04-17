@@ -2,7 +2,8 @@
 //  VehicleProfileView.swift
 //  AcessNet
 //
-//  Vista de gestión de perfiles de vehículo.
+//  Vista de gestión de perfiles de vehículo con representación 3D.
+//  - Escena 3D del vehículo activo
 //  - Lista de perfiles guardados (multi-auto)
 //  - Formulario para agregar/editar
 //  - Búsqueda en catálogo CONUEE (autocomplete)
@@ -11,28 +12,115 @@
 import SwiftUI
 
 struct VehicleProfileView: View {
+    @EnvironmentObject private var appSettings: AppSettings
     @StateObject private var service = VehicleProfileService.shared
     @State private var showingEditor = false
     @State private var editingProfile: VehicleProfile?
+    @State private var manualAsset: Vehicle3DAsset?
+
+    private var activeWeather: WeatherCondition {
+        appSettings.weatherOverride ?? .overcast
+    }
+
+    private var theme: WeatherTheme {
+        WeatherTheme(condition: activeWeather)
+    }
+
+    private var resolvedAsset: Vehicle3DAsset {
+        if let manual = manualAsset { return manual }
+        if let p = service.activeProfile ?? service.savedProfiles.first {
+            return .forProfile(p)
+        }
+        return .fallback
+    }
+
+    private var stageTitle: String {
+        service.activeProfile?.displayName
+        ?? service.savedProfiles.first?.displayName
+        ?? "Sin vehículo"
+    }
+
+    private var stageSubtitle: String {
+        if let p = service.activeProfile ?? service.savedProfiles.first {
+            return "\(String(format: "%.1f", p.conueeKmPerL)) km/L · \(p.fuelType.displayName)"
+        }
+        return "Agrega tu vehículo para ver el modelo 3D"
+    }
+
+    private var activeProfile: VehicleProfile? {
+        service.activeProfile ?? service.savedProfiles.first
+    }
+
+    private var otherProfiles: [VehicleProfile] {
+        guard let active = activeProfile else { return [] }
+        return service.savedProfiles.filter { $0.id != active.id }
+    }
 
     var body: some View {
         NavigationStack {
-            List {
-                if service.savedProfiles.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(service.savedProfiles) { profile in
-                        ProfileRow(
-                            profile: profile,
-                            isActive: service.activeProfile?.id == profile.id,
-                            onTap: { service.setActive(profile) },
-                            onEdit: { editingProfile = profile; showingEditor = true }
+            ZStack {
+                theme.pageBackground.ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // 3D Stage
+                        Vehicle3DStage(
+                            asset: resolvedAsset,
+                            title: stageTitle,
+                            subtitle: stageSubtitle
                         )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+
+                        // Asset switcher — cambia el vehículo activo al que matchee
+                        if Vehicle3DAsset.allCases.count > 1 && !service.savedProfiles.isEmpty {
+                            Vehicle3DAssetSwitcher(
+                                selected: Binding(
+                                    get: { resolvedAsset },
+                                    set: { newAsset in
+                                        // Si hay un vehículo guardado con ese asset, actívalo
+                                        if let match = service.savedProfiles.first(where: {
+                                            Vehicle3DAsset.forProfile($0) == newAsset
+                                        }) {
+                                            service.setActive(match)
+                                            manualAsset = nil
+                                        } else {
+                                            manualAsset = newAsset
+                                        }
+                                    }
+                                )
+                            )
+                            .padding(.horizontal, 16)
+                        }
+
+                        if let active = activeProfile {
+                            // Hero card con placa grande + identidad
+                            VehicleHeroCard(profile: active) {
+                                editingProfile = active
+                                showingEditor = true
+                            }
+                            .padding(.horizontal, 16)
+
+                            // Ficha técnica detallada
+                            VehicleSpecsCard(profile: active)
+                                .padding(.horizontal, 16)
+
+                            // Otros vehículos guardados (sin duplicar el activo)
+                            if !otherProfiles.isEmpty {
+                                otherVehiclesSection
+                            }
+                        } else {
+                            emptyStateCard
+                        }
+
+                        Spacer(minLength: 30)
                     }
-                    .onDelete(perform: delete)
                 }
             }
-            .navigationTitle("Mis vehículos")
+            .navigationTitle("Mi vehículo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(theme.pageBackground, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -40,108 +128,507 @@ struct VehicleProfileView: View {
                         showingEditor = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.white)
                     }
                 }
             }
             .sheet(isPresented: $showingEditor) {
                 VehicleEditorView(profile: editingProfile) { newProfile in
                     service.save(newProfile)
+                    manualAsset = nil
                     showingEditor = false
                 }
             }
+            .environment(\.weatherTheme, theme)
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "car.side.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-            Text("Agrega tu primer vehículo")
-                .font(.title2.bold())
-            Text("AirWay usará tu perfil para estimar consumo, costo en pesos y emisiones por cada ruta.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            Button {
-                editingProfile = nil
-                showingEditor = true
-            } label: {
-                Label("Agregar vehículo", systemImage: "plus.circle.fill")
-                    .frame(maxWidth: .infinity)
+    // MARK: - Other Vehicles Section
+
+    @ViewBuilder
+    private var otherVehiclesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("OTROS GUARDADOS")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.2)
+                    .foregroundColor(.white.opacity(0.5))
+                Spacer()
+                Text("\(otherProfiles.count)")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.4))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding(.top, 8)
+            .padding(.horizontal, 16)
+
+            VStack(spacing: 8) {
+                ForEach(otherProfiles) { profile in
+                    GlassProfileRow(
+                        profile: profile,
+                        isActive: false,
+                        onTap: {
+                            HapticFeedback.light()
+                            service.setActive(profile)
+                            manualAsset = nil
+                        },
+                        onEdit: {
+                            editingProfile = profile
+                            showingEditor = true
+                        },
+                        onDelete: {
+                            HapticFeedback.warning()
+                            service.delete(profile)
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
         }
-        .padding(.vertical, 40)
-        .listRowBackground(Color.clear)
     }
 
-    private func delete(at offsets: IndexSet) {
-        for idx in offsets {
-            service.delete(service.savedProfiles[idx])
+    private var emptyStateCard: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "car.side.fill")
+                .font(.system(size: 42, weight: .light))
+                .foregroundColor(.white.opacity(0.3))
+            Text("No tienes vehículos")
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundColor(.white)
+            Text("Agrega el tuyo o carga los dos autos demo con datos reales.")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.55))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+
+            HStack(spacing: 8) {
+                Button {
+                    HapticFeedback.medium()
+                    editingProfile = nil
+                    showingEditor = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 12, weight: .heavy))
+                        Text("Agregar")
+                            .font(.system(size: 12, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Capsule().fill(.white.opacity(0.08)))
+                    .overlay(Capsule().stroke(.white.opacity(0.15), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    HapticFeedback.confirm()
+                    service.loadDemoVehicles()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .heavy))
+                        Text("Cargar demo")
+                            .font(.system(size: 12, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(
+                        Capsule().fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(theme.cardColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.borderColor, lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Vehicle Hero Card
+
+private struct VehicleHeroCard: View {
+    let profile: VehicleProfile
+    let onEdit: () -> Void
+
+    @Environment(\.weatherTheme) private var theme
+
+    private var asset: Vehicle3DAsset { .forProfile(profile) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Identidad
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: asset.systemIcon)
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text(asset.displayName.uppercased())
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(1.2)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    Text(profile.displayName)
+                        .font(.system(size: 22, weight: .heavy))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                    Text(profile.fullDisplayName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                Spacer()
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundColor(.white)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(.white.opacity(0.1)))
+                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Placa gigante — protagonista
+            if let plate = profile.formattedLicensePlate {
+                bigLicensePlate(plate)
+            }
+
+            // Chips rápidos: combustible + color + transmisión
+            HStack(spacing: 6) {
+                chipPill(
+                    icon: profile.fuelType.systemIcon,
+                    text: profile.fuelType.displayName,
+                    color: fuelColor(profile.fuelType)
+                )
+                if let c = profile.color, !c.isEmpty {
+                    colorChip(c)
+                }
+                chipPill(
+                    icon: "gearshift.layout.sixspeed",
+                    text: profile.transmission.capitalized,
+                    color: Color(hex: "#A78BFA")
+                )
+                Spacer()
+            }
+
+            // Driving style visual
+            drivingStyleIndicator
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(theme.cardColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.green.opacity(0.3), Color.clear],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
+        )
+    }
+
+    private func bigLicensePlate(_ plate: String) -> some View {
+        HStack(spacing: 0) {
+            // Franja lateral tipo placa MEX
+            VStack(spacing: 3) {
+                Image(systemName: "car.fill")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundColor(.white)
+                Text("MX")
+                    .font(.system(size: 7, weight: .heavy))
+                    .foregroundColor(.white)
+            }
+            .frame(width: 26)
+            .frame(maxHeight: .infinity)
+            .background(Color(hex: "#1E3A8A"))
+
+            VStack(spacing: 2) {
+                Text("MÉXICO")
+                    .font(.system(size: 7, weight: .heavy))
+                    .foregroundColor(Color(hex: "#1E3A8A"))
+                    .tracking(1.0)
+                Text(plate)
+                    .font(.system(size: 26, weight: .black, design: .monospaced))
+                    .foregroundColor(.black)
+                    .tracking(2.5)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+        }
+        .frame(height: 58)
+        .background(
+            LinearGradient(
+                colors: [Color.white, Color(white: 0.92)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.black.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
+    }
+
+    private func chipPill(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .heavy))
+            Text(text)
+                .font(.system(size: 10, weight: .heavy))
+                .lineLimit(1)
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.15)))
+        .overlay(Capsule().stroke(color.opacity(0.35), lineWidth: 1))
+    }
+
+    private func colorChip(_ name: String) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(parseColor(name))
+                .frame(width: 12, height: 12)
+                .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 1))
+            Text(name)
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Capsule().fill(.white.opacity(0.07)))
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+    }
+
+    private var drivingStyleIndicator: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: "figure.wave.circle.fill")
+                        .font(.system(size: 9, weight: .heavy))
+                    Text("ESTILO DE MANEJO")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.0)
+                }
+                .foregroundColor(.white.opacity(0.45))
+                Spacer()
+                Text(profile.drivingStyleLabel)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(drivingStyleColor)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(.white.opacity(0.06))
+                    LinearGradient(
+                        colors: [Color(hex: "#34D399"), Color(hex: "#FBBF24"), Color(hex: "#F87171")],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .mask(
+                        Capsule()
+                            .frame(width: geo.size.width * drivingStyleProgress)
+                    )
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 10, height: 10)
+                        .shadow(color: .black.opacity(0.4), radius: 2)
+                        .offset(x: geo.size.width * drivingStyleProgress - 5)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    private var drivingStyleProgress: CGFloat {
+        let raw = (profile.drivingStyle - 0.85) / (1.30 - 0.85)
+        return CGFloat(max(0.0, min(1.0, raw)))
+    }
+
+    private var drivingStyleColor: Color {
+        switch profile.drivingStyle {
+        case ..<0.95: return Color(hex: "#34D399")
+        case ..<1.10: return Color(hex: "#FBBF24")
+        default:      return Color(hex: "#F87171")
+        }
+    }
+
+    private func fuelColor(_ t: FuelType) -> Color {
+        switch t {
+        case .magna: return Color(hex: "#34D399")
+        case .premium: return Color(hex: "#F87171")
+        case .diesel: return Color(hex: "#FBBF24")
+        case .hybrid: return Color(hex: "#60A5FA")
+        case .electric: return Color(hex: "#A78BFA")
+        }
+    }
+
+    private func parseColor(_ name: String) -> Color {
+        let t = name.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("#") { return Color(hex: t) }
+        switch t.lowercased() {
+        case "rojo", "red": return Color(hex: "#DC2626")
+        case "azul", "blue": return Color(hex: "#2563EB")
+        case "verde", "green": return Color(hex: "#16A34A")
+        case "amarillo", "yellow": return Color(hex: "#FACC15")
+        case "naranja", "orange": return Color(hex: "#EA580C")
+        case "negro", "black": return Color(hex: "#1F2937")
+        case "blanco", "white": return Color(hex: "#F3F4F6")
+        case "gris", "gray", "grey": return Color(hex: "#6B7280")
+        case "plata", "plateado", "silver": return Color(hex: "#CBD5E1")
+        case "café", "cafe", "brown", "marrón", "marron": return Color(hex: "#78350F")
+        case "vino", "guinda", "burgundy": return Color(hex: "#881337")
+        case "morado", "violeta", "purple", "violet": return Color(hex: "#7C3AED")
+        default: return Color(hex: "#9CA3AF")
         }
     }
 }
 
-// MARK: - Profile Row
+// MARK: - Glass Profile Row
 
-private struct ProfileRow: View {
+private struct GlassProfileRow: View {
     let profile: VehicleProfile
     let isActive: Bool
     let onTap: () -> Void
     let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    @Environment(\.weatherTheme) private var theme
+
+    private var asset: Vehicle3DAsset { .forProfile(profile) }
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                Image(systemName: profile.fuelType.systemIcon)
-                    .font(.title2)
-                    .foregroundStyle(isActive ? .green : .secondary)
-                    .frame(width: 40)
+                ZStack {
+                    Circle()
+                        .fill(isActive
+                              ? LinearGradient(colors: [.green.opacity(0.5), .teal.opacity(0.3)],
+                                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                              : LinearGradient(colors: [.white.opacity(0.1), .white.opacity(0.04)],
+                                               startPoint: .top, endPoint: .bottom))
+                        .frame(width: 46, height: 46)
+                    Image(systemName: asset.systemIcon)
+                        .font(.system(size: 16, weight: .heavy))
+                        .foregroundColor(.white)
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
+                    HStack(spacing: 6) {
                         Text(profile.displayName)
-                            .font(.headline)
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
                         if isActive {
-                            Text("Activo")
-                                .font(.caption2.bold())
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green.opacity(0.2))
+                            Text("ACTIVO")
+                                .font(.system(size: 8, weight: .heavy))
+                                .tracking(0.8)
                                 .foregroundColor(.green)
-                                .cornerRadius(4)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Capsule().fill(.green.opacity(0.18)))
+                                .overlay(Capsule().stroke(.green.opacity(0.4), lineWidth: 1))
                         }
                     }
-                    HStack(spacing: 6) {
-                        Text(profile.fuelType.displayName)
-                        Text("·")
-                        Text(String(format: "%.1f km/L", profile.conueeKmPerL))
-                        Text("·")
-                        Text(profile.drivingStyleLabel)
+
+                    if let plate = profile.formattedLicensePlate {
+                        plateChip(plate)
                     }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+
+                    HStack(spacing: 5) {
+                        miniChip(profile.fuelType.displayName, icon: profile.fuelType.systemIcon)
+                        miniChip(String(format: "%.1f km/L", profile.conueeKmPerL), icon: "gauge")
+                        if let color = profile.color, !color.isEmpty {
+                            miniChip(color, icon: "paintpalette.fill")
+                        }
+                    }
                 }
 
-                Spacer()
+                Spacer(minLength: 4)
 
-                Button(action: onEdit) {
-                    Image(systemName: "pencil.circle")
-                        .font(.title3)
-                        .foregroundColor(.blue)
+                Menu {
+                    Button { onEdit() } label: {
+                        Label("Editar", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) { onDelete() } label: {
+                        Label("Eliminar", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(.white.opacity(0.06)))
                 }
-                .buttonStyle(.plain)
             }
-            .padding(.vertical, 4)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isActive ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isActive ? Color.green.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
+
+    private func miniChip(_ text: String, icon: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 8, weight: .heavy))
+            Text(text)
+                .font(.system(size: 10, weight: .heavy))
+                .lineLimit(1)
+        }
+        .foregroundColor(.white.opacity(0.7))
+        .padding(.horizontal, 6).padding(.vertical, 3)
+        .background(Capsule().fill(.white.opacity(0.06)))
+    }
+
+    private func plateChip(_ plate: String) -> some View {
+        HStack(spacing: 5) {
+            Rectangle()
+                .fill(Color(hex: "#1E3A8A"))
+                .frame(width: 4, height: 14)
+            Text(plate)
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .foregroundColor(.black)
+                .tracking(1.0)
+        }
+        .padding(.horizontal, 7).padding(.vertical, 3)
+        .background(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(Color.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .stroke(Color.black.opacity(0.4), lineWidth: 1)
+        )
+    }
 }
 
-// MARK: - Editor
+// MARK: - Editor (unchanged shell, styled form)
 
 struct VehicleEditorView: View {
     let profile: VehicleProfile?
@@ -163,6 +650,9 @@ struct VehicleEditorView: View {
     @State private var weightKg: Int = 1150
     @State private var nickname: String = ""
     @State private var odometerKm: String = ""
+    @State private var licensePlate: String = ""
+    @State private var color: String = ""
+    @State private var tankCapacity: String = ""
 
     var body: some View {
         NavigationStack {
@@ -245,10 +735,39 @@ struct VehicleEditorView: View {
                     }
                 }
 
-                Section("Extra") {
+                Section("Identificación") {
+                    HStack(spacing: 8) {
+                        Image(systemName: "signpost.right.fill")
+                            .foregroundColor(.blue)
+                        TextField("Matrícula (ej. ABC-123-D)", text: $licensePlate)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.characters)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    TextField("Color (ej. Rojo, Negro, Blanco...)", text: $color)
+                        .textInputAutocapitalization(.words)
                     TextField("Apodo (opcional)", text: $nickname)
-                    TextField("Kilometraje actual", text: $odometerKm)
-                        .keyboardType(.numberPad)
+                }
+
+                Section("Combustible y odómetro") {
+                    HStack {
+                        Text("Capacidad tanque")
+                        Spacer()
+                        TextField("50", text: $tankCapacity)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("L")
+                    }
+                    HStack {
+                        Text("Kilometraje")
+                        Spacer()
+                        TextField("0", text: $odometerKm)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
+                        Text("km")
+                    }
                 }
             }
             .navigationTitle(profile == nil ? "Nuevo vehículo" : "Editar")
@@ -277,7 +796,10 @@ struct VehicleEditorView: View {
             transmission = p.transmission
             weightKg = p.weightKg
             nickname = p.nickname ?? ""
+            licensePlate = p.licensePlate ?? ""
+            color = p.color ?? ""
             if let odo = p.odometerKm { odometerKm = String(odo) }
+            if let cap = p.fuelTankCapacityL { tankCapacity = String(format: "%.1f", cap) }
         }
     }
 
@@ -311,6 +833,9 @@ struct VehicleEditorView: View {
 
     private func save() {
         let odoInt = Int(odometerKm)
+        let tank = Double(tankCapacity.replacingOccurrences(of: ",", with: "."))
+        let plate = licensePlate.trimmingCharacters(in: .whitespaces)
+        let colorStr = color.trimmingCharacters(in: .whitespaces)
         let newProfile = VehicleProfile(
             id: profile?.id ?? UUID(),
             make: make,
@@ -325,6 +850,9 @@ struct VehicleEditorView: View {
             drivingStyle: profile?.drivingStyle ?? 1.0,
             nickname: nickname.isEmpty ? nil : nickname,
             odometerKm: odoInt,
+            licensePlate: plate.isEmpty ? nil : plate.uppercased(),
+            color: colorStr.isEmpty ? nil : colorStr,
+            fuelTankCapacityL: tank,
             createdAt: profile?.createdAt ?? Date(),
             updatedAt: Date()
         )
@@ -335,4 +863,5 @@ struct VehicleEditorView: View {
 
 #Preview {
     VehicleProfileView()
+        .environmentObject(AppSettings.shared)
 }

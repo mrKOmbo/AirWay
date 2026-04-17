@@ -14,72 +14,87 @@ struct CurrentZoneCard: View {
     let zone: AirQualityZone?
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Izquierda: AQI Badge grande
-            VStack(spacing: 4) {
-                Text("\(Int(zone?.airQuality.aqi ?? 0))")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(zone?.color ?? .gray)
+        HStack(spacing: 14) {
+            aqiBadgeLeft
+                .frame(width: 80)
 
-                Text("AQI")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 90)
+            Rectangle()
+                .fill(.white.opacity(0.1))
+                .frame(width: 1, height: 60)
 
-            Divider()
-                .frame(height: 60)
-
-            // Derecha: Métricas detalladas
-            VStack(alignment: .leading, spacing: 8) {
-                // Nivel de calidad
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
                     Image(systemName: zone?.icon ?? "aqi.medium")
-                        .font(.title3)
-                        .foregroundStyle(zone?.color ?? .gray)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(zone?.color ?? .gray)
 
-                    Text(zone?.level.rawValue ?? "Unknown")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                    Text(zone?.level.rawValue ?? "Desconocido")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
                 }
 
-                // PM2.5
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "circle.hexagongrid.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.55))
                     Text("PM2.5: \(Int(zone?.airQuality.pm25 ?? 0)) µg/m³")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.75))
+                        .monospacedDigit()
                 }
 
-                // Mensaje de salud
                 if let zone = zone {
                     HStack(spacing: 4) {
                         Image(systemName: healthIcon(for: zone.level))
-                            .font(.caption)
-                            .foregroundStyle(healthColor(for: zone.level))
-
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(healthColor(for: zone.level))
                         Text(healthMessage(for: zone.level))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(healthColor(for: zone.level))
                             .lineLimit(1)
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(zone?.fillColor ?? Color(.systemGray6))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.75))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(zone?.strokeColor ?? .clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [(zone?.color ?? .gray).opacity(0.5), .white.opacity(0.08)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
         )
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: (zone?.color ?? .black).opacity(0.3), radius: 12, y: 5)
+    }
+
+    private var aqiBadgeLeft: some View {
+        let aqi = Int(zone?.airQuality.aqi ?? 0)
+        let color = zone?.color ?? .white
+        return VStack(spacing: 2) {
+            Text("\(aqi)")
+                .font(.system(size: 40, weight: .heavy, design: .rounded))
+                .foregroundColor(color)
+                .monospacedDigit()
+                .shadow(color: color.opacity(0.5), radius: 6)
+
+            Text("AQI")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
+        }
     }
 
     // MARK: - Helper Methods
@@ -99,35 +114,23 @@ struct CurrentZoneCard: View {
 
     private func healthColor(for level: AQILevel) -> Color {
         switch level {
-        case .good:
-            return Color(hex: "#4CAF50")
-        case .moderate:
-            return Color(hex: "#FF9800")
-        case .poor:
-            return Color(hex: "#FF5722")
-        case .unhealthy:
-            return Color(hex: "#E53935")
-        case .severe:
-            return Color(hex: "#8E24AA")
-        case .hazardous:
-            return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 
     private func healthMessage(for level: AQILevel) -> String {
         switch level {
-        case .good:
-            return "Safe for everyone"
-        case .moderate:
-            return "Acceptable quality"
-        case .poor:
-            return "Sensitive groups affected"
-        case .unhealthy:
-            return "Everyone may be affected"
-        case .severe:
-            return "Health warnings"
-        case .hazardous:
-            return "Emergency conditions"
+        case .good:      return "Seguro para todos"
+        case .moderate:  return "Calidad aceptable"
+        case .poor:      return "Afecta a sensibles"
+        case .unhealthy: return "Afecta a todos"
+        case .severe:    return "Alerta de salud"
+        case .hazardous: return "Condiciones de emergencia"
         }
     }
 }
@@ -136,29 +139,41 @@ struct CurrentZoneCard: View {
 
 struct EmptyZoneCard: View {
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: "aqi.medium")
-                .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(.white.opacity(0.08))
+                    .frame(width: 44, height: 44)
+                ProgressView().tint(Color(hex: "#22D3EE"))
+            }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Loading Air Quality...")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Cargando calidad del aire…")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white)
 
-                Text("Fetching data for current area")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("Obteniendo datos de la zona")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.55))
             }
 
             Spacer()
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemGray6))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.7))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
     }
 }
 
@@ -168,27 +183,27 @@ struct CompactZoneIndicator: View {
     let zone: AirQualityZone?
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Círculo de color
+        HStack(spacing: 6) {
             Circle()
                 .fill(zone?.color ?? .gray)
-                .frame(width: 12, height: 12)
+                .frame(width: 10, height: 10)
+                .shadow(color: (zone?.color ?? .gray).opacity(0.6), radius: 3)
 
-            // AQI value
             Text("\(Int(zone?.airQuality.aqi ?? 0))")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(zone?.color ?? .gray)
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .foregroundColor(zone?.color ?? .white)
+                .monospacedDigit()
 
-            // Level name
-            Text(zone?.level.rawValue ?? "Unknown")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+            Text(zone?.level.rawValue ?? "Desconocido")
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundColor(.white.opacity(0.7))
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(zone?.fillColor ?? Color(.systemGray6))
+                .fill(.black.opacity(0.65))
+                .background(Capsule().fill(.ultraThinMaterial))
         )
         .overlay(
             Capsule()

@@ -10,7 +10,6 @@
 		09818B110EC04CD85CFAD96B /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 853CB617A120405AA888FF70 /* WatchConnectivity.framework */; };
 		0D5ACE4C5199CAE3AC17B14D /* AirWayWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CA5BA9FC466FCC4E715E5924 /* AirWayWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9D078957F3FA0F93980A0B33 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E969B84657CEC6858660F838 /* Foundation.framework */; };
-		AADDC5622F90C25F00D74999 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = AADDC5612F90C25F00D74999 /* Lottie */; };
 		F1F20DA82A0669D385696AFB /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C8B23D7491A144B87C0D0ADA /* HealthKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -95,7 +94,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AADDC5622F90C25F00D74999 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -656,14 +654,6 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AADDC5612F90C25F00D74999 /* Lottie */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AADDC5602F90C21400D74999 /* XCRemoteSwiftPackageReference "lottie-ios" */;
-			productName = Lottie;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 262196942E80F60C007E3787 /* Project object */;
 }

@@ -26,35 +26,44 @@ struct SearchResultsView: View {
                 resultsList
             }
         }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 5)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.black.opacity(0.78))
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
     }
 
     // MARK: - Subviews
 
     private var searchingView: some View {
-        HStack(spacing: 12) {
-            ProgressView()
-                .scaleEffect(0.9)
-
-            Text("Searching...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            ProgressView().tint(.white).scaleEffect(0.8)
+            Text("Buscando…")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundColor(.white.opacity(0.75))
         }
         .frame(height: 60)
         .frame(maxWidth: .infinity)
     }
 
     private var emptyResultsView: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.title3)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundColor(.white.opacity(0.5))
 
-            Text("No results found")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Text("Sin resultados")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundColor(.white.opacity(0.65))
         }
         .frame(height: 60)
         .frame(maxWidth: .infinity)
@@ -71,13 +80,13 @@ struct SearchResultsView: View {
                     )
 
                     if result.id != results.last?.id {
-                        Divider()
+                        Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
                             .padding(.leading, 60)
                     }
                 }
             }
         }
-        .frame(maxHeight: 300) // Máximo 5-6 resultados visibles
+        .frame(maxHeight: 300)
     }
 }
 
@@ -92,6 +101,7 @@ struct SearchResultRow: View {
 
     var body: some View {
         Button(action: {
+            HapticFeedback.light()
             withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
                 isPressed = true
             }
@@ -101,51 +111,52 @@ struct SearchResultRow: View {
             }
         }) {
             HStack(spacing: 12) {
-                // Icono de tipo de lugar
-                Image(systemName: result.placeType.icon)
-                    .font(.title2)
-                    .foregroundStyle(colorForPlaceType(result.placeType))
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(colorForPlaceType(result.placeType).opacity(0.1))
-                    )
+                ZStack {
+                    Circle()
+                        .fill(colorForPlaceType(result.placeType).opacity(0.2))
+                        .frame(width: 36, height: 36)
+                    Circle()
+                        .stroke(colorForPlaceType(result.placeType).opacity(0.4), lineWidth: 1)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: result.placeType.icon)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(colorForPlaceType(result.placeType))
+                }
 
-                // Información del lugar
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(result.title)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.white)
                         .lineLimit(1)
 
                     if !result.subtitle.isEmpty {
                         Text(result.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.55))
                             .lineLimit(1)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 4)
 
-                // Distancia (si hay coordenadas y ubicación del usuario)
                 if let distance = calculateDistance() {
-                    VStack(alignment: .trailing, spacing: 2) {
+                    HStack(spacing: 3) {
                         Text(distance)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.blue)
-
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color(hex: "#60A5FA"))
+                            .monospacedDigit()
                         Image(systemName: "arrow.right")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.4))
                     }
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Capsule().fill(Color(hex: "#60A5FA").opacity(0.12)))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isPressed ? Color.gray.opacity(0.1) : Color.clear)
+                isPressed ? Color.white.opacity(0.08) : Color.clear
             )
         }
         .buttonStyle(.plain)
@@ -173,20 +184,13 @@ struct SearchResultRow: View {
 
     private func colorForPlaceType(_ type: PlaceType) -> Color {
         switch type {
-        case .food:
-            return .orange
-        case .entertainment:
-            return .purple
-        case .shopping:
-            return .blue
-        case .transportation:
-            return .green
-        case .health:
-            return .red
-        case .nature:
-            return .green
-        case .generic:
-            return .gray
+        case .food:           return Color(hex: "#FB923C")
+        case .entertainment:  return Color(hex: "#A78BFA")
+        case .shopping:       return Color(hex: "#60A5FA")
+        case .transportation: return Color(hex: "#34D399")
+        case .health:         return Color(hex: "#F87171")
+        case .nature:         return Color(hex: "#10B981")
+        case .generic:        return Color(hex: "#94A3B8")
         }
     }
 }
@@ -200,46 +204,57 @@ struct RecentSearchesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
-                Text("Recent Searches")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                Text("RECIENTES")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.0)
+                    .foregroundColor(.white.opacity(0.55))
 
                 Spacer()
 
-                Button("Clear", action: onClear)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.blue)
+                Button(action: {
+                    HapticFeedback.light()
+                    onClear()
+                }) {
+                    Text("Limpiar")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundColor(Color(hex: "#F87171"))
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
 
-            Divider()
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
 
-            // Lista de búsquedas recientes
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(recentSearches) { search in
                         Button(action: {
+                            HapticFeedback.light()
                             onSelect(search)
                         }) {
                             HStack(spacing: 12) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.title3)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 40)
+                                ZStack {
+                                    Circle()
+                                        .fill(.white.opacity(0.08))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .font(.system(size: 13, weight: .heavy))
+                                        .foregroundColor(.white.opacity(0.6))
+                                }
+                                .frame(width: 40)
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: 2) {
                                     Text(search.title)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
+                                        .font(.system(size: 13, weight: .heavy))
+                                        .foregroundColor(.white)
                                         .lineLimit(1)
 
                                     if !search.subtitle.isEmpty {
                                         Text(search.subtitle)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.55))
                                             .lineLimit(1)
                                     }
                                 }
@@ -247,16 +262,16 @@ struct RecentSearchesView: View {
                                 Spacer()
 
                                 Image(systemName: "arrow.up.backward")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 10, weight: .heavy))
+                                    .foregroundColor(.white.opacity(0.5))
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
                         }
                         .buttonStyle(.plain)
 
                         if search.id != recentSearches.last?.id {
-                            Divider()
+                            Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
                                 .padding(.leading, 60)
                         }
                     }
@@ -264,9 +279,20 @@ struct RecentSearchesView: View {
             }
             .frame(maxHeight: 200)
         }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 5)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.black.opacity(0.78))
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
     }
 }
 

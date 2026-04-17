@@ -16,17 +16,33 @@ struct NavigationProgressBar: View {
     let averageAQI: Double?              // AQI promedio de la ruta
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Barra de progreso visual
+        VStack(spacing: 10) {
+            // Stats row arriba
+            HStack(spacing: 10) {
+                statInline(
+                    icon: "location.fill",
+                    value: distanceRemainingFormatted,
+                    label: "restante",
+                    color: Color(hex: "#60A5FA")
+                )
+                statDivider
+                statInline(
+                    icon: "clock.fill",
+                    value: etaFormatted,
+                    label: "ETA",
+                    color: Color(hex: "#34D399")
+                )
+                Spacer(minLength: 4)
+                percentageBadge
+            }
+
+            // Barra de progreso
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Fondo
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.systemGray5))
+                    Capsule()
+                        .fill(.white.opacity(0.08))
                         .frame(height: 8)
-
-                    // Progreso
-                    RoundedRectangle(cornerRadius: 8)
+                    Capsule()
                         .fill(
                             LinearGradient(
                                 colors: progressGradientColors,
@@ -34,54 +50,74 @@ struct NavigationProgressBar: View {
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: geometry.size.width * CGFloat(min(1.0, max(0.0, progress))), height: 8)
+                        .frame(
+                            width: geometry.size.width * CGFloat(min(1.0, max(0.0, progress))),
+                            height: 8
+                        )
+                        .shadow(color: progressGradientColors.first?.opacity(0.5) ?? .clear, radius: 4)
                         .animation(.easeInOut(duration: 0.3), value: progress)
                 }
             }
             .frame(height: 8)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.75))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+    }
 
-            // Información de progreso
-            HStack(spacing: 16) {
-                // Izquierda: Distancia y ETA
-                HStack(spacing: 8) {
-                    Image(systemName: "location.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("\(distanceRemainingFormatted) remaining")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-
-                    Text("•")
-                        .foregroundStyle(.secondary)
-
-                    Image(systemName: "clock.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text(etaFormatted)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                }
-
-                Spacer()
-
-                // Derecha: Porcentaje de progreso
-                Text("\(Int(progress * 100))%")
-                    .font(.caption.weight(.bold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(Color(.systemGray6))
-                    )
+    private func statInline(icon: String, value: String, label: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundColor(color)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(label.uppercased())
+                    .font(.system(size: 7, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(.white.opacity(0.5))
+                Text(value)
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
             }
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.1))
+            .frame(width: 1, height: 24)
+    }
+
+    private var percentageBadge: some View {
+        Text("\(Int(progress * 100))%")
+            .font(.system(size: 12, weight: .heavy, design: .rounded))
+            .monospacedDigit()
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(
+                    LinearGradient(
+                        colors: progressGradientColors,
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+            )
+            .shadow(color: progressGradientColors.first?.opacity(0.4) ?? .clear, radius: 5)
     }
 
     // MARK: - Computed Properties
@@ -117,23 +153,16 @@ struct NavigationProgressBar: View {
     /// Colores del gradiente de progreso (basado en AQI promedio de ruta)
     private var progressGradientColors: [Color] {
         guard let aqi = averageAQI else {
-            // Por defecto: azul
-            return [Color(hex: "#2196F3"), Color(hex: "#1976D2")]
+            return [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")]
         }
-
-        // Colorear según calidad del aire promedio
         if aqi < 50 {
-            // Good - Verde
-            return [Color(hex: "#4CAF50"), Color(hex: "#66BB6A")]
+            return [Color(hex: "#34D399"), Color(hex: "#10B981")]
         } else if aqi < 100 {
-            // Moderate - Amarillo
-            return [Color(hex: "#FFC107"), Color(hex: "#FFB300")]
+            return [Color(hex: "#FBBF24"), Color(hex: "#F59E0B")]
         } else if aqi < 150 {
-            // Unhealthy for Sensitive - Naranja
-            return [Color(hex: "#FF9800"), Color(hex: "#FF6F00")]
+            return [Color(hex: "#FB923C"), Color(hex: "#EA580C")]
         } else {
-            // Unhealthy+ - Rojo
-            return [Color(hex: "#F44336"), Color(hex: "#E53935")]
+            return [Color(hex: "#F87171"), Color(hex: "#DC2626")]
         }
     }
 }
@@ -146,52 +175,61 @@ struct CompactProgressBar: View {
     let eta: TimeInterval
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Progress Circle
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(Color(.systemGray5), lineWidth: 3)
-                    .frame(width: 32, height: 32)
-
+                    .stroke(.white.opacity(0.1), lineWidth: 3)
+                    .frame(width: 34, height: 34)
                 Circle()
                     .trim(from: 0, to: CGFloat(progress))
                     .stroke(
-                        Color(hex: "#2196F3"),
+                        LinearGradient(
+                            colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                            startPoint: .top, endPoint: .bottom
+                        ),
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
-                    .frame(width: 32, height: 32)
+                    .frame(width: 34, height: 34)
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut, value: progress)
 
                 Text("\(Int(progress * 100))")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 3) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 8, weight: .heavy))
+                        .foregroundColor(Color(hex: "#60A5FA"))
                     Text(distanceRemainingFormatted)
-                        .font(.caption2.weight(.medium))
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
                 }
-                .foregroundStyle(.primary)
-
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "clock.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 8, weight: .heavy))
+                        .foregroundColor(Color(hex: "#34D399"))
                     Text(etaFormatted)
-                        .font(.caption2)
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.7))
                 }
-                .foregroundStyle(.secondary)
             }
-
-            Spacer()
+            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.7))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
     }
 
     private var distanceRemainingFormatted: String {

@@ -22,35 +22,30 @@ struct HeroAirQualityCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Hero header con gradiente
             heroHeader
 
-            // Contenido principal
             ScrollView {
-                VStack(spacing: 24) {
-                    // AQI principal
+                VStack(spacing: 18) {
                     mainAQISection
-
-                    // Pollutants grid
                     pollutantsGrid
-
-                    // Health impact
                     healthImpactSection
-
-                    // Recommendations
                     recommendationsSection
-
-                    // Actions
                     actionsSection
                 }
-                .padding(20)
-                .padding(.bottom, 40)
+                .padding(18)
+                .padding(.bottom, 30)
             }
-            .background(Color(.systemBackground))
+            .background(
+                Color(hex: "#0A0F1A").overlay(.ultraThinMaterial)
+            )
         }
-        .clipShape(RoundedRectangle(cornerRadius: 32))
-        .shadow(color: zone.color.opacity(0.3), radius: 30, x: 0, y: 15)
-        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(zone.color.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(color: zone.color.opacity(0.45), radius: 25, y: 12)
+        .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
         .scaleEffect(contentScale)
         .opacity(headerOpacity)
         .onAppear {
@@ -165,7 +160,7 @@ struct HeroAirQualityCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Air Quality Breakdown")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
+                .foregroundColor(.white)
 
             // AQI scale visualization
             AQIScaleView(currentAQI: zone.airQuality.aqi)
@@ -181,7 +176,7 @@ struct HeroAirQualityCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Pollutant Levels")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
+                .foregroundColor(.white)
 
             LazyVGrid(columns: [
                 GridItem(.flexible()),
@@ -246,12 +241,12 @@ struct HeroAirQualityCard: View {
 
                 Text("Health Impact")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundColor(.white)
             }
 
             Text(zone.level.extendedHealthMessage)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundColor(.white.opacity(0.55))
                 .lineSpacing(4)
 
             // Health risk indicator
@@ -273,7 +268,7 @@ struct HeroAirQualityCard: View {
 
                 Text("Recommendations")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundColor(.white)
             }
 
             ForEach(recommendationsForLevel, id: \.self) { recommendation in
@@ -284,7 +279,7 @@ struct HeroAirQualityCard: View {
 
                     Text(recommendation)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
+                        .foregroundColor(.white)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -337,7 +332,7 @@ struct HeroAirQualityCard: View {
 
                     Text(name)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundColor(.white)
 
                     Spacer()
 
@@ -352,16 +347,16 @@ struct HeroAirQualityCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(String(format: "%.1f", value))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
+                            .foregroundColor(.white)
 
                         Text(unit)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.white.opacity(0.55))
                     }
 
                     Text("Safe: <\(Int(safeLimit)) \(unit)")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.white.opacity(0.55))
                 }
             }
             .padding(16)
@@ -385,14 +380,14 @@ struct HeroAirQualityCard: View {
                     ZStack(alignment: .leading) {
                         // Background segments
                         HStack(spacing: 2) {
-                            Rectangle().fill(Color(hex: "#E0E0E0"))
-                            Rectangle().fill(Color(hex: "#F9A825"))
-                            Rectangle().fill(Color(hex: "#FF6F00"))
-                            Rectangle().fill(Color(hex: "#E53935"))
-                            Rectangle().fill(Color(hex: "#8E24AA"))
-                            Rectangle().fill(Color(hex: "#6A1B4D"))
+                            Rectangle().fill(Color(hex: "#34D399"))
+                            Rectangle().fill(Color(hex: "#FBBF24"))
+                            Rectangle().fill(Color(hex: "#FB923C"))
+                            Rectangle().fill(Color(hex: "#F87171"))
+                            Rectangle().fill(Color(hex: "#A78BFA"))
+                            Rectangle().fill(Color(hex: "#881337"))
                         }
-                        .frame(height: 12)
+                        .frame(height: 10)
                         .clipShape(Capsule())
 
                         // Current position indicator
@@ -400,13 +395,13 @@ struct HeroAirQualityCard: View {
 
                         Circle()
                             .fill(.white)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 22, height: 22)
                             .overlay(
                                 Circle()
-                                    .strokeBorder(.primary, lineWidth: 3)
+                                    .stroke(Color.black.opacity(0.35), lineWidth: 2)
                             )
-                            .shadow(radius: 4)
-                            .offset(x: position - 12)
+                            .shadow(color: .black.opacity(0.5), radius: 4)
+                            .offset(x: position - 11)
                     }
                 }
                 .frame(height: 24)
@@ -426,7 +421,7 @@ struct HeroAirQualityCard: View {
                     Text("300+")
                 }
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundColor(.white.opacity(0.55))
             }
         }
     }
@@ -467,11 +462,11 @@ struct HeroAirQualityCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(riskLevel)
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.primary)
+                        .foregroundColor(.white)
 
                     Text("For sensitive groups")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.white.opacity(0.55))
                 }
 
                 Spacer()

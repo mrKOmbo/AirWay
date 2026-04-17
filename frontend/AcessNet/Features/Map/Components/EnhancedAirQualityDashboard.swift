@@ -42,41 +42,41 @@ struct EnhancedAirQualityDashboard: View {
         }
         .background(
             ZStack {
-                // Glass morphism background
-                RoundedRectangle(cornerRadius: 24)
+                // Dark glass base
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.black.opacity(0.78))
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(.ultraThinMaterial)
-
-                // Gradient overlay
-                RoundedRectangle(cornerRadius: 24)
+                // Accent gradient
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                dominantColor.opacity(0.15),
-                                dominantColor.opacity(0.05),
+                                dominantColor.opacity(0.18),
+                                dominantColor.opacity(0.04),
                                 .clear
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
             }
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .strokeBorder(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
                     LinearGradient(
                         colors: [
-                            .white.opacity(0.3),
-                            .white.opacity(0.1)
+                            dominantColor.opacity(0.4),
+                            .white.opacity(0.08)
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        startPoint: .topLeading, endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1
+                    lineWidth: 1.2
                 )
         )
-        .shadow(color: dominantColor.opacity(0.2), radius: 20, x: 0, y: 10)
-        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: dominantColor.opacity(0.3), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.45), radius: 14, y: 6)
         .onAppear {
             startAnimations()
         }
@@ -128,91 +128,96 @@ struct EnhancedAirQualityDashboard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(activeRoute != nil ? "Route Air Quality" : "Air Quality")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.primary)
+                    Text(activeRoute != nil ? "Aire de la ruta" : "Calidad del aire")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
 
                     // Reference Point Indicator (solo cuando NO hay ruta)
                     if activeRoute == nil {
                         HStack(spacing: 3) {
                             Image(systemName: referencePoint.icon)
-                                .font(.system(size: 8, weight: .semibold))
+                                .font(.system(size: 8, weight: .heavy))
                             Text(referencePoint.displayName)
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.system(size: 9, weight: .heavy))
                         }
-                        .foregroundStyle(referencePoint.coordinate != nil ? Color.blue : Color.green)
+                        .foregroundColor(referencePoint.coordinate != nil ? Color(hex: "#3B82F6") : Color(hex: "#34D399"))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
-                            Capsule()
-                                .fill((referencePoint.coordinate != nil ? Color.blue : Color.green).opacity(0.15))
+                            Capsule().fill((referencePoint.coordinate != nil
+                                ? Color(hex: "#3B82F6")
+                                : Color(hex: "#34D399")).opacity(0.18))
+                        )
+                        .overlay(
+                            Capsule().stroke((referencePoint.coordinate != nil
+                                ? Color(hex: "#3B82F6")
+                                : Color(hex: "#34D399")).opacity(0.4), lineWidth: 0.8)
                         )
                     }
                 }
 
-                // Mostrar AQI de ruta o grid
                 if activeRoute != nil {
-                    // Mostrar AQI de la ruta
-                    HStack(spacing: 6) {
-                        Text("Avg AQI")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Text("AQI PROM")
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(0.8)
+                            .foregroundColor(.white.opacity(0.5))
 
                         Text("\(Int(displayAQI))")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(dominantColor)
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .foregroundColor(dominantColor)
+                            .monospacedDigit()
 
-                        // Badge de nivel
-                        Text(displayLevel.rawValue)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(dominantColor)
-                            .clipShape(Capsule())
+                        Text(displayLevel.rawValue.uppercased())
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(0.6)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Capsule().fill(dominantColor))
                     }
                 } else if let stats = statistics {
-                    // Mostrar AQI del grid
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Text("AQI")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(0.8)
+                            .foregroundColor(.white.opacity(0.5))
 
                         Text("\(Int(stats.averageAQI))")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(dominantColor)
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .foregroundColor(dominantColor)
+                            .monospacedDigit()
 
-                        // Trend indicator
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(dominantColor)
-                            .opacity(0.7)
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(dominantColor.opacity(0.8))
                     }
                 }
             }
 
             Spacer()
 
-            // Expand/Collapse indicator
+            // Expand indicator
             ZStack {
                 Circle()
-                    .fill(dominantColor.opacity(0.1))
+                    .fill(dominantColor.opacity(0.18))
                     .frame(width: activeRoute != nil ? 28 : 32, height: activeRoute != nil ? 28 : 32)
-
+                Circle()
+                    .stroke(dominantColor.opacity(0.35), lineWidth: 1)
+                    .frame(width: activeRoute != nil ? 28 : 32, height: activeRoute != nil ? 28 : 32)
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: activeRoute != nil ? 11 : 12, weight: .bold))
-                    .foregroundStyle(dominantColor)
+                    .font(.system(size: activeRoute != nil ? 11 : 12, weight: .heavy))
+                    .foregroundColor(dominantColor)
             }
         }
-        .padding(activeRoute != nil ? 12 : 16)
+        .padding(activeRoute != nil ? 12 : 14)
     }
 
     // MARK: - Expanded Content
 
     private var expandedContent: some View {
         VStack(spacing: activeRoute != nil ? 12 : 20) {
-            Divider()
-                .padding(.horizontal, 16)
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                .padding(.horizontal, 14)
 
             // Donut Chart + Stats
             HStack(spacing: activeRoute != nil ? 16 : 24) {
@@ -227,8 +232,8 @@ struct EnhancedAirQualityDashboard: View {
             }
             .padding(.horizontal, 16)
 
-            Divider()
-                .padding(.horizontal, 16)
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                .padding(.horizontal, 14)
 
             // Level distribution bars
             levelDistributionView
@@ -254,35 +259,33 @@ struct EnhancedAirQualityDashboard: View {
                         .padding(.horizontal, 16)
 
                     Button(action: {
-                        let impact = UIImpactFeedbackGenerator(style: .medium)
-                        impact.impactOccurred()
+                        HapticFeedback.medium()
                         startNavigation()
                     }) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             Image(systemName: "location.fill.viewfinder")
-                                .font(.system(size: 18, weight: .semibold))
-
-                            Text("Start Navigation")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 14, weight: .heavy))
+                            Text("Iniciar navegación")
+                                .font(.system(size: 14, weight: .heavy))
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 11, weight: .heavy))
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 13)
                         .background(
                             LinearGradient(
-                                colors: [
-                                    Color(hex: "#00B020"),
-                                    Color(hex: "#00D428")
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                                colors: [Color(hex: "#10B981"), Color(hex: "#059669")],
+                                startPoint: .leading, endPoint: .trailing
                             )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .shadow(color: Color(hex: "#00B020").opacity(0.4), radius: 10, x: 0, y: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: Color(hex: "#10B981").opacity(0.5), radius: 10, y: 4)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 14)
                 } else {
                     // Padding bottom más pequeño si no hay botón
                     Color.clear
@@ -298,7 +301,7 @@ struct EnhancedAirQualityDashboard: View {
         ZStack {
             // Background circle
             Circle()
-                .stroke(Color.gray.opacity(0.1), lineWidth: 20)
+                .stroke(.white.opacity(0.08), lineWidth: 20)
 
             // Animated segments
             if let stats = statistics, animateCharts {
@@ -314,15 +317,17 @@ struct EnhancedAirQualityDashboard: View {
             }
 
             // Center content
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 if let stats = statistics {
                     Text("\(stats.totalZones)")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
 
-                    Text("zones")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
+                    Text("ZONAS")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.0)
+                        .foregroundColor(.white.opacity(0.55))
                 }
             }
         }
@@ -331,71 +336,64 @@ struct EnhancedAirQualityDashboard: View {
     // MARK: - Stats Breakdown
 
     private var statsBreakdownView: some View {
-        VStack(alignment: .leading, spacing: activeRoute != nil ? 8 : 12) {
-            Text("Air Quality Breakdown")
-                .font(.system(size: activeRoute != nil ? 12 : 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: activeRoute != nil ? 8 : 10) {
+            Text("DESGLOSE DE LA CALIDAD")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
             if let route = activeRoute, let analysis = route.airQualityAnalysis {
-                // Mostrar distribución de segmentos de la ruta (compacto)
                 VStack(spacing: 6) {
                     StatRow(
                         icon: "checkmark.circle.fill",
-                        label: "Good",
+                        label: "Bueno",
                         count: analysis.goodSegments,
-                        color: Color(hex: "#E0E0E0")
+                        color: Color(hex: "#34D399")
                     )
-
                     StatRow(
-                        icon: "leaf",
-                        label: "Moderate",
+                        icon: "leaf.fill",
+                        label: "Moderado",
                         count: analysis.moderateSegments,
-                        color: Color(hex: "#F9A825")
+                        color: Color(hex: "#FBBF24")
                     )
-
                     StatRow(
                         icon: "exclamationmark.triangle.fill",
-                        label: "Poor",
+                        label: "Pobre",
                         count: analysis.poorSegments,
-                        color: Color(hex: "#FF6F00")
+                        color: Color(hex: "#FB923C")
                     )
-
                     StatRow(
                         icon: "xmark.shield.fill",
-                        label: "Unhealthy",
+                        label: "Dañino",
                         count: analysis.unhealthySegments + analysis.severeSegments + analysis.hazardousSegments,
-                        color: Color(hex: "#E53935")
+                        color: Color(hex: "#F87171")
                     )
                 }
             } else if let stats = statistics {
-                // Mostrar distribución del grid (código existente)
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
+                    StatRow(
+                        icon: "checkmark.circle.fill",
+                        label: "Bueno",
+                        count: stats.goodCount,
+                        color: Color(hex: "#34D399")
+                    )
                     StatRow(
                         icon: "leaf.fill",
-                        label: "Good",
-                        count: stats.goodCount,
-                        color: Color(hex: "#E0E0E0")
-                    )
-
-                    StatRow(
-                        icon: "leaf",
-                        label: "Moderate",
+                        label: "Moderado",
                         count: stats.moderateCount,
-                        color: Color(hex: "#F9A825")
+                        color: Color(hex: "#FBBF24")
                     )
-
                     StatRow(
                         icon: "exclamationmark.triangle.fill",
-                        label: "Poor",
+                        label: "Pobre",
                         count: stats.poorCount,
-                        color: Color(hex: "#FF6F00")
+                        color: Color(hex: "#FB923C")
                     )
-
                     StatRow(
                         icon: "xmark.shield.fill",
-                        label: "Unhealthy",
+                        label: "Dañino",
                         count: stats.unhealthyCount + stats.severeCount + stats.hazardousCount,
-                        color: Color(hex: "#E53935")
+                        color: Color(hex: "#F87171")
                     )
                 }
             }
@@ -405,31 +403,30 @@ struct EnhancedAirQualityDashboard: View {
     // MARK: - Level Distribution
 
     private var levelDistributionView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Level Distribution")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DISTRIBUCIÓN POR NIVEL")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
             if let route = activeRoute, let analysis = route.airQualityAnalysis {
-                // Barra de distribución para segmentos de ruta
                 DistributionBar(
                     segments: [
-                        (analysis.goodSegments, Color(hex: "#E0E0E0")),
-                        (analysis.moderateSegments, Color(hex: "#F9A825")),
-                        (analysis.poorSegments, Color(hex: "#FF6F00")),
-                        (analysis.unhealthySegments + analysis.severeSegments + analysis.hazardousSegments, Color(hex: "#E53935"))
+                        (analysis.goodSegments, Color(hex: "#34D399")),
+                        (analysis.moderateSegments, Color(hex: "#FBBF24")),
+                        (analysis.poorSegments, Color(hex: "#FB923C")),
+                        (analysis.unhealthySegments + analysis.severeSegments + analysis.hazardousSegments, Color(hex: "#F87171"))
                     ],
                     total: analysis.totalSegments,
                     animate: animateCharts
                 )
             } else if let stats = statistics {
-                // Barra de distribución para grid (código existente)
                 DistributionBar(
                     segments: [
-                        (stats.goodCount, Color(hex: "#E0E0E0")),
-                        (stats.moderateCount, Color(hex: "#F9A825")),
-                        (stats.poorCount, Color(hex: "#FF6F00")),
-                        (stats.unhealthyCount + stats.severeCount + stats.hazardousCount, Color(hex: "#E53935"))
+                        (stats.goodCount, Color(hex: "#34D399")),
+                        (stats.moderateCount, Color(hex: "#FBBF24")),
+                        (stats.poorCount, Color(hex: "#FB923C")),
+                        (stats.unhealthyCount + stats.severeCount + stats.hazardousCount, Color(hex: "#F87171"))
                     ],
                     total: stats.totalZones,
                     animate: animateCharts
@@ -441,39 +438,40 @@ struct EnhancedAirQualityDashboard: View {
     // MARK: - Breathability Section
 
     private var breathabilitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Breathability")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("RESPIRABILIDAD")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
-            if let stats = statistics {
-                HStack(spacing: 16) {
-                    // Animated lungs
+            if statistics != nil {
+                HStack(spacing: 12) {
                     animatedLungsIcon
 
-                    // Breathability info
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(breathabilityDescription)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(dominantColor)
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundColor(dominantColor)
 
                         Text(breathabilityDetail)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.65))
                             .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 4)
 
-                    // Score indicator
                     breathabilityScoreRing
                 }
-                .padding(16)
-                .background(dominantColor.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(dominantColor.opacity(0.1))
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(dominantColor.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(dominantColor.opacity(0.35), lineWidth: 1)
                 )
             }
         }
@@ -508,28 +506,27 @@ struct EnhancedAirQualityDashboard: View {
 
     private var breathabilityScoreRing: some View {
         ZStack {
-            // Background ring
             Circle()
-                .stroke(
-                    Color.gray.opacity(0.2),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .frame(width: 44, height: 44)
+                .stroke(.white.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .frame(width: 46, height: 46)
 
-            // Progress ring
             Circle()
                 .trim(from: 0, to: breathabilityScore / 100)
                 .stroke(
-                    dominantColor,
+                    LinearGradient(
+                        colors: [dominantColor, dominantColor.opacity(0.6)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
                     style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
-                .frame(width: 44, height: 44)
+                .frame(width: 46, height: 46)
                 .rotationEffect(.degrees(-90))
+                .shadow(color: dominantColor.opacity(0.5), radius: 4)
 
-            // Score text
             Text("\(Int(breathabilityScore))")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(dominantColor)
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .monospacedDigit()
         }
     }
 
@@ -541,54 +538,48 @@ struct EnhancedAirQualityDashboard: View {
     private var breathabilityDescription: String {
         guard let stats = statistics else { return "N/A" }
         switch stats.dominantLevel {
-        case .good: return "Excellent"
-        case .moderate: return "Good"
-        case .poor: return "Fair"
-        case .unhealthy: return "Poor"
-        case .severe: return "Very Poor"
-        case .hazardous: return "Hazardous"
+        case .good:      return "Excelente"
+        case .moderate:  return "Buena"
+        case .poor:      return "Regular"
+        case .unhealthy: return "Mala"
+        case .severe:    return "Muy mala"
+        case .hazardous: return "Peligrosa"
         }
     }
 
     private var breathabilityDetail: String {
         guard let stats = statistics else { return "" }
         switch stats.dominantLevel {
-        case .good:
-            return "Perfect for outdoor breathing"
-        case .moderate:
-            return "Safe for most people"
-        case .poor:
-            return "Consider mask for sensitive groups"
-        case .unhealthy:
-            return "Limit outdoor exposure"
-        case .severe:
-            return "Wear mask, reduce activity"
-        case .hazardous:
-            return "Stay indoors, use purifiers"
+        case .good:      return "Perfecto para respirar afuera"
+        case .moderate:  return "Seguro para la mayoría"
+        case .poor:      return "Mascarilla para sensibles"
+        case .unhealthy: return "Limita la exposición exterior"
+        case .severe:    return "Usa mascarilla, reduce actividad"
+        case .hazardous: return "Quédate adentro, usa purificadores"
         }
     }
 
     // MARK: - Quick Insights
 
     private var quickInsightsView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Insights")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("INSIGHTS RÁPIDOS")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
             if let stats = statistics {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     InsightCard(
                         icon: "chart.line.uptrend.xyaxis",
                         value: "\(Int(stats.averageAQI))",
-                        label: "Avg AQI",
+                        label: "AQI prom",
                         color: dominantColor
                     )
-
                     InsightCard(
                         icon: dominantLevelIcon,
                         value: dominantLevelName,
-                        label: "Dominant",
+                        label: "Dominante",
                         color: dominantColor
                     )
                 }
@@ -607,23 +598,23 @@ struct EnhancedAirQualityDashboard: View {
         var body: some View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(color)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(color)
                     .frame(width: 16)
 
                 Text(label)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(.white)
 
                 Spacer()
 
                 Text("\(count)")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(color.opacity(0.15))
-                    .clipShape(Capsule())
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(color)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(color.opacity(0.18)))
+                    .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 0.8))
             }
         }
     }
@@ -657,20 +648,22 @@ struct EnhancedAirQualityDashboard: View {
         let color: Color
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(color)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(color)
 
                     Text(value)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
                 }
 
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
+                Text(label.uppercased())
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.6)
+                    .foregroundColor(.white.opacity(0.55))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -698,15 +691,14 @@ struct EnhancedAirQualityDashboard: View {
     }
 
     private var dominantColor: Color {
-        // Usar displayLevel que considera tanto ruta como grid
         let level = displayLevel
         switch level {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 
@@ -726,10 +718,10 @@ struct EnhancedAirQualityDashboard: View {
         var currentPosition: Double = 0
 
         let levels: [(Int, Color)] = [
-            (stats.goodCount, Color(hex: "#E0E0E0")),
-            (stats.moderateCount, Color(hex: "#F9A825")),
-            (stats.poorCount, Color(hex: "#FF6F00")),
-            (stats.unhealthyCount + stats.severeCount + stats.hazardousCount, Color(hex: "#E53935"))
+            (stats.goodCount, Color(hex: "#34D399")),
+            (stats.moderateCount, Color(hex: "#FBBF24")),
+            (stats.poorCount, Color(hex: "#FB923C")),
+            (stats.unhealthyCount + stats.severeCount + stats.hazardousCount, Color(hex: "#F87171"))
         ]
 
         for level in levels {

@@ -36,6 +36,10 @@ final class VehicleProfileService: ObservableObject {
 
     private init() {
         load()
+        // Auto-carga de vehículos demo si es la primera vez
+        if savedProfiles.isEmpty {
+            loadDemoVehicles()
+        }
     }
 
     // MARK: - Public API
@@ -93,6 +97,23 @@ final class VehicleProfileService: ObservableObject {
         AirWayLogger.fuel.info(
             "drivingStyle EMA \(String(format: "%.3f", current), privacy: .public) → \(String(format: "%.3f", updated), privacy: .public) (input=\(String(format: "%.3f", clamped), privacy: .public), α=\(String(format: "%.2f", alpha), privacy: .public))"
         )
+    }
+
+    /// Carga los vehículos demo asociados a cada modelo 3D. Si ya existen, no los duplica.
+    func loadDemoVehicles() {
+        for asset in Vehicle3DAsset.allCases {
+            let demo = asset.demoProfile
+            let alreadyExists = savedProfiles.contains { p in
+                p.make == demo.make && p.model == demo.model && p.year == demo.year
+            }
+            guard !alreadyExists else { continue }
+            savedProfiles.append(demo)
+        }
+        if activeProfile == nil {
+            activeProfile = savedProfiles.first
+        }
+        persist()
+        AirWayLogger.fuel.info("VehicleProfile demo loaded (\(self.savedProfiles.count, privacy: .public) total)")
     }
 
     /// Actualiza el odómetro (p.ej. detectado por Gemini Vision).

@@ -33,30 +33,39 @@ struct NavigationPanel: View {
 
             // Predicted AQI at arrival
             if let avgAQI = navigationState.selectedRoute?.averageAQI, avgAQI > 0 {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "brain.head.profile")
-                        .font(.caption)
-                        .foregroundStyle(.cyan)
-                    Text("AQI at arrival:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(Color(hex: "#22D3EE"))
+                    Text("AQI al llegar:")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.6))
                     Text("\(Int(avgAQI))")
-                        .font(.caption.bold())
-                        .foregroundStyle(avgAQI <= 50 ? .green : avgAQI <= 100 ? .yellow : .orange)
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundColor(
+                            avgAQI <= 50 ? Color(hex: "#34D399")
+                            : avgAQI <= 100 ? Color(hex: "#FBBF24")
+                            : Color(hex: "#F87171")
+                        )
+                        .monospacedDigit()
 
                     Spacer()
 
-                    Text("ML Prediction")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(.secondary.opacity(0.1)))
+                    Text("ML")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(0.8)
+                        .foregroundColor(Color(hex: "#22D3EE"))
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Capsule().fill(Color(hex: "#22D3EE").opacity(0.18)))
+                        .overlay(Capsule().stroke(Color(hex: "#22D3EE").opacity(0.4), lineWidth: 0.8))
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 8).padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.white.opacity(0.04))
+                )
             }
 
-            // Bottom: Barra de progreso
             NavigationProgressBar(
                 progress: navigationState.progress,
                 distanceRemaining: navigationState.distanceRemaining,
@@ -64,12 +73,21 @@ struct NavigationPanel: View {
                 averageAQI: navigationState.selectedRoute?.averageAQI
             )
         }
-        .padding()
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: -5)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.black.opacity(0.78))
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.55), radius: 20, y: -6)
         .padding(.horizontal)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
@@ -85,35 +103,42 @@ struct CompactNavigationPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Drag handle
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color(.systemGray4))
+            Capsule()
+                .fill(.white.opacity(0.25))
                 .frame(width: 36, height: 5)
                 .padding(.top, 8)
-                .padding(.bottom, 12)
+                .padding(.bottom, 10)
 
-            // Compact content
-            VStack(spacing: 12) {
-                // Instrucción compacta
+            VStack(spacing: 10) {
                 CompactInstructionBar(
                     step: navigationState.currentStep,
                     distance: distanceToManeuver
                 )
-
-                // Progreso compacto
                 CompactProgressBar(
                     progress: navigationState.progress,
                     distanceRemaining: navigationState.distanceRemaining,
                     eta: navigationState.etaRemaining
                 )
             }
-            .padding(.horizontal)
-            .padding(.bottom)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
         }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -3)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.black.opacity(0.75))
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.4), radius: 12, y: -4)
         .onTapGesture {
+            HapticFeedback.light()
             onExpand()
         }
     }
@@ -128,24 +153,28 @@ struct ArrivalPanel: View {
     @State private var confettiAnimation = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Icono de llegada con animación
+        VStack(spacing: 18) {
             ZStack {
+                Circle()
+                    .fill(Color(hex: "#10B981").opacity(0.25))
+                    .frame(width: 120, height: 120)
+                    .blur(radius: 10)
+                    .scaleEffect(confettiAnimation ? 1.2 : 1.0)
+
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "#4CAF50"), Color(hex: "#66BB6A")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colors: [Color(hex: "#34D399"), Color(hex: "#10B981")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 100, height: 100)
-                    .shadow(color: Color(hex: "#4CAF50").opacity(0.4), radius: 20, x: 0, y: 8)
-                    .scaleEffect(confettiAnimation ? 1.1 : 1.0)
+                    .frame(width: 96, height: 96)
+                    .shadow(color: Color(hex: "#10B981").opacity(0.55), radius: 18, y: 6)
+                    .scaleEffect(confettiAnimation ? 1.08 : 1.0)
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 54, weight: .heavy))
+                    .foregroundColor(.white)
                     .rotationEffect(.degrees(confettiAnimation ? 360 : 0))
             }
             .onAppear {
@@ -154,45 +183,57 @@ struct ArrivalPanel: View {
                 }
             }
 
-            // Mensaje
-            VStack(spacing: 8) {
-                Text("You have arrived!")
-                    .font(.title.bold())
-                    .foregroundStyle(.primary)
+            VStack(spacing: 4) {
+                Text("¡Has llegado!")
+                    .font(.system(size: 24, weight: .heavy))
+                    .foregroundColor(.white)
 
                 Text(destination)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
             }
 
-            // Botón de cierre
-            Button(action: onDismiss) {
-                HStack {
+            Button(action: {
+                HapticFeedback.success()
+                onDismiss()
+            }) {
+                HStack(spacing: 6) {
                     Image(systemName: "checkmark")
-                    Text("Finish")
-                        .font(.headline)
+                        .font(.system(size: 13, weight: .heavy))
+                    Text("Finalizar")
+                        .font(.system(size: 15, weight: .heavy))
                 }
+                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding()
+                .padding(.vertical, 13)
                 .background(
                     LinearGradient(
-                        colors: [Color(hex: "#4CAF50"), Color(hex: "#66BB6A")],
-                        startPoint: .leading,
-                        endPoint: .trailing
+                        colors: [Color(hex: "#10B981"), Color(hex: "#059669")],
+                        startPoint: .leading, endPoint: .trailing
                     )
                 )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color(hex: "#4CAF50").opacity(0.3), radius: 8, x: 0, y: 4)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(color: Color(hex: "#10B981").opacity(0.5), radius: 10, y: 4)
             }
+            .buttonStyle(.plain)
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: -5)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.black.opacity(0.8))
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color(hex: "#10B981").opacity(0.35), lineWidth: 1.2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color(hex: "#10B981").opacity(0.4), radius: 22, y: 8)
         .padding(.horizontal)
         .transition(.scale.combined(with: .opacity))
     }
@@ -205,56 +246,86 @@ struct OffRouteAlert: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Icono de alerta
+        HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.orange)
-                    .frame(width: 50, height: 50)
-
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "#FB923C"), Color(hex: "#EA580C")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 42, height: 42)
                 Image(systemName: "location.slash.fill")
-                    .font(.title3)
-                    .foregroundStyle(.white)
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundColor(.white)
+            }
+            .shadow(color: Color(hex: "#FB923C").opacity(0.5), radius: 6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Fuera de ruta")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white)
+                Text("¿Quieres recalcular?")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.55))
             }
 
-            // Mensaje
-            VStack(alignment: .leading, spacing: 4) {
-                Text("You're off route")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+            Spacer(minLength: 4)
 
-                Text("Would you like to recalculate?")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Botones
-            HStack(spacing: 8) {
-                Button(action: onDismiss) {
+            HStack(spacing: 6) {
+                Button(action: {
+                    HapticFeedback.light()
+                    onDismiss()
+                }) {
                     Image(systemName: "xmark")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .background(Circle().fill(Color(.systemGray5)))
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.65))
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(.white.opacity(0.1)))
+                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
 
-                Button(action: onRecalculate) {
-                    Text("Recalculate")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.orange)
-                        .clipShape(Capsule())
+                Button(action: {
+                    HapticFeedback.medium()
+                    onRecalculate()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 10, weight: .heavy))
+                        Text("Recalcular")
+                            .font(.system(size: 11, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(
+                        Capsule().fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#FB923C"), Color(hex: "#EA580C")],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                    )
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.black.opacity(0.78))
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(hex: "#FB923C").opacity(0.4), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color(hex: "#FB923C").opacity(0.35), radius: 12, y: 5)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 }

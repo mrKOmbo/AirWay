@@ -17,9 +17,18 @@ struct NavigationInstructionBar: View {
     @State private var pulse: Bool = false
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             // Icono de maniobra
             ZStack {
+                if isUrgent {
+                    Circle()
+                        .fill(iconColor.opacity(0.4))
+                        .frame(width: 72, height: 72)
+                        .blur(radius: 10)
+                        .scaleEffect(pulse ? 1.25 : 1.0)
+                        .opacity(pulse ? 0.2 : 0.65)
+                }
+
                 Circle()
                     .fill(
                         LinearGradient(
@@ -28,51 +37,69 @@ struct NavigationInstructionBar: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 60, height: 60)
-                    .shadow(color: iconColor.opacity(0.3), radius: isUrgent ? 12 : 8, x: 0, y: 4)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: iconColor.opacity(0.6), radius: isUrgent ? 14 : 8, y: 4)
                     .scaleEffect(pulse && isUrgent ? 1.05 : 1.0)
 
+                Circle()
+                    .stroke(.white.opacity(0.25), lineWidth: 1.2)
+                    .frame(width: 58, height: 58)
+
                 Image(systemName: step?.maneuverType.icon ?? "arrow.up")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 26, weight: .heavy))
+                    .foregroundColor(.white)
             }
 
-            // Información de instrucción
-            VStack(alignment: .leading, spacing: 4) {
-                // Distancia
-                Text(distanceText)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(isUrgent ? iconColor : .secondary)
+            // Información
+            VStack(alignment: .leading, spacing: 3) {
+                Text(distanceText.uppercased())
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(1.0)
+                    .foregroundColor(isUrgent ? iconColor : .white.opacity(0.6))
 
-                // Instrucción
-                Text(step?.shortInstruction ?? "Continue on route")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+                Text(step?.shortInstruction ?? "Continúa en ruta")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundColor(.white)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Indicador de urgencia (cuando está muy cerca)
             if isUrgent {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.title3)
-                    .foregroundStyle(.orange)
-                    .opacity(pulse ? 1.0 : 0.6)
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(Color(hex: "#FBBF24"))
+                    .opacity(pulse ? 1.0 : 0.5)
+                    .shadow(color: Color(hex: "#FBBF24").opacity(0.6), radius: 5)
             }
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(isUrgent ? iconColor.opacity(0.3) : Color.clear, lineWidth: 2)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.75))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
-        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulse)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: isUrgent
+                            ? [iconColor.opacity(0.55), iconColor.opacity(0.2)]
+                            : [.white.opacity(0.12), .white.opacity(0.03)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isUrgent ? 1.5 : 1
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.5), radius: 14, y: 5)
+        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
         .onAppear {
-            if isUrgent {
-                pulse = true
-            }
+            if isUrgent { pulse = true }
         }
         .onChange(of: isUrgent) { _, newValue in
             pulse = newValue
@@ -89,11 +116,11 @@ struct NavigationInstructionBar: View {
     /// Texto de distancia formateado
     private var distanceText: String {
         if distanceToManeuver < 50 {
-            return "Now"
+            return "Ahora"
         } else if distanceToManeuver < 1000 {
-            return "In \(Int(distanceToManeuver)) m"
+            return "En \(Int(distanceToManeuver)) m"
         } else {
-            return "In \(String(format: "%.1f", distanceToManeuver / 1000)) km"
+            return "En \(String(format: "%.1f", distanceToManeuver / 1000)) km"
         }
     }
 
@@ -117,37 +144,45 @@ struct CompactInstructionBar: View {
     let distance: Double
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Icono pequeño
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(iconColor)
-                    .frame(width: 40, height: 40)
-
+                    .fill(
+                        LinearGradient(
+                            colors: [iconColor, iconColor.opacity(0.7)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 36, height: 36)
                 Image(systemName: step?.maneuverType.icon ?? "arrow.up")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundColor(.white)
             }
+            .shadow(color: iconColor.opacity(0.5), radius: 5)
 
-            // Distancia + instrucción en una línea
-            VStack(alignment: .leading, spacing: 2) {
-                Text(distanceText)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(distanceText.uppercased())
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(.white.opacity(0.55))
 
-                Text(step?.shortInstruction ?? "Continue")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary)
+                Text(step?.shortInstruction ?? "Continúa")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white)
                     .lineLimit(1)
             }
-
-            Spacer()
+            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.7))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 3)
     }
 
     private var iconColor: Color {

@@ -20,76 +20,108 @@ struct FuelStationSuggestionBanner: View {
             brandBadge
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Text(station.brand)
-                        .font(.subheadline.bold())
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundColor(.white)
+                    Text("·")
+                        .foregroundColor(.white.opacity(0.3))
                     Text("a \(station.distanceKmFormatted)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.55))
                 }
                 HStack(spacing: 6) {
                     Text(station.priceFormatted)
-                        .font(.subheadline.bold())
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
                         .monospacedDigit()
-                        .foregroundColor(.green)
+                        .foregroundColor(Color(hex: "#34D399"))
                     if let savings = station.savingsFormatted {
-                        Text(savings)
-                            .font(.caption.bold())
-                            .foregroundColor(.green)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.green.opacity(0.15))
-                            .cornerRadius(6)
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.down.right")
+                                .font(.system(size: 8, weight: .heavy))
+                            Text(savings)
+                                .font(.system(size: 9, weight: .heavy))
+                        }
+                        .foregroundColor(Color(hex: "#34D399"))
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(Capsule().fill(Color(hex: "#34D399").opacity(0.18)))
+                        .overlay(Capsule().stroke(Color(hex: "#34D399").opacity(0.4), lineWidth: 0.8))
                     }
                 }
                 Text(station.address)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.5))
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
-            Button(action: onDismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
+            Button(action: {
+                HapticFeedback.light()
+                onDismiss()
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.75))
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(.white.opacity(0.1)))
+                    .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
             }
             .buttonStyle(.plain)
         }
         .padding(12)
         .background(
-            LinearGradient(
-                colors: [Color.orange.opacity(0.12), Color.yellow.opacity(0.08)],
-                startPoint: .leading, endPoint: .trailing
-            )
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.black.opacity(0.72))
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "#FBBF24").opacity(0.5),
+                                 Color(hex: "#F59E0B").opacity(0.15)],
+                        startPoint: .leading, endPoint: .trailing
+                    ),
+                    lineWidth: 1.2
+                )
         )
-        .cornerRadius(14)
-        .onTapGesture(perform: onTap)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.4), radius: 12, y: 5)
+        .onTapGesture {
+            HapticFeedback.medium()
+            onTap()
+        }
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var brandBadge: some View {
         ZStack {
-            Circle().fill(brandColor.opacity(0.2))
+            Circle()
+                .fill(brandColor.opacity(0.25))
+                .frame(width: 42, height: 42)
+            Circle()
+                .stroke(brandColor.opacity(0.4), lineWidth: 1)
+                .frame(width: 42, height: 42)
             Image(systemName: "fuelpump.fill")
-                .font(.title2)
+                .font(.system(size: 16, weight: .heavy))
                 .foregroundColor(brandColor)
         }
-        .frame(width: 44, height: 44)
+        .shadow(color: brandColor.opacity(0.35), radius: 6)
     }
 
     private var brandColor: Color {
         switch station.brand.lowercased() {
-        case "pemex": return .green
-        case "shell": return .yellow
-        case "bp": return .green
-        case "mobil": return .blue
-        default: return .orange
+        case "pemex":            return Color(hex: "#34D399")
+        case "shell":            return Color(hex: "#FBBF24")
+        case "bp", "bp ultimate": return Color(hex: "#10B981")
+        case "mobil", "exxonmobil": return Color(hex: "#3B82F6")
+        case "g500":             return Color(hex: "#EF4444")
+        case "oxxo gas":         return Color(hex: "#DC2626")
+        default:                 return Color(hex: "#F97316")
         }
     }
 }

@@ -23,255 +23,267 @@ struct RouteInfoCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Main route info
             mainInfoView
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 5)
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.black.opacity(0.78))
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.15), .white.opacity(0.04)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .black.opacity(0.5), radius: 18, y: 7)
         }
     }
 
     private var mainInfoView: some View {
-        VStack(spacing: 16) {
-            // Header con icono de ruta (mejorado)
+        VStack(spacing: 14) {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [.blue.opacity(0.2), .blue.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 40, height: 40)
-
                     Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .blue.opacity(0.8)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundColor(.white)
                 }
+                .shadow(color: Color(hex: "#3B82F6").opacity(0.5), radius: 6)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Active Route")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    Text("Navigation ready")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("Ruta activa")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
+                    HStack(spacing: 4) {
+                        Circle().fill(Color(hex: "#34D399")).frame(width: 5, height: 5)
+                            .shadow(color: Color(hex: "#34D399"), radius: 3)
+                        Text("Lista para navegar")
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
 
                 Spacer()
 
-                // Botón de cerrar mejorado
                 Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
+                    HapticFeedback.light()
                     onClear()
                 }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(width: 32, height: 32)
-
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.gray)
-                    }
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.75))
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(.white.opacity(0.1)))
+                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
 
-            // Información de distancia y tiempo (mejorado)
-            HStack(spacing: 16) {
-                // Distancia
+            // Información de distancia y tiempo
+            HStack(spacing: 12) {
                 EnhancedInfoBadge(
                     icon: "arrow.left.and.right",
                     value: routeInfo.distanceFormatted,
-                    label: "Distance",
-                    color: .blue
+                    label: "Distancia",
+                    color: Color(hex: "#60A5FA")
                 )
 
-                Divider()
-                    .frame(height: 35)
+                Rectangle().fill(.white.opacity(0.08))
+                    .frame(width: 1, height: 32)
 
-                // Tiempo
                 EnhancedInfoBadge(
                     icon: "clock.fill",
                     value: routeInfo.timeFormatted,
-                    label: "Duration",
-                    color: .green
+                    label: "Duración",
+                    color: Color(hex: "#34D399")
                 )
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
 
-            // Air Quality prediction badge (if available from backend)
+            // Air Quality prediction
             if let scored = scoredRoute, scored.averageAQI > 0 {
-                Divider()
-                HStack(spacing: 16) {
+                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                HStack(spacing: 12) {
                     EnhancedInfoBadge(
                         icon: "aqi.medium",
                         value: "\(Int(scored.averageAQI))",
-                        label: "AQI Now",
-                        color: scored.averageAQI <= 50 ? .green : scored.averageAQI <= 100 ? .yellow : .orange
+                        label: "AQI ahora",
+                        color: aqiColor(scored.averageAQI)
                     )
 
-                    Divider()
-                        .frame(height: 35)
+                    Rectangle().fill(.white.opacity(0.08))
+                        .frame(width: 1, height: 32)
 
                     EnhancedInfoBadge(
                         icon: "brain.head.profile",
                         value: "\(Int(scored.predictedArrivalAQI ?? scored.averageAQI))",
-                        label: "AQI Arrival",
-                        color: (scored.predictedArrivalAQI ?? scored.averageAQI) <= 50 ? .green : (scored.predictedArrivalAQI ?? scored.averageAQI) <= 100 ? .yellow : .orange
+                        label: "AQI llegada",
+                        color: aqiColor(scored.predictedArrivalAQI ?? scored.averageAQI)
                     )
                 }
                 .padding(.vertical, 4)
             }
 
-            // Información de seguridad (si está disponible)
+            // Información de seguridad
             if let scored = scoredRoute, let incidentAnalysis = scored.incidentAnalysis {
-                VStack(spacing: 12) {
-                    Divider()
+                VStack(spacing: 10) {
+                    Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
 
-                    HStack(spacing: 16) {
-                        // Safety Score Badge
+                    HStack(spacing: 12) {
                         EnhancedInfoBadge(
                             icon: incidentAnalysis.riskIcon,
                             value: "\(Int(incidentAnalysis.safetyScore))%",
-                            label: "Safety",
+                            label: "Seguridad",
                             color: riskLevelColor(incidentAnalysis.riskLevel)
                         )
 
                         if incidentAnalysis.totalIncidents > 0 {
-                            Divider()
-                                .frame(height: 35)
+                            Rectangle().fill(.white.opacity(0.08))
+                                .frame(width: 1, height: 32)
 
-                            // Incidents Badge
                             EnhancedInfoBadge(
                                 icon: "exclamationmark.triangle.fill",
                                 value: "\(incidentAnalysis.totalIncidents)",
-                                label: "Incidents",
-                                color: .orange
+                                label: "Incidentes",
+                                color: Color(hex: "#FB923C")
                             )
                         }
                     }
 
-                    // Risk Level Description
                     if incidentAnalysis.totalIncidents > 0 {
                         Text(incidentAnalysis.incidentSummary)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(Color(hex: "#FB923C"))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
+                            .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.orange.opacity(0.1))
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color(hex: "#FB923C").opacity(0.12))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color(hex: "#FB923C").opacity(0.3), lineWidth: 0.8)
                             )
                     }
                 }
             }
 
-            // Botones de acción (mejorados)
-            HStack(spacing: 12) {
-                // Botón Start Navigation (opcional)
+            // Botones de acción
+            HStack(spacing: 8) {
                 if let startNavigation = onStartNavigation {
                     Button(action: {
-                        let impact = UIImpactFeedbackGenerator(style: .medium)
-                        impact.impactOccurred()
+                        HapticFeedback.confirm()
                         startNavigation()
                     }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text("Start Navigation")
-                                .font(.subheadline.weight(.semibold))
+                        HStack(spacing: 6) {
+                            Image(systemName: "location.fill.viewfinder")
+                                .font(.system(size: 13, weight: .heavy))
+                            Text("Navegar")
+                                .font(.system(size: 13, weight: .heavy))
                         }
-                        .foregroundStyle(.white)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 12)
                         .background(
                             LinearGradient(
-                                colors: [
-                                    .blue.opacity(0.95),
-                                    .blue.opacity(0.85)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                                startPoint: .leading, endPoint: .trailing
                             )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: Color(hex: "#3B82F6").opacity(0.45), radius: 8, y: 3)
                     }
+                    .buttonStyle(.plain)
                 }
 
-
-                // Botón Ver Calidad del Aire (opcional)
                 if let viewAirQuality = onViewAirQuality {
                     Button(action: {
-                        let impact = UIImpactFeedbackGenerator(style: .medium)
-                        impact.impactOccurred()
+                        HapticFeedback.light()
                         viewAirQuality()
                     }) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 5) {
                             Image(systemName: "aqi.medium")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("Air Quality")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.system(size: 12, weight: .heavy))
+                            Text("Aire")
+                                .font(.system(size: 12, weight: .heavy))
                         }
-                        .foregroundStyle(.teal)
+                        .foregroundColor(Color(hex: "#22D3EE"))
                         .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(.teal.opacity(0.12))
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color(hex: "#22D3EE").opacity(0.12))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color(hex: "#22D3EE").opacity(0.35), lineWidth: 1)
                         )
                     }
+                    .buttonStyle(.plain)
                 }
-                // Botón Clear Route
+
                 Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
+                    HapticFeedback.warning()
                     onClear()
                 }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Clear")
-                            .font(.subheadline.weight(.semibold))
+                    HStack(spacing: 5) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 12, weight: .heavy))
                     }
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: onStartNavigation == nil ? .infinity : nil)
-                    .padding(.horizontal, onStartNavigation == nil ? 0 : 20)
-                    .padding(.vertical, 14)
+                    .foregroundColor(Color(hex: "#F87171"))
+                    .frame(width: 52)
+                    .padding(.vertical, 12)
                     .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.red.opacity(0.12))
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(hex: "#F87171").opacity(0.12))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color(hex: "#F87171").opacity(0.35), lineWidth: 1)
                     )
                 }
+                .buttonStyle(.plain)
             }
         }
     }
 
     // MARK: - Helper Functions
 
+    private func aqiColor(_ aqi: Double) -> Color {
+        switch aqi {
+        case ..<51:   return Color(hex: "#34D399")
+        case ..<101:  return Color(hex: "#FBBF24")
+        case ..<151:  return Color(hex: "#FB923C")
+        default:      return Color(hex: "#F87171")
+        }
+    }
+
     /// Determina el color según el nivel de riesgo
     private func riskLevelColor(_ riskLevel: RiskLevel) -> Color {
         switch riskLevel {
-        case .veryLow: return .green
-        case .low: return .mint
-        case .moderate: return .yellow
-        case .high: return .orange
-        case .veryHigh: return .red
+        case .veryLow:  return Color(hex: "#34D399")
+        case .low:      return Color(hex: "#A3E635")
+        case .moderate: return Color(hex: "#FBBF24")
+        case .high:     return Color(hex: "#FB923C")
+        case .veryHigh: return Color(hex: "#F87171")
         }
     }
 }
@@ -286,42 +298,34 @@ struct EnhancedInfoBadge: View {
     let color: Color
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Icono con gradiente
+        HStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [color.opacity(0.2), color.opacity(0.1)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 36, height: 36)
-
+                    .fill(color.opacity(0.18))
+                    .frame(width: 34, height: 34)
+                Circle()
+                    .stroke(color.opacity(0.4), lineWidth: 1)
+                    .frame(width: 34, height: 34)
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [color, color.opacity(0.8)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(color)
             }
 
-            // Valor y etiqueta
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(value)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(label.uppercased())
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(0.6)
+                    .foregroundColor(.white.opacity(0.55))
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

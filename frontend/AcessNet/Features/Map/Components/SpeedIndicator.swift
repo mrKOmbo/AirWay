@@ -107,25 +107,44 @@ struct SpeedIndicator: View {
 struct CompactSpeedIndicator: View {
     let speed: Double
 
+    private var speedColor: Color {
+        switch speed {
+        case ..<40: return Color(hex: "#34D399")
+        case ..<80: return Color(hex: "#FBBF24")
+        default:    return Color(hex: "#EF4444")
+        }
+    }
+
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "gauge.with.dots.needle.67percent")
-                .font(.caption)
-                .foregroundStyle(.blue)
+            Image(systemName: "gauge.open.with.lines.needle.33percent")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(speedColor)
 
-            Text("\(Int(speed))")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-
-            Text("km/h")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int(speed))")
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                Text("km/h")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.5)
+                    .foregroundColor(.white.opacity(0.55))
+            }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 7)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.6))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(
+            Capsule().stroke(speedColor.opacity(0.45), lineWidth: 1)
+        )
         .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+        .shadow(color: speedColor.opacity(0.35), radius: 6, y: 3)
+        .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
     }
 }
 

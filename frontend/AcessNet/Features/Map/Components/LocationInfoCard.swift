@@ -32,13 +32,30 @@ struct LocationInfoCard: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 mainInfoView
-                    .padding(20)
+                    .padding(18)
             }
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .appElevatedShadow(radius: 18, y: 8)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.58)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.black.opacity(0.78))
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.15), .white.opacity(0.04)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.5), radius: 20, y: 8)
         .onAppear {
             // Iniciar animaciones escalonadas
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -56,7 +73,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : -10)
 
-            Divider()
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             if sanitizedSubtitle != nil {
@@ -74,7 +91,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .scaleEffect(showContent ? 1.0 : 0.95)
 
-            Divider()
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             // SECCIÓN 4: Predicción ML
@@ -82,7 +99,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 10)
 
-            Divider()
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             // SECCIÓN 5: Botones de Acción
@@ -96,86 +113,81 @@ struct LocationInfoCard: View {
 
     private var headerSection: some View {
         HStack(spacing: 12) {
-            // Icono de ubicación con gradiente
             ZStack {
                 Circle()
                     .fill(
                         RadialGradient(
                             colors: [
-                                Color.purple.opacity(0.25),
-                                Color.purple.opacity(0.1),
+                                Color(hex: "#A78BFA").opacity(0.3),
+                                Color(hex: "#7C3AED").opacity(0.1),
                                 .clear
                             ],
                             center: .center,
                             startRadius: 15,
-                            endRadius: 25
+                            endRadius: 28
                         )
                     )
-                    .frame(width: 50, height: 50)
+                    .frame(width: 54, height: 54)
                     .blur(radius: 4)
 
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [
-                                Color.purple.opacity(0.9),
-                                Color.purple.opacity(0.7)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colors: [Color(hex: "#A78BFA"), Color(hex: "#7C3AED")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 44, height: 44)
 
                 Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    .font(.system(size: 19, weight: .heavy))
+                    .foregroundColor(.white)
             }
+            .shadow(color: Color(hex: "#7C3AED").opacity(0.45), radius: 6)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(locationInfo.title)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundColor(.white)
                     .lineLimit(2)
 
-                Text(locationInfo.distanceFromUser)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 9, weight: .heavy))
+                    Text(locationInfo.distanceFromUser)
+                        .font(.system(size: 10, weight: .heavy))
+                }
+                .foregroundColor(.white.opacity(0.55))
             }
 
             Spacer()
 
-            // Botón de cancelar
             Button(action: {
-                let impact = UIImpactFeedbackGenerator(style: .light)
-                impact.impactOccurred()
+                HapticFeedback.light()
                 onCancel()
             }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.gray.opacity(0.15))
-                        .frame(width: 36, height: 36)
-
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.gray)
-                }
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.75))
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(.white.opacity(0.1)))
+                    .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
             }
+            .buttonStyle(.plain)
         }
     }
 
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let subtitle = sanitizedSubtitle {
-                HStack(spacing: 8) {
-                    Image(systemName: "building.2")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.green)
+                HStack(spacing: 6) {
+                    Image(systemName: "building.2.fill")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundColor(Color(hex: "#34D399"))
 
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.65))
                         .lineLimit(2)
                 }
             }
@@ -183,11 +195,17 @@ struct LocationInfoCard: View {
     }
 
     private var airQualitySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             // Título de sección
-            Text("Air Quality at Destination")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.primary)
+            HStack(spacing: 5) {
+                Image(systemName: "aqi.medium")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(colorForAQI)
+                Text("CALIDAD DEL AIRE · DESTINO")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.0)
+                    .foregroundColor(.white.opacity(0.55))
+            }
 
             // AQI Badge Principal
             HStack(spacing: 16) {
@@ -245,23 +263,20 @@ struct LocationInfoCard: View {
                 // Detalles AQI
                 VStack(alignment: .leading, spacing: 6) {
                     Text(locationInfo.aqiLevel.rawValue)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(colorForAQI)
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundColor(colorForAQI)
 
-                    // Health risk badge
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: locationInfo.healthRisk.icon)
-                            .font(.caption)
-                            .foregroundStyle(colorForRisk)
-
+                            .font(.system(size: 9, weight: .heavy))
                         Text(locationInfo.healthRisk.rawValue)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(colorForRisk)
+                            .font(.system(size: 10, weight: .heavy))
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(colorForRisk.opacity(0.15))
-                    .clipShape(Capsule())
+                    .foregroundColor(colorForRisk)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(colorForRisk.opacity(0.18)))
+                    .overlay(Capsule().stroke(colorForRisk.opacity(0.4), lineWidth: 1))
                 }
 
                 Spacer()
@@ -291,29 +306,36 @@ struct LocationInfoCard: View {
             }
 
             // Mensaje de salud
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "info.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(Color(hex: "#3B82F6"))
 
                 Text(locationInfo.healthMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(12)
-            .background(Color.blue.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(hex: "#3B82F6").opacity(0.1))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color(hex: "#3B82F6").opacity(0.3), lineWidth: 1)
+            )
         }
-        .padding(14)
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground).opacity(0.5))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                )
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.white.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
         )
     }
 
@@ -321,50 +343,68 @@ struct LocationInfoCard: View {
 
     private var predictionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.cyan)
-                Text("ML Prediction at Destination")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.primary)
-            }
-
-            HStack(spacing: 12) {
-                PredictionTimeSlot(label: "Now", aqi: Int(locationInfo.airQuality.aqi), isHighlighted: true)
-                Image(systemName: "arrow.right")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                PredictionTimeSlot(label: "+1h", aqi: estimatedAQI(hoursAhead: 1), isHighlighted: false)
-                Image(systemName: "arrow.right")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                PredictionTimeSlot(label: "+3h", aqi: estimatedAQI(hoursAhead: 3), isHighlighted: false)
-            }
-            .frame(maxWidth: .infinity)
-
-            // Best time hint
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-                Text("Best departure: within the next hour")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.green.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            predictionHeader
+            predictionTimeline
+            predictionBestHint
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.cyan.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.cyan.opacity(0.15), lineWidth: 1)
-                )
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(hex: "#22D3EE").opacity(0.07))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(hex: "#22D3EE").opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private var predictionHeader: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundColor(Color(hex: "#22D3EE"))
+            Text("PREDICCIÓN ML · DESTINO")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
+        }
+    }
+
+    private var predictionTimeline: some View {
+        HStack(spacing: 8) {
+            PredictionTimeSlot(label: "Ahora", aqi: Int(locationInfo.airQuality.aqi), isHighlighted: true)
+            predictionArrow
+            PredictionTimeSlot(label: "+1h", aqi: estimatedAQI(hoursAhead: 1), isHighlighted: false)
+            predictionArrow
+            PredictionTimeSlot(label: "+3h", aqi: estimatedAQI(hoursAhead: 3), isHighlighted: false)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var predictionArrow: some View {
+        Image(systemName: "arrow.right")
+            .font(.system(size: 8, weight: .heavy))
+            .foregroundColor(.white.opacity(0.35))
+    }
+
+    private var predictionBestHint: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "clock.fill")
+                .font(.system(size: 9, weight: .heavy))
+                .foregroundColor(Color(hex: "#FBBF24"))
+            Text("Mejor salida: en la próxima hora")
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundColor(.white.opacity(0.8))
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(hex: "#FBBF24").opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color(hex: "#FBBF24").opacity(0.3), lineWidth: 1)
         )
     }
 
@@ -388,12 +428,10 @@ struct LocationInfoCard: View {
     }
 
     private var actionButtons: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             // Botón primario: Calcular Ruta
             Button(action: {
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-
+                HapticFeedback.medium()
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
                     isPressed = true
                 }
@@ -402,40 +440,35 @@ struct LocationInfoCard: View {
                         isPressed = false
                     }
                 }
-
                 onCalculateRoute()
             }) {
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
-                        .font(.system(size: 18, weight: .semibold))
-
-                    Text("Calculate Route")
-                        .font(.subheadline.weight(.bold))
+                        .font(.system(size: 14, weight: .heavy))
+                    Text("Calcular ruta")
+                        .font(.system(size: 14, weight: .heavy))
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .foregroundColor(.white)
+                .padding(.horizontal, 14).padding(.vertical, 14)
                 .background(
                     LinearGradient(
-                        colors: [
-                            Color.blue,
-                            Color.blue.opacity(0.85)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                        startPoint: .leading, endPoint: .trailing
                     )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .coloredShadow(color: .blue, intensity: 0.4, radius: 12, y: 6)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(color: Color(hex: "#3B82F6").opacity(0.45), radius: 10, y: 4)
             }
+            .buttonStyle(.plain)
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
 
             // Botón secundario: Ver Calidad del Aire
             Button(action: {
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-
+                HapticFeedback.light()
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
                     isAirQualityPressed = true
                 }
@@ -444,35 +477,36 @@ struct LocationInfoCard: View {
                         isAirQualityPressed = false
                     }
                 }
-
                 onViewAirQuality()
             }) {
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: "aqi.medium")
-                        .font(.system(size: 18, weight: .semibold))
-
-                    Text("View Air Quality")
-                        .font(.subheadline.weight(.bold))
+                        .font(.system(size: 13, weight: .heavy))
+                    Text("Ver calidad del aire")
+                        .font(.system(size: 13, weight: .heavy))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .heavy))
                 }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .foregroundColor(.white)
+                .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(
-                    Color.teal.opacity(0.2)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.white.opacity(0.08))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(
                             LinearGradient(
-                                colors: [Color.teal, Color.teal.opacity(0.7)],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                                colors: [Color(hex: "#22D3EE").opacity(0.55),
+                                         Color.white.opacity(0.1)],
+                                startPoint: .leading, endPoint: .trailing
                             ),
-                            lineWidth: 2
+                            lineWidth: 1
                         )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .buttonStyle(.plain)
             .scaleEffect(isAirQualityPressed ? 0.96 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isAirQualityPressed)
         }
@@ -482,21 +516,21 @@ struct LocationInfoCard: View {
 
     private var colorForAQI: Color {
         switch locationInfo.aqiLevel {
-        case .good: return .green
-        case .moderate: return .yellow
-        case .poor: return .orange
-        case .unhealthy: return .red
-        case .severe: return .purple
-        case .hazardous: return Color(red: 0.5, green: 0.0, blue: 0.0)
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 
     private var colorForRisk: Color {
         switch locationInfo.healthRisk {
-        case .low: return .green
-        case .medium: return .yellow
-        case .high: return .orange
-        case .veryHigh: return .red
+        case .low:      return Color(hex: "#34D399")
+        case .medium:   return Color(hex: "#FBBF24")
+        case .high:     return Color(hex: "#FB923C")
+        case .veryHigh: return Color(hex: "#F87171")
         }
     }
 
@@ -527,33 +561,40 @@ struct PredictionTimeSlot: View {
     let isHighlighted: Bool
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
+        VStack(spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .heavy))
+                .tracking(0.6)
+                .foregroundColor(.white.opacity(0.55))
 
             Text("\(aqi)")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(aqiColor)
+                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .foregroundColor(aqiColor)
+                .monospacedDigit()
 
             Circle()
                 .fill(aqiColor)
                 .frame(width: 6, height: 6)
+                .shadow(color: aqiColor.opacity(isHighlighted ? 0.6 : 0), radius: 3)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isHighlighted ? aqiColor.opacity(0.1) : Color.clear)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHighlighted ? aqiColor.opacity(0.15) : Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isHighlighted ? aqiColor.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
         )
     }
 
     private var aqiColor: Color {
         switch aqi {
-        case 0..<51: return .green
-        case 51..<101: return .yellow
-        case 101..<151: return .orange
-        default: return .red
+        case 0..<51:   return Color(hex: "#34D399")
+        case 51..<101: return Color(hex: "#FBBF24")
+        case 101..<151: return Color(hex: "#FB923C")
+        default:        return Color(hex: "#F87171")
         }
     }
 }
@@ -569,31 +610,43 @@ struct PollutantMetric: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(color)
-                .frame(width: 24)
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 28, height: 28)
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(color)
+            }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label.uppercased())
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(.white.opacity(0.55))
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
 
                     Text(unit)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 8, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.5))
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.white.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(color.opacity(0.25), lineWidth: 1)
+        )
     }
 }
 

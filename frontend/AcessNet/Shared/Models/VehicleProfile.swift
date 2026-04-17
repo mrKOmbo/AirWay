@@ -66,6 +66,9 @@ struct VehicleProfile: Codable, Identifiable, Equatable {
     var drivingStyle: Double        // 0.85..1.25 (EMA)
     var nickname: String?
     var odometerKm: Int?
+    var licensePlate: String?       // matrícula / placa
+    var color: String?              // nombre color (ej. "Rojo") o hex (#AABBCC)
+    var fuelTankCapacityL: Double?  // capacidad tanque en litros
     var createdAt: Date
     var updatedAt: Date
 
@@ -83,6 +86,9 @@ struct VehicleProfile: Codable, Identifiable, Equatable {
         drivingStyle: Double = 1.0,
         nickname: String? = nil,
         odometerKm: Int? = nil,
+        licensePlate: String? = nil,
+        color: String? = nil,
+        fuelTankCapacityL: Double? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -99,6 +105,9 @@ struct VehicleProfile: Codable, Identifiable, Equatable {
         self.drivingStyle = drivingStyle
         self.nickname = nickname
         self.odometerKm = odometerKm
+        self.licensePlate = licensePlate
+        self.color = color
+        self.fuelTankCapacityL = fuelTankCapacityL
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -126,6 +135,18 @@ struct VehicleProfile: Codable, Identifiable, Equatable {
         }
     }
 
+    var formattedLicensePlate: String? {
+        guard let plate = licensePlate?.trimmingCharacters(in: .whitespaces),
+              !plate.isEmpty else { return nil }
+        return plate.uppercased()
+    }
+
+    /// Autonomía estimada por tanque completo (km).
+    var rangePerTankKm: Double? {
+        guard let cap = fuelTankCapacityL, cap > 0 else { return nil }
+        return cap * conueeKmPerL
+    }
+
     // MARK: - Serialization para backend
 
     func toAPIDictionary() -> [String: Any] {
@@ -142,6 +163,9 @@ struct VehicleProfile: Codable, Identifiable, Equatable {
             "driving_style": drivingStyle,
             "nickname": nickname as Any,
             "odometer_km": odometerKm as Any,
+            "license_plate": licensePlate as Any,
+            "color": color as Any,
+            "fuel_tank_capacity_l": fuelTankCapacityL as Any,
         ]
     }
 

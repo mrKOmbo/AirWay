@@ -32,78 +32,93 @@ struct AQIPredictionBanner: View {
 
     private var loadingBanner: some View {
         HStack(spacing: 8) {
-            ProgressView()
-                .scaleEffect(0.7)
-            Text("Loading prediction...")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            ProgressView().tint(.white).scaleEffect(0.6)
+            Text("Cargando predicción…")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(0.85))
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.6))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
     }
 
     // MARK: - Prediction Content
 
     private func predictionContent(_ pred: MLPredictionResponse) -> some View {
-        VStack(spacing: 0) {
-            // Main pill: AQI trend
-            HStack(spacing: 10) {
-                // Current AQI
-                if let current = pred.current_aqi {
-                    HStack(spacing: 4) {
-                        Image(systemName: "aqi.medium")
-                            .font(.system(size: 11))
-                        Text("\(current)")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundStyle(.primary)
-                }
-
-                // Arrow trend
-                if let trend = pred.trend {
-                    Image(systemName: trendIcon(trend))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(trendColor(trend))
-                }
-
-                // Predicted 6h AQI
-                if let pred6h = pred.predictions?["6h"] {
-                    HStack(spacing: 4) {
-                        Text("\(pred6h.aqi)")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                        Text("in 6h")
-                            .font(.system(size: 10))
-                    }
-                    .foregroundStyle(colorForAQI(pred6h.aqi))
-                }
-
-                // Separator
-                if bestTime?.best_window != nil {
-                    Rectangle()
-                        .fill(.secondary.opacity(0.3))
-                        .frame(width: 1, height: 16)
-                }
-
-                // Best time
-                if let best = bestTime?.best_window {
-                    HStack(spacing: 3) {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.green)
-                        Text("Best: \(extractHour(best.start))")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
+        HStack(spacing: 10) {
+            // Current AQI
+            if let current = pred.current_aqi {
+                HStack(spacing: 4) {
+                    Image(systemName: "aqi.medium")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(colorForAQI(current))
+                    Text("\(current)")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+
+            // Arrow trend chip
+            if let trend = pred.trend {
+                HStack(spacing: 3) {
+                    Image(systemName: trendIcon(trend))
+                        .font(.system(size: 9, weight: .heavy))
+                }
+                .foregroundColor(trendColor(trend))
+                .padding(.horizontal, 5).padding(.vertical, 3)
+                .background(Capsule().fill(trendColor(trend).opacity(0.18)))
+            }
+
+            // Predicted 6h
+            if let pred6h = pred.predictions?["6h"] {
+                HStack(spacing: 3) {
+                    Text("\(pred6h.aqi)")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                    Text("en 6h")
+                        .font(.system(size: 8, weight: .heavy))
+                        .tracking(0.5)
+                        .foregroundColor(.white.opacity(0.55))
+                }
+                .foregroundColor(colorForAQI(pred6h.aqi))
+            }
+
+            // Separator
+            if bestTime?.best_window != nil {
+                Rectangle()
+                    .fill(.white.opacity(0.15))
+                    .frame(width: 1, height: 14)
+            }
+
+            // Best time
+            if let best = bestTime?.best_window {
+                HStack(spacing: 3) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(Color(hex: "#FBBF24"))
+                    Text("Óptimo: \(extractHour(best.start))")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(.white)
+                }
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.65))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
     }
 
     // MARK: - Data Loading
@@ -153,18 +168,18 @@ struct AQIPredictionBanner: View {
 
     private func trendColor(_ trend: String) -> Color {
         switch trend {
-        case "subiendo": return .orange
-        case "bajando": return .green
-        default: return .secondary
+        case "subiendo": return Color(hex: "#FB923C")
+        case "bajando":  return Color(hex: "#34D399")
+        default:         return Color(hex: "#94A3B8")
         }
     }
 
     private func colorForAQI(_ aqi: Int) -> Color {
         switch aqi {
-        case 0..<51: return .green
-        case 51..<101: return .yellow
-        case 101..<151: return .orange
-        default: return .red
+        case 0..<51:   return Color(hex: "#34D399")
+        case 51..<101: return Color(hex: "#FBBF24")
+        case 101..<151: return Color(hex: "#FB923C")
+        default:        return Color(hex: "#F87171")
         }
     }
 

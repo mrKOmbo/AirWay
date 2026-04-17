@@ -18,56 +18,51 @@ struct BreathabilityIndexView: View {
     @State private var glowIntensity: Double = 0.3
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Animated lungs
+        HStack(spacing: 14) {
             animatedLungs
 
-            // Breathability info
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Breathability")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("RESPIRABILIDAD")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.0)
+                    .foregroundColor(.white.opacity(0.55))
 
                 Text(breathabilityDescription)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(breathabilityColor)
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(breathabilityColor)
 
                 Text(breathabilityDetail)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.7))
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
-            // Score indicator
             scoreIndicator
         }
-        .padding(20)
+        .padding(14)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial)
-
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                breathabilityColor.opacity(0.1),
-                                breathabilityColor.opacity(0.05),
-                                .clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.black.opacity(0.75))
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(breathabilityColor.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [breathabilityColor.opacity(0.5), .white.opacity(0.08)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
         )
-        .shadow(color: breathabilityColor.opacity(0.2), radius: 12, x: 0, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: breathabilityColor.opacity(0.35), radius: 14, y: 6)
         .onAppear {
             startBreathingAnimation()
             startGlowAnimation()
@@ -136,34 +131,27 @@ struct BreathabilityIndexView: View {
 
     private var scoreIndicator: some View {
         ZStack {
-            // Background ring
             Circle()
-                .stroke(
-                    Color.gray.opacity(0.2),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                )
-                .frame(width: 50, height: 50)
+                .stroke(.white.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .frame(width: 52, height: 52)
 
-            // Progress ring
             Circle()
                 .trim(from: 0, to: breathabilityScore / 100)
                 .stroke(
                     AngularGradient(
-                        colors: [
-                            breathabilityColor,
-                            breathabilityColor.opacity(0.7)
-                        ],
+                        colors: [breathabilityColor, breathabilityColor.opacity(0.6)],
                         center: .center
                     ),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
-                .frame(width: 50, height: 50)
+                .frame(width: 52, height: 52)
                 .rotationEffect(.degrees(-90))
+                .shadow(color: breathabilityColor.opacity(0.5), radius: 5)
 
-            // Score text
             Text("\(Int(breathabilityScore))")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(breathabilityColor)
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .monospacedDigit()
         }
     }
 
@@ -177,40 +165,34 @@ struct BreathabilityIndexView: View {
 
     private var breathabilityColor: Color {
         switch dominantLevel {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 
     private var breathabilityDescription: String {
         switch dominantLevel {
-        case .good: return "Excellent"
-        case .moderate: return "Good"
-        case .poor: return "Fair"
-        case .unhealthy: return "Poor"
-        case .severe: return "Very Poor"
-        case .hazardous: return "Hazardous"
+        case .good:      return "Excelente"
+        case .moderate:  return "Buena"
+        case .poor:      return "Regular"
+        case .unhealthy: return "Mala"
+        case .severe:    return "Muy mala"
+        case .hazardous: return "Peligrosa"
         }
     }
 
     private var breathabilityDetail: String {
         switch dominantLevel {
-        case .good:
-            return "Perfect for outdoor breathing"
-        case .moderate:
-            return "Safe for most people"
-        case .poor:
-            return "Consider mask for sensitive groups"
-        case .unhealthy:
-            return "Limit outdoor exposure"
-        case .severe:
-            return "Wear mask, reduce activity"
-        case .hazardous:
-            return "Stay indoors, use purifiers"
+        case .good:      return "Perfecto para respirar afuera"
+        case .moderate:  return "Seguro para la mayoría"
+        case .poor:      return "Mascarilla para sensibles"
+        case .unhealthy: return "Limita la exposición exterior"
+        case .severe:    return "Usa mascarilla, reduce actividad"
+        case .hazardous: return "Quédate adentro, usa purificadores"
         }
     }
 
@@ -260,14 +242,13 @@ struct CompactBreathabilityIndicator: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Animated lungs icon
             ZStack {
                 Image(systemName: "lungs.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(breathabilityColor)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundColor(breathabilityColor)
                     .scaleEffect(1.0 + breathingPhase * 0.1)
+                    .shadow(color: breathabilityColor.opacity(0.5), radius: 4)
 
-                // Breathing particles
                 Circle()
                     .fill(breathabilityColor.opacity(0.4))
                     .frame(width: 3, height: 3)
@@ -275,24 +256,29 @@ struct CompactBreathabilityIndicator: View {
                     .opacity(1.0 - breathingPhase)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Breathability")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("RESPIRABILIDAD")
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(.white.opacity(0.55))
 
                 Text("\(Int(breathabilityScore))/100")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(breathabilityColor)
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .foregroundColor(breathabilityColor)
+                    .monospacedDigit()
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .overlay(
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
             Capsule()
-                .strokeBorder(breathabilityColor.opacity(0.3), lineWidth: 1)
+                .fill(.black.opacity(0.7))
+                .background(Capsule().fill(.ultraThinMaterial))
         )
+        .overlay(
+            Capsule().stroke(breathabilityColor.opacity(0.4), lineWidth: 1)
+        )
+        .clipShape(Capsule())
         .onAppear {
             withAnimation(
                 .easeInOut(duration: 3.0)
@@ -309,12 +295,12 @@ struct CompactBreathabilityIndicator: View {
 
     private var breathabilityColor: Color {
         switch dominantLevel {
-        case .good: return Color(hex: "#E0E0E0")
-        case .moderate: return Color(hex: "#F9A825")
-        case .poor: return Color(hex: "#FF6F00")
-        case .unhealthy: return Color(hex: "#E53935")
-        case .severe: return Color(hex: "#8E24AA")
-        case .hazardous: return Color(hex: "#6A1B4D")
+        case .good:      return Color(hex: "#34D399")
+        case .moderate:  return Color(hex: "#FBBF24")
+        case .poor:      return Color(hex: "#FB923C")
+        case .unhealthy: return Color(hex: "#F87171")
+        case .severe:    return Color(hex: "#A78BFA")
+        case .hazardous: return Color(hex: "#881337")
         }
     }
 }

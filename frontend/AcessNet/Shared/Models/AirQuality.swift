@@ -15,6 +15,7 @@ struct AirQualityData: Identifiable {
     let aqi: Int
     let pm25: Double
     let pm10: Double
+    let o3: Double
     let location: String
     let city: String
     let distance: Double
@@ -105,6 +106,7 @@ extension AirQualityData {
         aqi: 75,
         pm25: 22.0,
         pm10: 66.0,
+        o3: 42.0,
         location: "Atmosphere Science Center",
         city: "Mexico City, Mexico",
         distance: 3.24,

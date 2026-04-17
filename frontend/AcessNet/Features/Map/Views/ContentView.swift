@@ -273,19 +273,28 @@ struct EnhancedMapView: View {
             if showRouteToast {
                 VStack {
                     HStack(spacing: 8) {
-                        Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.blue)
-
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "#3B82F6").opacity(0.2))
+                                .frame(width: 26, height: 26)
+                            Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                                .font(.system(size: 12, weight: .heavy))
+                                .foregroundColor(Color(hex: "#3B82F6"))
+                        }
                         Text(routeToastMessage)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.primary)
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundColor(.white)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(.black.opacity(0.7))
+                            .background(Capsule().fill(.ultraThinMaterial))
+                    )
+                    .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
                     .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.4), radius: 12, y: 5)
                     .padding(.top, 60)
 
                     Spacer()
@@ -330,6 +339,7 @@ struct EnhancedMapView: View {
                 VStack {
                     HStack {
                         Button(action: {
+                            HapticFeedback.warning()
                             if isInNavigationMode {
                                 stopNavigation()
                             } else {
@@ -337,14 +347,22 @@ struct EnhancedMapView: View {
                             }
                         }) {
                             Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(.white)
                                 .frame(width: 44, height: 44)
                                 .background(
                                     Circle()
-                                        .fill(Color.red.opacity(0.9))
-                                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color(hex: "#EF4444"), Color(hex: "#B91C1C")],
+                                                startPoint: .topLeading, endPoint: .bottomTrailing
+                                            )
+                                        )
                                 )
+                                .overlay(
+                                    Circle().stroke(.white.opacity(0.2), lineWidth: 1)
+                                )
+                                .shadow(color: Color(hex: "#EF4444").opacity(0.5), radius: 10, y: 4)
                         }
                         .padding(.leading, 16)
                         Spacer()
@@ -1566,7 +1584,7 @@ enum MapStyleType {
 }
 
 
-// MARK: - Floating Action Button (Modernizado)
+// MARK: - Floating Action Button (AirWay premium glass)
 
 struct FloatingActionButton: View {
     let icon: String
@@ -1576,14 +1594,11 @@ struct FloatingActionButton: View {
     let action: () -> Void
 
     @State private var isPressed = false
-    @State private var glowIntensity: Double = 0.3
+    @State private var glowPulse: CGFloat = 1.0
 
     var body: some View {
         Button(action: {
-            // Haptic feedback
-            let impact = UIImpactFeedbackGenerator(style: isPrimary ? .medium : .light)
-            impact.impactOccurred()
-
+            HapticFeedback.light()
             withAnimation(.spring(response: 0.25, dampingFraction: 0.65)) {
                 isPressed = true
             }
@@ -1595,111 +1610,60 @@ struct FloatingActionButton: View {
             action()
         }) {
             ZStack {
-                // Glow effect para botón primario
+                // Glow radial para primary
                 if isPrimary {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [
-                                    color.opacity(glowIntensity),
-                                    color.opacity(glowIntensity * 0.5),
-                                    .clear
-                                ],
+                                colors: [color.opacity(0.55), color.opacity(0.2), .clear],
                                 center: .center,
                                 startRadius: size * 0.3,
                                 endRadius: size * 0.9
                             )
                         )
-                        .frame(width: size * 1.3, height: size * 1.3)
-                        .blur(radius: 8)
+                        .frame(width: size * 1.55, height: size * 1.55)
+                        .scaleEffect(glowPulse)
+                        .blur(radius: 10)
                 }
 
-                // Fondo del botón
+                // Fondo black glass
                 Circle()
-                    .fill(.ultraThinMaterial)
+                    .fill(.black.opacity(0.75))
+                    .background(
+                        Circle().fill(.ultraThinMaterial)
+                    )
                     .frame(width: size, height: size)
                     .overlay(
                         Circle()
-                            .fill(
-                                isPrimary ?
+                            .stroke(
                                 LinearGradient(
-                                    colors: [
-                                        color.opacity(0.95),
-                                        color.opacity(0.85)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ) :
-                                LinearGradient(
-                                    colors: [
-                                        .white.opacity(0.9),
-                                        .white.opacity(0.85)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    )
-                    .overlay(
-                        Circle()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: isPrimary ?
-                                    [.white.opacity(0.6), .white.opacity(0.2)] :
-                                    [.black.opacity(0.1), .black.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    colors: isPrimary
+                                        ? [color.opacity(0.8), color.opacity(0.2)]
+                                        : [.white.opacity(0.18), .white.opacity(0.04)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
                                 ),
-                                lineWidth: isPrimary ? 2 : 1.5
+                                lineWidth: isPrimary ? 2 : 1
                             )
                     )
                     .shadow(
-                        color: isPrimary ? color.opacity(0.4) : .black.opacity(0.15),
-                        radius: isPressed ? 8 : 12,
-                        x: 0,
-                        y: isPressed ? 3 : 6
-                    )
-                    .shadow(
-                        color: .black.opacity(0.1),
-                        radius: 3,
-                        x: 0,
-                        y: 2
+                        color: isPrimary ? color.opacity(0.5) : .black.opacity(0.4),
+                        radius: isPressed ? 6 : 12,
+                        y: isPressed ? 2 : 6
                     )
 
                 // Icono
                 Image(systemName: icon)
-                    .font(.system(size: isPrimary ? 28 : 22, weight: .semibold))
-                    .foregroundStyle(
-                        isPrimary ?
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0.95)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ) :
-                        LinearGradient(
-                            colors: [color, color.opacity(0.9)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .shadow(
-                        color: isPrimary ? .black.opacity(0.3) : .clear,
-                        radius: 1,
-                        x: 0,
-                        y: 1
-                    )
+                    .font(.system(size: size * 0.42, weight: .heavy))
+                    .foregroundColor(isPrimary ? .white : color)
+                    .shadow(color: isPrimary ? color.opacity(0.7) : .clear, radius: 4)
             }
         }
-        .scaleEffect(isPressed ? 0.92 : 1.0)
+        .scaleEffect(isPressed ? 0.9 : 1.0)
         .animation(.spring(response: 0.25, dampingFraction: 0.65), value: isPressed)
         .onAppear {
             if isPrimary {
-                // Animación de glow pulsante
-                withAnimation(
-                    .easeInOut(duration: 1.8)
-                    .repeatForever(autoreverses: true)
-                ) {
-                    glowIntensity = 0.5
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    glowPulse = 1.25
                 }
             }
         }

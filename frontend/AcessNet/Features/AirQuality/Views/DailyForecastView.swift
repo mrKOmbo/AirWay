@@ -2,1266 +2,864 @@
 //  DailyForecastView.swift
 //  AcessNet
 //
-//  Created by BICHOTEE
-//
 
 import SwiftUI
+import Charts
+
+// MARK: - Main View
 
 struct DailyForecastView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.weatherTheme) private var theme
-    @State private var selectedDay: DailyForecast = DailyForecast.selected
+
+    @State private var selectedDay: DailyForecast
     @State private var selectedTab: ForecastPeriod = .day
-    @State private var hourlyData: [HourlyAQIData] = HourlyAQIData.generateSampleDay()
+    @State private var selectedMonth = "October"
     @State private var showTipPopup = false
     @State private var selectedTipCategory: TipCategory?
     @State private var currentTipIndex = 0
-    @State private var selectedMonth = "October"
 
-    let weekDays = DailyForecast.sampleWeek
-    let availableMonths = ["July", "August", "September", "October"]
+    private let weekDays: [DailyForecast]
+    private let availableMonths = ["July", "August", "September", "October"]
 
-    enum ForecastPeriod {
-        case day
-        case month
+    init() {
+        let days = Self.generateDayHistory(pastDays: 14, futureDays: 3)
+        self.weekDays = days
+        // Today (or closest to today) is the initial selection
+        let today = days.first(where: { Calendar.current.isDateInToday($0.date) }) ?? days[days.count / 2]
+        self._selectedDay = State(initialValue: today)
+    }
+
+    private static func generateDayHistory(pastDays: Int, futureDays: Int) -> [DailyForecast] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let dayNameFormatter = DateFormatter()
+        dayNameFormatter.dateFormat = "EEE"
+
+        var out: [DailyForecast] = []
+        for offset in (-pastDays...futureDays) {
+            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { continue }
+            let seed = abs(offset) * 7 + Int(date.timeIntervalSince1970.truncatingRemainder(dividingBy: 97))
+            // Semi-deterministic values so the UI stays stable
+            let aqi = 40 + (seed % 60)
+            let pm25 = 20 + (seed % 35)
+            let pm10 = 40 + (seed % 60)
+            let no2 = 30 + (seed % 40)
+            let o3 = 20 + (seed % 30)
+            let temp = 14 + (seed % 12)
+            let wind = 1 + (seed % 8)
+            let uv = seed % 8
+            let humidity = 55 + (seed % 25)
+
+            out.append(DailyForecast(
+                date: date,
+                dayName: dayNameFormatter.string(from: date).uppercased(),
+                dayNumber: calendar.component(.day, from: date),
+                aqi: aqi,
+                no2: no2,
+                pm25: pm25,
+                pm10: pm10,
+                o3: o3,
+                temperature: temp,
+                windSpeed: wind,
+                uvIndex: uv,
+                humidity: humidity
+            ))
+        }
+        return out
+    }
+
+    enum ForecastPeriod: String, CaseIterable {
+        case day = "Day"
+        case month = "Month"
     }
 
     var body: some View {
         ZStack {
-            // Background — matching home dark theme
-            theme.pageBackground
-                .ignoresSafeArea()
+            theme.pageBackground.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    // Header with tabs
-                    headerView
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                    segmentedTabs
 
                     if selectedTab == .day {
-                        // Day selector
-                        daySelector
-
-                        // Main card with AQI info and Exposure
-                        mainAQICard
-
-                        // Tips by category
-                        tipsSection
-
-                        // Weather section
-                        weatherSection
-
-                        // More info section
-                        moreInfoSection
+                        dayPillSelector
+                        aqiAndExposureCard
+                        compareAndPollutantsCard
+                        weatherAndYearlyCard
+                        tipsCarousel
                     } else {
-                        // Month view
-                        monthView
+                        monthOverviewCard
+                        calendarAndTrendCard
+                        insightsCard
                     }
 
-                    Spacer(minLength: 100)
+                    Color.clear.frame(height: 30)
                 }
-                .padding(.top, 10)
+                .padding(.top, 12)
             }
         }
         .navigationBarHidden(true)
-        .overlay(
-            // Tip Popup Overlay - outside of ZStack to prevent safe area issues
-            Group {
-                if showTipPopup, let category = selectedTipCategory {
-                    TipPopupView(
-                        category: category,
-                        currentTip: category.tips[currentTipIndex],
-                        onDismiss: {
-                            showTipPopup = false
-                        },
-                        onNext: {
-                            currentTipIndex = (currentTipIndex + 1) % category.tips.count
-                        }
-                    )
-                    .ignoresSafeArea()
-                }
+        .overlay {
+            if showTipPopup, let category = selectedTipCategory {
+                TipPopupView(
+                    category: category,
+                    currentTip: category.tips[currentTipIndex],
+                    onDismiss: { showTipPopup = false },
+                    onNext: { currentTipIndex = (currentTipIndex + 1) % category.tips.count }
+                )
+                .ignoresSafeArea()
             }
-        )
-    }
-
-    // MARK: - View Components
-
-    private var headerView: some View {
-        VStack(spacing: 16) {
-            // Back button and Tabs
-            HStack {
-                // Back button
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(theme.cardColor)
-                                .overlay(Circle().stroke(.white.opacity(0.08), lineWidth: 1))
-                        )
-                }
-
-                Spacer()
-
-                // Tabs
-                HStack(spacing: 0) {
-                    TabButton(title: "DAY", isSelected: selectedTab == .day) {
-                        selectedTab = .day
-                    }
-
-                    TabButton(title: "MONTH", isSelected: selectedTab == .month) {
-                        selectedTab = .month
-                    }
-                }
-                .frame(maxWidth: 300)
-
-                Spacer()
-            }
-            .padding(.horizontal)
         }
     }
 
-    private var daySelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
-                ForEach(weekDays) { day in
-                    DayButton(
-                        day: day,
-                        isSelected: selectedDay.id == day.id
-                    ) {
-                        withAnimation(.spring()) {
-                            selectedDay = day
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal)
-        }
-    }
+    // MARK: Card helper
 
-    private var mainAQICard: some View {
-        VStack(spacing: 12) {
-            // Date and level header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(formatSelectedDate())
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                        .textCase(.uppercase)
-
-                    Text("Daily Air Quality")
-                        .font(.title3.bold())
-                        .foregroundColor(.white)
-                }
-
-                Spacer()
-
-                Text(selectedDay.qualityLevel.rawValue)
-                    .font(.title3.bold())
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(hex: selectedDay.qualityLevel.color).opacity(0.3))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(hex: selectedDay.qualityLevel.color), lineWidth: 1.5)
-                            )
-                    )
-            }
-
-            // Comparison timeline - Previous, Current, Next
-            HStack(spacing: 0) {
-                // Previous day
-                if let prevDay = getPreviousDay() {
-                    ComparisonDayCard(
-                        day: prevDay,
-                        label: "Yesterday",
-                        isMain: false,
-                        showTrend: true,
-                        trendUp: selectedDay.aqi > prevDay.aqi,
-                        onTap: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedDay = prevDay
-                            }
-                        }
-                    )
-                }
-
-                Spacer()
-
-                // Current day (main)
-                VStack(spacing: 12) {
-                    Text("Today")
-                        .font(.caption.bold())
-                        .foregroundColor(.white.opacity(0.7))
-                        .textCase(.uppercase)
-
-                    ZStack {
-                        // Glow effect
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [
-                                        Color(hex: selectedDay.qualityLevel.color).opacity(0.4),
-                                        Color(hex: selectedDay.qualityLevel.color).opacity(0)
-                                    ],
-                                    center: .center,
-                                    startRadius: 0,
-                                    endRadius: 80
-                                )
-                            )
-                            .frame(width: 140, height: 140)
-
-                        CircularAQIGauge(aqi: selectedDay.aqi)
-                    }
-
-                    // Pollutant indicators
-                    VStack(spacing: 6) {
-                        HStack(spacing: 12) {
-                            PollutantBadge(label: "PM2.5", value: selectedDay.pm25)
-                            PollutantBadge(label: "PM10", value: selectedDay.pm10)
-                        }
-                        HStack(spacing: 12) {
-                            PollutantBadge(label: "NO2", value: selectedDay.no2)
-                            PollutantBadge(label: "O3", value: selectedDay.o3)
-                        }
-                    }
-                }
-
-                Spacer()
-
-                // Next day
-                if let nextDay = getNextDay() {
-                    ComparisonDayCard(
-                        day: nextDay,
-                        label: "Tomorrow",
-                        isMain: false,
-                        showTrend: true,
-                        trendUp: nextDay.aqi > selectedDay.aqi,
-                        onTap: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedDay = nextDay
-                            }
-                        }
-                    )
-                }
-            }
-            .padding(.vertical, 4)
-
-            // Divider
-            Divider()
-                .background(.white.opacity(0.2))
-                .padding(.vertical, 0)
-
-            // Exposure History Section
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Exposure History")
-                    .font(.title3.bold())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                DailyExposureCircularChart(selectedDay: selectedDay)
-                    .frame(height: 290)
-            }
+    private func glassCard<Content: View>(padding: CGFloat = 16, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(theme.cardColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.08), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
-
-    // Helper functions to get previous and next days
-    private func getPreviousDay() -> DailyForecast? {
-        guard let currentIndex = weekDays.firstIndex(where: { $0.id == selectedDay.id }),
-              currentIndex > 0 else { return nil }
-        return weekDays[currentIndex - 1]
-    }
-
-    private func getNextDay() -> DailyForecast? {
-        guard let currentIndex = weekDays.firstIndex(where: { $0.id == selectedDay.id }),
-              currentIndex < weekDays.count - 1 else { return nil }
-        return weekDays[currentIndex + 1]
-    }
-
-    private var hourlyChart: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Current time indicator
-            Text(currentTimeString())
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal)
-
-            // Bar chart
-            AQIBarChart(data: hourlyData, selectedTime: currentTimeString())
-                .frame(height: 200)
-                .padding(.horizontal)
-        }
-    }
-
-
-    private var tipsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("TIPS BY CATEGORY")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.horizontal)
-
-            Text("Tap to learn more")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
-                .padding(.horizontal)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(TipCategory.sampleCategories) { category in
-                        TipCategoryCard(category: category) {
-                            selectedTipCategory = category
-                            currentTipIndex = Int.random(in: 0..<category.tips.count)
-                            withAnimation(.spring()) {
-                                showTipPopup = true
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-    }
-
-    private var weatherSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("WEATHER")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.horizontal)
-
-            Text("Hourly averages")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
-                .padding(.horizontal)
-
-            HStack(spacing: 0) {
-                WeatherMetric(
-                    icon: "cloud.rain.fill",
-                    value: "\(selectedDay.temperature)",
-                    unit: "C°"
-                )
-
-                Divider()
-                    .frame(height: 60)
-                    .background(.white.opacity(0.2))
-
-                WeatherMetric(
-                    icon: "wind",
-                    value: "\(selectedDay.windSpeed)",
-                    unit: "km/h"
-                )
-
-                Divider()
-                    .frame(height: 60)
-                    .background(.white.opacity(0.2))
-
-                WeatherMetric(
-                    icon: "umbrella.fill",
-                    value: "\(selectedDay.uvIndex)",
-                    unit: "UV"
-                )
-
-                Divider()
-                    .frame(height: 60)
-                    .background(.white.opacity(0.2))
-
-                WeatherMetric(
-                    icon: "drop.fill",
-                    value: "\(selectedDay.humidity)",
-                    unit: "% Hum."
-                )
-            }
-            .padding()
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(theme.cardColor)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(theme.borderColor, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
             )
-            .padding(.horizontal)
-        }
+            .padding(.horizontal, 16)
     }
 
-    private var moreInfoSection: some View {
-        VStack(spacing: 0) {
-            Text("MORE INFO")
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
-                .padding(.bottom, 16)
+    // MARK: Header
 
-            VStack(spacing: 0) {
-                InfoRow(label: "Best day of the year", value: "37 AQI")
-                Divider().background(.white.opacity(0.1))
-                InfoRow(label: "Annual average", value: "63 AQI")
-                Divider().background(.white.opacity(0.1))
-                InfoRow(label: "Worst peak of the year", value: "99 AQI")
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(theme.cardColor)
-            )
-            .padding(.horizontal)
-        }
-    }
-
-    private var monthView: some View {
-        VStack(spacing: 20) {
-            // Month Selector
-            HStack {
-                Button(action: {
-                    if let currentIndex = availableMonths.firstIndex(of: selectedMonth),
-                       currentIndex > 0 {
-                        withAnimation(.spring()) {
-                            selectedMonth = availableMonths[currentIndex - 1]
-                        }
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                        .opacity(availableMonths.first == selectedMonth ? 0.3 : 1.0)
-                }
-                .disabled(availableMonths.first == selectedMonth)
-
-                Spacer()
-
-                Text("\(selectedMonth) 2025")
-                    .font(.title2.bold())
+    private var header: some View {
+        HStack {
+            Button(action: { dismiss() }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-
-                Spacer()
-
-                Button(action: {
-                    if let currentIndex = availableMonths.firstIndex(of: selectedMonth),
-                       currentIndex < availableMonths.count - 1 {
-                        withAnimation(.spring()) {
-                            selectedMonth = availableMonths[currentIndex + 1]
-                        }
-                    }
-                }) {
-                    Image(systemName: "chevron.right")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                        .opacity(availableMonths.last == selectedMonth ? 0.3 : 1.0)
-                }
-                .disabled(availableMonths.last == selectedMonth)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(theme.cardColor).overlay(Circle().stroke(theme.borderColor, lineWidth: 1)))
             }
-            .padding(.horizontal)
 
-            // Monthly Stats Card
-            MonthlyStatsCard(selectedMonth: selectedMonth)
+            Spacer()
 
-            // Calendar Heat Map
-            MonthlyCalendarHeatMap(selectedMonth: $selectedMonth)
-
-            // Trend Graph
-            MonthlyTrendGraph(selectedMonth: selectedMonth)
-
-            // Best Days Insight
-            BestDaysInsightCard()
-        }
-    }
-
-    // MARK: - Helper Methods
-
-    private func currentTimeString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:00 EEE, MMM d"
-        return formatter.string(from: Date()).uppercased()
-    }
-
-    private func formatSelectedDate() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: selectedDay.date)
-    }
-}
-
-// MARK: - Supporting Views
-
-struct ComparisonDayCard: View {
-    @Environment(\.weatherTheme) private var theme
-    let day: DailyForecast
-    let label: String
-    let isMain: Bool
-    let showTrend: Bool
-    let trendUp: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 8) {
-                Text(label)
+            VStack(spacing: 2) {
+                Text("Air Quality")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                Text("Detailed Forecast")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.6))
-                    .textCase(.uppercase)
-
-                ZStack {
-                    // Background circle with subtle gradient
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color(hex: day.qualityLevel.color).opacity(0.15),
-                                    Color(hex: day.qualityLevel.color).opacity(0.05)
-                                ],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 40
-                            )
-                        )
-                        .frame(width: 70, height: 70)
-
-                    // Progress ring
-                    Circle()
-                        .trim(from: 0, to: CGFloat(day.aqi) / 150.0)
-                        .stroke(
-                            Color(hex: day.qualityLevel.color).opacity(0.6),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                        )
-                        .frame(width: 70, height: 70)
-                        .rotationEffect(.degrees(-90))
-
-                    VStack(spacing: 4) {
-                        Text("\(day.aqi)")
-                            .font(.title.bold())
-                            .foregroundColor(.white)
-
-                        Text("AQI")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
-
-                if showTrend {
-                    HStack(spacing: 4) {
-                        Image(systemName: trendUp ? "arrow.up.right" : "arrow.down.right")
-                            .font(.caption2)
-                            .foregroundColor(trendUp ? .red : Color(hex: "#E0E0E0"))
-
-                        Text(day.qualityLevel.rawValue)
-                            .font(.caption2.bold())
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-struct PollutantBadge: View {
-    @Environment(\.weatherTheme) private var theme
-    let label: String
-    let value: Int
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.caption2.bold())
-                .foregroundColor(.white.opacity(0.7))
-
-            Text("\(value)")
-                .font(.caption.bold())
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(theme.cardColor)
-                .overlay(
-                    Capsule()
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
-        )
-    }
-}
-
-struct TabButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(isSelected ? .white : .white.opacity(0.5))
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 8)
-                .overlay(
-                    Rectangle()
-                        .fill(isSelected ? .white : .clear)
-                        .frame(height: 2),
-                    alignment: .bottom
-                )
-        }
-    }
-}
-
-struct DayButton: View {
-    @Environment(\.weatherTheme) private var theme
-    let day: DailyForecast
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var isToday: Bool {
-        Calendar.current.isDateInToday(day.date)
-    }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(day.qualityLevel.color == "#E0E0E0" ? Color(hex: "#E0E0E0") : .yellow)
-                        .frame(width: 8, height: 8)
-
-                    Text(isToday ? "Today" : "\(day.shortDayName) \(String(format: "%02d", day.dayNumber))")
-                        .font(.subheadline)
-                        .foregroundColor(isSelected ? .white : .white.opacity(0.6))
-                }
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? theme.cardColor : .clear)
-            )
-        }
-    }
-}
-
-struct MetricItem: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
-
-            Text(value)
-                .font(.title2.bold())
-                .foregroundColor(.white)
-        }
-    }
-}
-
-struct CircularAQIGauge: View {
-    let aqi: Int
-
-    var body: some View {
-        ZStack {
-            // Outer glow ring
-            Circle()
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#E0E0E0").opacity(0.2),
-                            Color(hex: "#FDD835").opacity(0.2),
-                            Color(hex: "#FF9800").opacity(0.2),
-                            Color(hex: "#E53935").opacity(0.2)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 16
-                )
-                .frame(width: 128, height: 128)
-                .blur(radius: 3)
-
-            // Background track
-            Circle()
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#E0E0E0").opacity(0.15),
-                            Color(hex: "#FDD835").opacity(0.15),
-                            Color(hex: "#FF9800").opacity(0.15),
-                            Color(hex: "#E53935").opacity(0.15)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 14
-                )
-                .frame(width: 120, height: 120)
-
-            // Progress arc - más brillante y evidente
-            Circle()
-                .trim(from: 0, to: CGFloat(aqi) / 150.0)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#E0E0E0"),
-                            Color(hex: "#FDD835"),
-                            Color(hex: "#FF9800"),
-                            Color(hex: "#E53935")
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                )
-                .frame(width: 120, height: 120)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: Color(hex: "#FDD835").opacity(0.5), radius: 8, x: 0, y: 0)
-
-            // AQI value
-            VStack(spacing: 4) {
-                Text("\(aqi)")
-                    .font(.system(size: 44, weight: .heavy))
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-
-                Text("AQI")
-                    .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.white.opacity(0.5))
             }
 
-            // Indicator dot with glow
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [.white, Color(hex: "#FDD835")],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 8
-                    )
-                )
-                .frame(width: 16, height: 16)
-                .shadow(color: .white.opacity(0.8), radius: 6, x: 0, y: 0)
-                .offset(y: -60)
-                .rotationEffect(.degrees(Double(aqi) * 2.4))
+            Spacer()
+
+            Color.clear.frame(width: 34, height: 34)
         }
+        .padding(.horizontal, 20)
     }
-}
 
-struct AQIBarChart: View {
-    let data: [HourlyAQIData]
-    let selectedTime: String
+    // MARK: Segmented tabs
 
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Time indicator line
-                VStack {
-                    Rectangle()
-                        .fill(.white)
-                        .frame(width: 2)
-                }
-                .frame(width: geometry.size.width / CGFloat(data.count))
-                .offset(x: geometry.size.width / 2 - geometry.size.width / CGFloat(data.count) / 2)
-
-                // Bars
-                HStack(alignment: .bottom, spacing: 4) {
-                    ForEach(data) { item in
-                        VStack(spacing: 4) {
-                            Spacer()
-
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(hex: item.qualityLevel.backgroundColor),
-                                            Color(hex: item.qualityLevel.color)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .frame(height: CGFloat(item.aqi) * 2)
-                        }
+    private var segmentedTabs: some View {
+        HStack(spacing: 0) {
+            ForEach(ForecastPeriod.allCases, id: \.self) { period in
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        selectedTab = period
                     }
-                }
-                .padding(.horizontal, 4)
-
-                // Time labels
-                VStack {
-                    Spacer()
-                    HStack {
-                        ForEach([0, 3, 6, 9, 11], id: \.self) { index in
-                            if index < data.count {
-                                Text(data[index].hour)
-                                    .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct TipCategoryCard: View {
-    @Environment(\.weatherTheme) private var theme
-    let category: TipCategory
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack {
-                Image(systemName: category.icon)
-                    .font(.system(size: 32))
-                    .foregroundColor(Color(hex: category.color))
-                    .frame(width: 80, height: 80)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(theme.cardColor)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(Color(hex: category.color).opacity(0.3), lineWidth: 2)
-                            )
-                    )
-            }
-        }
-    }
-}
-
-// MARK: - Tip Popup View
-
-struct TipPopupView: View {
-    @Environment(\.weatherTheme) private var theme
-    let category: TipCategory
-    let currentTip: String
-    let onDismiss: () -> Void
-    let onNext: () -> Void
-
-    var body: some View {
-        // Popup card only - no background
-        VStack(spacing: 20) {
-                // Icon and title
-                HStack(spacing: 16) {
-                    Image(systemName: category.icon)
-                        .font(.system(size: 40))
-                        .foregroundColor(Color(hex: category.color))
-                        .frame(width: 70, height: 70)
-                        .background(
-                            Circle()
-                                .fill(Color(hex: category.color).opacity(0.2))
-                        )
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(category.title)
-                            .font(.title2.bold())
-                            .foregroundColor(.white)
-
-                        Text("Tip & Facts")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-
-                    Spacer()
-                }
-
-                // Tip content
-                Text(currentTip)
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white.opacity(0.1))
-                    )
-
-                // Buttons
-                HStack(spacing: 12) {
-                    Button(action: onNext) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                            Text("Next Tip")
-                        }
-                        .font(.subheadline.bold())
+                }) {
+                    Text(period.rawValue)
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(hex: category.color))
+                            Capsule().fill(selectedTab == period ? Color.white.opacity(0.18) : .clear)
                         )
-                    }
+                }
+            }
+        }
+        .padding(4)
+        .background(Capsule().fill(Color.white.opacity(0.08)))
+        .padding(.horizontal, 20)
+    }
 
-                    Button(action: onDismiss) {
-                        Text("Close")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.white.opacity(0.8))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white.opacity(0.2))
-                            )
+    // MARK: Day pill selector
+
+    private var dayPillSelector: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(weekDays) { day in
+                        dayPill(day)
+                            .id(day.id)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    withAnimation(.easeOut(duration: 0.35)) {
+                        proxy.scrollTo(selectedDay.id, anchor: .center)
                     }
                 }
             }
-            .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                theme.cardColor,
-                                theme.cardColor.opacity(0.8)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.5), radius: 30, x: 0, y: 10)
-            )
-            .padding(.horizontal, 40)
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            .onChange(of: selectedDay.id) { newId in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    proxy.scrollTo(newId, anchor: .center)
+                }
+            }
+        }
     }
-}
 
-struct WeatherMetric: View {
-    let icon: String
-    let value: String
-    let unit: String
+    private func dayPill(_ day: DailyForecast) -> some View {
+        let isSelected = day.id == selectedDay.id
+        let cal = Calendar.current
+        let isToday = cal.isDateInToday(day.date)
+        let isYesterday = cal.isDateInYesterday(day.date)
+        let isTomorrow = cal.isDateInTomorrow(day.date)
+        let isFuture = day.date > Date() && !isToday
 
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.white)
-                .symbolRenderingMode(.multicolor)
+        let topLabel: String = {
+            if isToday { return "Today" }
+            if isYesterday { return "Yest." }
+            if isTomorrow { return "Tom." }
+            return day.shortDayName
+        }()
 
-            Text(value)
-                .font(.title2.bold())
-                .foregroundColor(.white)
+        return Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                selectedDay = day
+            }
+        }) {
+            VStack(spacing: 4) {
+                Text(topLabel)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(isSelected ? .white : (isToday ? .white.opacity(0.85) : .white.opacity(0.45)))
+                Text("\(day.dayNumber)")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.8))
+                    .opacity(isFuture ? 0.7 : 1.0)
+                Circle()
+                    .fill(Color(hex: day.qualityLevel.color))
+                    .frame(width: 6, height: 6)
+                    .opacity(isFuture ? 0.5 : 1.0)
+            }
+            .frame(width: 54, height: 68)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isSelected ? Color.white.opacity(0.2) : theme.cardColor)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(
+                                isSelected ? .white.opacity(0.45) :
+                                    (isToday ? Color(hex: day.qualityLevel.color).opacity(0.5) : theme.borderColor),
+                                lineWidth: isToday && !isSelected ? 1.5 : 1
+                            )
+                    )
+            )
+        }
+    }
 
-            Text(unit)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.7))
+    // MARK: Main AQI + Exposure (unified)
+
+    private var aqiAndExposureCard: some View {
+        glassCard(padding: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Date
+                Text(formatSelectedDate())
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.5))
+                    .textCase(.uppercase)
+
+                // Horizontal: compact exposure (left) + AQI stack (right)
+                HStack(alignment: .center, spacing: 16) {
+                    CompactExposureChart(selectedDay: selectedDay)
+                        .frame(width: 150)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("\(selectedDay.aqi)")
+                                .font(.system(size: 54, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: Color(hex: selectedDay.qualityLevel.color).opacity(0.5), radius: 14)
+                                .minimumScaleFactor(0.6)
+                                .lineLimit(1)
+                            Text("AQI")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color(hex: selectedDay.qualityLevel.color))
+                                .frame(width: 7, height: 7)
+                            Text(selectedDay.qualityLevel.rawValue)
+                                .font(.caption.bold())
+                                .foregroundColor(Color(hex: selectedDay.qualityLevel.color))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color(hex: selectedDay.qualityLevel.color).opacity(0.15)))
+
+                        Text("Exposure History")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .padding(.top, 2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                scaleBar
+            }
+        }
+    }
+
+    private var scaleBar: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "#E0E0E0"), Color(hex: "#FDD835"),
+                            Color(hex: "#FF9800"), Color(hex: "#E53935"), Color(hex: "#8E24AA")
+                        ],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .frame(height: 6)
+                    .clipShape(Capsule())
+
+                    let pos = min(CGFloat(selectedDay.aqi) / 300.0, 1.0) * geo.size.width
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(Color(hex: selectedDay.qualityLevel.color), lineWidth: 2))
+                        .shadow(color: .black.opacity(0.3), radius: 3)
+                        .offset(x: max(0, min(geo.size.width - 10, pos - 5)))
+                }
+            }
+            .frame(height: 10)
+
+            HStack {
+                Text("0").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Spacer()
+                Text("50").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Spacer()
+                Text("100").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Spacer()
+                Text("150").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Spacer()
+                Text("200+").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+            }
+        }
+    }
+
+    // MARK: Compare + Pollutants (unified)
+
+    private var compareAndPollutantsCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader("Comparison", subtitle: "Previous & next days vs selected")
+
+                HStack(alignment: .center, spacing: 8) {
+                    comparisonCol(day: getPreviousDay(), label: "Yesterday", isMain: false)
+                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.white.opacity(0.25))
+                    comparisonCol(day: selectedDay, label: "Selected", isMain: true)
+                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.white.opacity(0.25))
+                    comparisonCol(day: getNextDay(), label: "Tomorrow", isMain: false)
+                }
+
+                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+
+                sectionHeader("Pollutants", subtitle: "Concentration levels")
+
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    pollutantTile("PM2.5", value: selectedDay.pm25, unit: "µg/m³", max: 75, color: colorForPM25(selectedDay.pm25))
+                    pollutantTile("PM10", value: selectedDay.pm10, unit: "µg/m³", max: 150, color: colorForPM10(selectedDay.pm10))
+                    pollutantTile("NO₂", value: selectedDay.no2, unit: "ppb", max: 100, color: colorForNO2(selectedDay.no2))
+                    pollutantTile("O₃", value: selectedDay.o3, unit: "ppb", max: 100, color: colorForO3(selectedDay.o3))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func comparisonCol(day: DailyForecast?, label: String, isMain: Bool) -> some View {
+        if let day = day {
+            Button(action: {
+                if !isMain {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        selectedDay = day
+                    }
+                }
+            }) {
+                VStack(spacing: 6) {
+                    Text(label.uppercased())
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                    Text("\(day.aqi)")
+                        .font(.system(size: isMain ? 28 : 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Circle()
+                        .fill(Color(hex: day.qualityLevel.color))
+                        .frame(width: 6, height: 6)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, isMain ? 18 : 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(isMain ? Color(hex: day.qualityLevel.color).opacity(0.18) : theme.cardColor)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(isMain ? Color(hex: day.qualityLevel.color).opacity(0.6) : theme.borderColor, lineWidth: 1))
+                )
+            }
+        } else {
+            VStack(spacing: 6) {
+                Text(label.uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(.white.opacity(0.3))
+                Text("—").font(.system(size: isMain ? 28 : 20, weight: .bold)).foregroundColor(.white.opacity(0.3))
+                Color.clear.frame(width: 6, height: 6)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, isMain ? 18 : 14)
+            .background(RoundedRectangle(cornerRadius: 16).fill(theme.cardColor.opacity(0.5)))
+        }
+    }
+
+    private func pollutantTile(_ name: String, value: Int, unit: String, max: Int, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(name).font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.6))
+                Spacer()
+                Circle().fill(color).frame(width: 6, height: 6)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text("\(value)").font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.white)
+                Text(unit).font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.08)).frame(height: 4)
+                    Capsule().fill(color).frame(width: min(CGFloat(value) / CGFloat(max), 1.0) * geo.size.width, height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.04)).overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.06), lineWidth: 1)))
+    }
+
+    // MARK: Weather + Yearly (unified)
+
+    private var weatherAndYearlyCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader("Weather", subtitle: "Daily averages")
+
+                HStack(spacing: 0) {
+                    weatherMetric("thermometer.medium", "\(selectedDay.temperature)°", "Temp")
+                    divider
+                    weatherMetric("wind", "\(selectedDay.windSpeed)", "km/h")
+                    divider
+                    weatherMetric("sun.max.fill", "\(selectedDay.uvIndex)", "UV")
+                    divider
+                    weatherMetric("humidity.fill", "\(selectedDay.humidity)%", "Humidity")
+                }
+
+                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+
+                sectionHeader("This Year", subtitle: "Reference values")
+
+                VStack(spacing: 0) {
+                    yearlyRow(icon: "checkmark.seal.fill", iconColor: Color(hex: "#4CAF50"), label: "Best day", value: "37 AQI")
+                    rowDivider
+                    yearlyRow(icon: "equal.circle.fill", iconColor: Color(hex: "#FDD835"), label: "Annual average", value: "63 AQI")
+                    rowDivider
+                    yearlyRow(icon: "exclamationmark.triangle.fill", iconColor: Color(hex: "#E53935"), label: "Worst peak", value: "99 AQI")
+                }
+            }
+        }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(.white.opacity(0.08)).frame(width: 1, height: 40)
+    }
+
+    private func weatherMetric(_ icon: String, _ value: String, _ label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 14)).foregroundColor(.white.opacity(0.5))
+            Text(value).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white)
+            Text(label).font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
     }
-}
 
-struct InfoRow: View {
-    let label: String
-    let value: String
+    // MARK: Tips carousel
 
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
+    private var tipsCarousel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                sectionHeader("Tips by Category", subtitle: "Tap any card to learn more")
+                Spacer()
+            }
+            .padding(.horizontal, 22)
 
-            Spacer()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(TipCategory.sampleCategories) { category in
+                        Button(action: {
+                            selectedTipCategory = category
+                            currentTipIndex = Int.random(in: 0..<category.tips.count)
+                            withAnimation(.spring()) { showTipPopup = true }
+                        }) {
+                            tipTile(category)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
 
-            Text(value)
-                .font(.subheadline.bold())
+    private func tipTile(_ category: TipCategory) -> some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: category.color).opacity(0.18))
+                    .frame(width: 50, height: 50)
+                Image(systemName: category.icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(Color(hex: category.color))
+            }
+            Text(category.title)
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
         }
-        .padding()
+        .frame(width: 96, height: 110)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(theme.cardColor)
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(theme.borderColor, lineWidth: 1))
+        )
     }
-}
 
-// MARK: - Daily Exposure Chart
+    private var rowDivider: some View {
+        Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+    }
 
-struct DailyExposureCircularChart: View {
-    let selectedDay: DailyForecast
-    @State private var selectedCategory = "All"
-    let categories = ["All", "Home", "Work", "Outdoor"]
-
-    // Exposure data varies by day
-    var exposureData: (home: CGFloat, work: CGFloat, outdoor: CGFloat)? {
-        let calendar = Calendar.current
-        let isToday = calendar.isDateInToday(selectedDay.date)
-        let isPast = selectedDay.date < Date()
-
-        // Solo hay datos para hoy y días pasados
-        guard isPast || isToday else {
-            return nil
+    private func yearlyRow(icon: String, iconColor: Color, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 14)).foregroundColor(iconColor).frame(width: 22)
+            Text(label).font(.subheadline).foregroundColor(.white.opacity(0.8))
+            Spacer()
+            Text(value).font(.subheadline.bold()).foregroundColor(.white)
         }
-
-        // Datos diferentes según el día
-        let dayIndex = calendar.component(.weekday, from: selectedDay.date)
-
-        switch dayIndex {
-        case 1: // Sunday
-            return (home: 8, work: 0, outdoor: 2)
-        case 2: // Monday
-            return (home: 5, work: 6, outdoor: 2)
-        case 3: // Tuesday
-            return (home: 6, work: 5, outdoor: 3)
-        case 4: // Wednesday
-            return (home: 6, work: 4, outdoor: 3)
-        case 5: // Thursday (default)
-            return (home: 6, work: 4, outdoor: 3)
-        case 6: // Friday
-            return (home: 5, work: 5, outdoor: 4)
-        case 7: // Saturday
-            return (home: 7, work: 1, outdoor: 4)
-        default:
-            return (home: 6, work: 4, outdoor: 3)
-        }
+        .padding(.vertical, 12)
     }
 
-    var totalHours: CGFloat {
-        guard let data = exposureData else { return 0 }
-        return data.home + data.work + data.outdoor
-    }
+    // MARK: - MONTH VIEW
 
-    var showHome: Bool {
-        selectedCategory == "All" || selectedCategory == "Home"
-    }
+    // MARK: Month overview (selector + stats + comparison unified)
 
-    var showWork: Bool {
-        selectedCategory == "All" || selectedCategory == "Work"
-    }
+    private var monthOverviewCard: some View {
+        let stats = MonthlyData.stats(for: selectedMonth)
+        let cmp = MonthlyData.comparison(for: selectedMonth, in: availableMonths)
 
-    var showOutdoor: Bool {
-        selectedCategory == "All" || selectedCategory == "Outdoor"
-    }
-
-    var body: some View {
-        VStack(spacing: 8) {
-            // Category tabs
-            HStack(spacing: 12) {
-                ForEach(categories, id: \.self) { category in
-                    ExposureCategoryTab(
-                        title: category,
-                        isSelected: selectedCategory == category
-                    ) {
-                        withAnimation(.spring(response: 0.3)) {
-                            selectedCategory = category
+        return glassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                // Month selector row
+                HStack {
+                    Button(action: {
+                        if let i = availableMonths.firstIndex(of: selectedMonth), i > 0 {
+                            withAnimation(.spring()) { selectedMonth = availableMonths[i - 1] }
                         }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white.opacity(availableMonths.first == selectedMonth ? 0.25 : 0.9))
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(.white.opacity(0.08)))
                     }
+                    .disabled(availableMonths.first == selectedMonth)
+
+                    Spacer()
+                    Text("\(selectedMonth) 2025")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+
+                    Button(action: {
+                        if let i = availableMonths.firstIndex(of: selectedMonth), i < availableMonths.count - 1 {
+                            withAnimation(.spring()) { selectedMonth = availableMonths[i + 1] }
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white.opacity(availableMonths.last == selectedMonth ? 0.25 : 0.9))
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(.white.opacity(0.08)))
+                    }
+                    .disabled(availableMonths.last == selectedMonth)
                 }
-            }
 
-            // Circular clock-style chart or no data state
-            if let data = exposureData {
-                ZStack {
-                    // Hour markers and labels
-                    ForEach(0..<24) { hour in
-                        ExposureHourMarker(hour: hour, totalHours: totalHours)
-                    }
-
-                    // Colored segments - conditional display
-                    ZStack {
-                        // Home segment (Yellow)
-                        if showHome {
-                            ExposureSegmentArc(
-                                startHour: 0,
-                                endHour: data.home,
-                                color: Color(hex: "#FFD54F"),
-                                label: "HOME",
-                                hours: data.home
-                            )
-                            .transition(.scale.combined(with: .opacity))
-                        }
-
-                        // Work segment (Green)
-                        if showWork {
-                            ExposureSegmentArc(
-                                startHour: data.home,
-                                endHour: data.home + data.work,
-                                color: Color(hex: "#81C784"),
-                                label: "WORK",
-                                hours: data.work
-                            )
-                            .transition(.scale.combined(with: .opacity))
-                        }
-
-                        // Outdoor segment (Orange)
-                        if showOutdoor {
-                            ExposureSegmentArc(
-                                startHour: data.home + data.work,
-                                endHour: data.home + data.work + data.outdoor,
-                                color: Color(hex: "#FFA726"),
-                                label: "OUTDOOR",
-                                hours: data.outdoor
-                            )
-                            .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-
-                    // Center content
-                    VStack(spacing: 8) {
-                        if selectedCategory == "All" {
-                            Image(systemName: "figure.stand")
-                                .font(.system(size: 60))
-                                .foregroundColor(.white.opacity(0.3))
-
-                            Text("\(Int(totalHours))h")
-                                .font(.title3.bold())
-                                .foregroundColor(.white.opacity(0.6))
-
-                            Text("Total")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.5))
-                        } else {
-                            let hours = selectedCategory == "Home" ? data.home :
-                                       selectedCategory == "Work" ? data.work : data.outdoor
-
-                            Text("\(Int(hours))h")
-                                .font(.system(size: 48, weight: .heavy))
-                                .foregroundColor(.white)
-
-                            Text(selectedCategory.uppercased())
-                                .font(.caption.bold())
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                    }
+                // Stats row
+                HStack(spacing: 10) {
+                    statTile(title: "Average", value: "\(stats.average)", subtitle: "AQI", color: Color(hex: "#FDD835"), icon: "chart.line.uptrend.xyaxis")
+                    statTile(title: "Best", value: "\(stats.best)", subtitle: stats.bestDay, color: Color(hex: "#4CAF50"), icon: "checkmark.seal.fill")
+                    statTile(title: "Worst", value: "\(stats.worst)", subtitle: stats.worstDay, color: Color(hex: "#E53935"), icon: "exclamationmark.triangle.fill")
                 }
-                .frame(height: 240)
-            } else {
-                // No data available state
-                ZStack {
-                    // Empty circle with hour markers
-                    ForEach(0..<24) { hour in
-                        ExposureHourMarker(hour: hour, totalHours: 0)
-                    }
 
-                    // Empty dotted circle
-                    Circle()
-                        .stroke(style: StrokeStyle(lineWidth: 35, dash: [8, 8]))
-                        .foregroundColor(.white.opacity(0.1))
-                        .frame(width: 180, height: 180)
-
-                    // No data message
-                    VStack(spacing: 12) {
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 50))
-                            .foregroundColor(.white.opacity(0.3))
-
-                        Text("No Data")
-                            .font(.title3.bold())
-                            .foregroundColor(.white.opacity(0.6))
-
-                        Text("Not available yet")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.4))
-                    }
+                // Comparison chip
+                HStack(spacing: 8) {
+                    Image(systemName: cmp.isBetter ? "arrow.down.right.circle.fill" : "arrow.up.right.circle.fill")
+                        .foregroundColor(cmp.isBetter ? Color(hex: "#4CAF50") : Color(hex: "#E53935"))
+                    Text("\(cmp.percentage)% \(cmp.isBetter ? "better" : "worse") than \(cmp.previousMonthName)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                    Spacer()
                 }
-                .frame(height: 240)
-            }
-        }
-    }
-}
-
-struct ExposureCategoryTab: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var categoryColor: Color {
-        switch title {
-        case "Home": return Color(hex: "#FFD54F")
-        case "Work": return Color(hex: "#81C784")
-        case "Outdoor": return Color(hex: "#FFA726")
-        default: return .white
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption.bold())
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? categoryColor.opacity(0.3) : Color.white.opacity(0.15))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(isSelected ? categoryColor : .clear, lineWidth: 2)
-                        )
-                )
-        }
-    }
-}
-
-struct ExposureHourMarker: View {
-    let hour: Int
-    let totalHours: CGFloat
-
-    var body: some View {
-        VStack {
-            Rectangle()
-                .fill(.white.opacity(0.3))
-                .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 12 : 6)
-
-            Spacer()
-
-            if hour % 3 == 0 {
-                Text("\(hour)")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.6))
-                    .offset(y: -10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.06)))
             }
         }
-        .frame(width: 100, height: 100)
-        .rotationEffect(.degrees(Double(hour) * 15))
     }
-}
 
-struct ExposureSegmentArc: View {
-    let startHour: CGFloat
-    let endHour: CGFloat
-    let color: Color
-    let label: String
-    let hours: CGFloat
+    private func statTile(title: String, value: String, subtitle: String, color: Color, icon: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 14)).foregroundColor(color)
+            Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.white)
+            Text(title).font(.system(size: 10, weight: .medium)).foregroundColor(.white.opacity(0.5))
+            Text(subtitle).font(.system(size: 10, weight: .bold)).foregroundColor(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.white.opacity(0.04))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.3), lineWidth: 1))
+        )
+    }
 
-    var body: some View {
-        ZStack {
-            Circle()
-                .trim(from: startHour / 24, to: endHour / 24)
-                .stroke(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.7)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 35
-                )
-                .frame(width: 180, height: 180)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 0)
+    // MARK: Calendar + Trend (unified)
+
+    private var calendarAndTrendCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader("Calendar", subtitle: "Daily AQI across the month")
+
+                let dows = ["S", "M", "T", "W", "T", "F", "S"]
+                HStack(spacing: 4) {
+                    ForEach(0..<dows.count, id: \.self) { i in
+                        Text(dows[i])
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.4))
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+
+                let weeks = MonthlyData.calendar(for: selectedMonth)
+                VStack(spacing: 4) {
+                    ForEach(0..<weeks.count, id: \.self) { w in
+                        HStack(spacing: 4) {
+                            ForEach(0..<7, id: \.self) { d in
+                                if let aqi = weeks[w][d] {
+                                    heatCell(aqi: aqi, dayNumber: MonthlyData.dayNumber(month: selectedMonth, week: w, dow: d))
+                                } else {
+                                    Color.clear.frame(maxWidth: .infinity, minHeight: 38)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    legendDot(Color(hex: "#4CAF50"), "Good")
+                    legendDot(Color(hex: "#FDD835"), "Moderate")
+                    legendDot(Color(hex: "#FF9800"), "USG")
+                    legendDot(Color(hex: "#E53935"), "Unhealthy")
+                }
+
+                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+
+                sectionHeader("Monthly Trend", subtitle: "AQI evolution through \(selectedMonth)")
+
+                let series = MonthlyData.trend(for: selectedMonth).enumerated().map { (day: $0.offset + 1, aqi: Int($0.element)) }
+
+                Chart {
+                    ForEach(series, id: \.day) { p in
+                        AreaMark(x: .value("Day", p.day), y: .value("AQI", p.aqi))
+                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(LinearGradient(
+                                colors: [Color(hex: "#FDD835").opacity(0.35), Color(hex: "#FDD835").opacity(0.0)],
+                                startPoint: .top, endPoint: .bottom
+                            ))
+                        LineMark(x: .value("Day", p.day), y: .value("AQI", p.aqi))
+                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(LinearGradient(
+                                colors: [Color(hex: "#E0E0E0"), Color(hex: "#FDD835"), Color(hex: "#FF9800")],
+                                startPoint: .leading, endPoint: .trailing
+                            ))
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: [1, 7, 14, 21, 28]) {
+                        AxisValueLabel().foregroundStyle(.white.opacity(0.4))
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4])).foregroundStyle(.white.opacity(0.08))
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .trailing) { _ in
+                        AxisValueLabel().foregroundStyle(.white.opacity(0.5))
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(.white.opacity(0.06))
+                    }
+                }
+                .frame(height: 160)
+            }
+        }
+    }
+
+    private func heatCell(aqi: Int, dayNumber: Int) -> some View {
+        let color = aqiColor(aqi)
+        return VStack(spacing: 2) {
+            Text("\(dayNumber)")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white)
+            Text("\(aqi)")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity, minHeight: 38)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(color.opacity(0.28))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.7), lineWidth: 1))
+        )
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.white.opacity(0.5))
+        }
+    }
+
+    // MARK: Insights
+
+    private var insightsCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb.fill").foregroundColor(Color(hex: "#FDD835"))
+                    Text("Insights")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                }
+
+                insightRow("sun.max.fill", Color(hex: "#FDD835"), "Sundays have 30% better AQI on average")
+                Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                insightRow("figure.run", Color(hex: "#4CAF50"), "Best outdoor hours: 6 – 9 AM")
+                Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                insightRow("calendar", Color(hex: "#4AB8FF"), "87% of days had moderate or good quality")
+            }
+        }
+    }
+
+    private func insightRow(_ icon: String, _ color: Color, _ text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(color)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(color.opacity(0.15)))
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.85))
+            Spacer()
+        }
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Helpers
+
+    private func sectionHeader(_ title: String, subtitle: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.white)
+            if let s = subtitle {
+                Text(s)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+        }
+    }
+
+    private func getPreviousDay() -> DailyForecast? {
+        guard let i = weekDays.firstIndex(where: { $0.id == selectedDay.id }), i > 0 else { return nil }
+        return weekDays[i - 1]
+    }
+
+    private func getNextDay() -> DailyForecast? {
+        guard let i = weekDays.firstIndex(where: { $0.id == selectedDay.id }), i < weekDays.count - 1 else { return nil }
+        return weekDays[i + 1]
+    }
+
+    private func formatSelectedDate() -> String {
+        let df = DateFormatter()
+        df.dateFormat = "EEEE, MMM d"
+        return df.string(from: selectedDay.date)
+    }
+
+    private func aqiColor(_ aqi: Int) -> Color {
+        switch aqi {
+        case 0..<51: return Color(hex: "#4CAF50")
+        case 51..<101: return Color(hex: "#FDD835")
+        case 101..<151: return Color(hex: "#FF9800")
+        default: return Color(hex: "#E53935")
+        }
+    }
+
+    private func colorForPM25(_ v: Int) -> Color {
+        switch v {
+        case 0..<13: return Color(hex: "#4CAF50")
+        case 13..<36: return Color(hex: "#FDD835")
+        case 36..<56: return Color(hex: "#FF9800")
+        default: return Color(hex: "#E53935")
+        }
+    }
+    private func colorForPM10(_ v: Int) -> Color {
+        switch v {
+        case 0..<55: return Color(hex: "#4CAF50")
+        case 55..<155: return Color(hex: "#FDD835")
+        case 155..<255: return Color(hex: "#FF9800")
+        default: return Color(hex: "#E53935")
+        }
+    }
+    private func colorForNO2(_ v: Int) -> Color {
+        switch v {
+        case 0..<54: return Color(hex: "#4CAF50")
+        case 54..<101: return Color(hex: "#FDD835")
+        case 101..<361: return Color(hex: "#FF9800")
+        default: return Color(hex: "#E53935")
+        }
+    }
+    private func colorForO3(_ v: Int) -> Color {
+        switch v {
+        case 0..<55: return Color(hex: "#4CAF50")
+        case 55..<71: return Color(hex: "#FDD835")
+        case 71..<86: return Color(hex: "#FF9800")
+        default: return Color(hex: "#E53935")
         }
     }
 }
 
-// MARK: - Monthly View Components
+// MARK: - Monthly Data (kept sample data)
 
-struct MonthlyStatsCard: View {
-    @Environment(\.weatherTheme) private var theme
-    let selectedMonth: String
-
-    // Data structure for multiple months (July - October 2025)
-    let monthsData: [String: [[Int?]]] = [
+enum MonthlyData {
+    static let calendars: [String: [[Int?]]] = [
         "July": [
             [nil, nil, nil, nil, nil, nil, 68],
             [72, 65, 58, 54, 61, 69, 75],
@@ -1294,502 +892,435 @@ struct MonthlyStatsCard: View {
         ]
     ]
 
-    let availableMonths = ["July", "August", "September", "October"]
-
-    var monthStats: (average: Int, best: Int, worst: Int, bestDay: String, worstDay: String) {
-        let data = monthsData[selectedMonth]?.flatMap { $0 }.compactMap { $0 } ?? []
-        guard !data.isEmpty else {
-            return (0, 0, 0, "N/A", "N/A")
-        }
-
-        let avg = data.reduce(0, +) / data.count
-        let best = data.min() ?? 0
-        let worst = data.max() ?? 0
-
-        // Find best and worst day numbers
-        var dayCounter = 1
-        var bestDay = 1
-        var worstDay = 1
-
-        if let monthData = monthsData[selectedMonth] {
-            for week in monthData {
-                for aqi in week {
-                    if let aqi = aqi {
-                        if aqi == best {
-                            bestDay = dayCounter
-                        }
-                        if aqi == worst {
-                            worstDay = dayCounter
-                        }
-                        dayCounter += 1
-                    }
-                }
-            }
-        }
-
-        let monthAbbrev = String(selectedMonth.prefix(3))
-        return (avg, best, worst, "\(monthAbbrev) \(bestDay)", "\(monthAbbrev) \(worstDay)")
-    }
-
-    var previousMonthComparison: (percentage: Int, isBetter: Bool, previousMonthName: String) {
-        guard let currentIndex = availableMonths.firstIndex(of: selectedMonth),
-              currentIndex > 0 else {
-            return (0, true, "Previous")
-        }
-
-        let previousMonth = availableMonths[currentIndex - 1]
-
-        // Get averages for both months
-        let currentData = monthsData[selectedMonth]?.flatMap { $0 }.compactMap { $0 } ?? []
-        let previousData = monthsData[previousMonth]?.flatMap { $0 }.compactMap { $0 } ?? []
-
-        guard !currentData.isEmpty && !previousData.isEmpty else {
-            return (0, true, previousMonth)
-        }
-
-        let currentAvg = currentData.reduce(0, +) / currentData.count
-        let previousAvg = previousData.reduce(0, +) / previousData.count
-
-        let difference = previousAvg - currentAvg
-        let percentage = abs((difference * 100) / previousAvg)
-        let isBetter = currentAvg < previousAvg
-
-        return (percentage, isBetter, previousMonth)
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
-                // Average AQI
-                StatBox(
-                    title: "Average",
-                    value: "\(monthStats.average)",
-                    subtitle: "AQI",
-                    color: Color(hex: "#FDD835"),
-                    icon: "chart.line.uptrend.xyaxis"
-                )
-
-                // Best Day
-                StatBox(
-                    title: "Best Day",
-                    value: "\(monthStats.best)",
-                    subtitle: monthStats.bestDay,
-                    color: Color(hex: "#E0E0E0"),
-                    icon: "checkmark.circle.fill"
-                )
-
-                // Worst Day
-                StatBox(
-                    title: "Worst Day",
-                    value: "\(monthStats.worst)",
-                    subtitle: monthStats.worstDay,
-                    color: Color(hex: "#FF9800"),
-                    icon: "exclamationmark.triangle.fill"
-                )
-            }
-
-            // Comparison with last month
-            let comparison = previousMonthComparison
-            HStack {
-                Image(systemName: comparison.isBetter ? "arrow.down.right" : "arrow.up.right")
-                    .foregroundColor(comparison.isBetter ? Color(hex: "#E0E0E0") : Color(hex: "#FF9800"))
-                Text("\(comparison.percentage)% \(comparison.isBetter ? "better" : "worse") than \(comparison.previousMonthName)")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding(.horizontal)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            theme.cardColor,
-                            theme.cardColor.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
-}
-
-struct StatBox: View {
-    let title: String
-    let value: String
-    let subtitle: String
-    let color: Color
-    let icon: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-
-            Text(value)
-                .font(.title.bold())
-                .foregroundColor(.white)
-
-            Text(title)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.6))
-
-            Text(subtitle)
-                .font(.caption2.bold())
-                .foregroundColor(color)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(color.opacity(0.1))
-        )
-    }
-}
-
-struct MonthlyCalendarHeatMap: View {
-    @Environment(\.weatherTheme) private var theme
-    @Binding var selectedMonth: String
-    let days = ["S", "M", "T", "W", "T", "F", "S"]
-
-    // Data structure for multiple months (July - October 2025)
-    let monthsData: [String: (data: [[Int?]], offset: Int, totalDays: Int)] = [
-        "July": (
-            data: [
-                [nil, nil, nil, nil, nil, nil, 68],
-                [72, 65, 58, 54, 61, 69, 75],
-                [71, 67, 63, 59, 56, 62, 68],
-                [74, 70, 66, 62, 58, 64, 70],
-                [76, 72, 68, 64, 60, 66, 72],
-                [73, nil, nil, nil, nil, nil, nil]
-            ],
-            offset: 6,
-            totalDays: 31
-        ),
-        "August": (
-            data: [
-                [nil, nil, 69, 65, 61, 67, 73],
-                [70, 66, 62, 58, 64, 70, 76],
-                [68, 64, 60, 56, 62, 68, 74],
-                [66, 62, 58, 54, 60, 66, 72],
-                [64, 60, 56, 52, 58, 64, 70],
-                [nil, nil, nil, nil, 62, nil, nil]
-            ],
-            offset: 2,
-            totalDays: 31
-        ),
-        "September": (
-            data: [
-                [nil, nil, nil, nil, nil, 59, 65],
-                [61, 57, 53, 49, 55, 61, 67],
-                [63, 59, 55, 51, 47, 53, 59],
-                [65, 61, 57, 53, 49, 55, 61],
-                [63, 59, 55, 51, 57, 63, nil]
-            ],
-            offset: 5,
-            totalDays: 30
-        ),
-        "October": (
-            data: [
-                [nil, nil, nil, nil, 45, 48, 52],
-                [38, 42, 55, 61, 58, 49, 43],
-                [47, 51, 54, 48, 32, 39, 44],
-                [56, 62, 71, 68, 55, 48, 41],
-                [45, 52, 58, 61, 65, nil, nil]
-            ],
-            offset: 4,
-            totalDays: 31
-        )
-    ]
-
-    var monthData: [[Int?]] {
-        monthsData[selectedMonth]?.data ?? []
-    }
-
-    var monthStats: (average: Int, best: Int, worst: Int, bestDay: String, worstDay: String) {
-        let data = monthData.flatMap { $0 }.compactMap { $0 }
-        guard !data.isEmpty else {
-            return (0, 0, 0, "N/A", "N/A")
-        }
-
-        let avg = data.reduce(0, +) / data.count
-        let best = data.min() ?? 0
-        let worst = data.max() ?? 0
-
-        // Find best and worst day numbers
-        var dayCounter = 1
-        var bestDay = 1
-        var worstDay = 1
-
-        for week in monthData {
-            for aqi in week {
-                if let aqi = aqi {
-                    if aqi == best {
-                        bestDay = dayCounter
-                    }
-                    if aqi == worst {
-                        worstDay = dayCounter
-                    }
-                    dayCounter += 1
-                }
-            }
-        }
-
-        let monthAbbrev = String(selectedMonth.prefix(3))
-        return (avg, best, worst, "\(monthAbbrev) \(bestDay)", "\(monthAbbrev) \(worstDay)")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Monthly Overview")
-                    .font(.headline)
-                    .foregroundColor(.white)
-
-                Spacer()
-
-                // Month selector dropdown style
-                Menu {
-                    ForEach(["July", "August", "September", "October"], id: \.self) { month in
-                        Button(month) {
-                            withAnimation(.spring()) {
-                                selectedMonth = month
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(selectedMonth)
-                            .font(.subheadline.bold())
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.2))
-                    )
-                }
-            }
-            .padding(.horizontal)
-
-            VStack(spacing: 8) {
-                // Week days header
-                HStack(spacing: 4) {
-                    ForEach(days, id: \.self) { day in
-                        Text(day)
-                            .font(.caption2.bold())
-                            .foregroundColor(.white.opacity(0.5))
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-
-                // Calendar grid
-                ForEach(0..<monthData.count, id: \.self) { week in
-                    HStack(spacing: 4) {
-                        ForEach(0..<7, id: \.self) { day in
-                            if let aqi = monthData[week][day] {
-                                CalendarDayCell(aqi: aqi, dayNumber: getDayNumber(week: week, day: day))
-                            } else {
-                                Color.clear
-                                    .frame(height: 44)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(theme.cardColor)
-            )
-            .padding(.horizontal)
-        }
-    }
-
-    func getDayNumber(week: Int, day: Int) -> Int {
-        return week * 7 + day - 3 // Offset for first week
-    }
-}
-
-struct CalendarDayCell: View {
-    let aqi: Int
-    let dayNumber: Int
-
-    var color: Color {
-        switch aqi {
-        case 0..<51: return Color(hex: "#E0E0E0")
-        case 51..<101: return Color(hex: "#FDD835")
-        case 101..<151: return Color(hex: "#FF9800")
-        default: return Color(hex: "#E53935")
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text("\(dayNumber)")
-                .font(.caption2.bold())
-                .foregroundColor(.white)
-
-            Text("\(aqi)")
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.8))
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 44)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(color.opacity(0.3))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(color, lineWidth: 1)
-                )
-        )
-    }
-}
-
-struct MonthlyTrendGraph: View {
-    @Environment(\.weatherTheme) private var theme
-    let selectedMonth: String
-
-    // Data structure for multiple months (July - October 2025)
-    let monthsData: [String: [CGFloat]] = [
+    static let trends: [String: [CGFloat]] = [
         "July": [68, 72, 65, 58, 54, 61, 69, 75, 71, 67, 63, 59, 56, 62, 68, 74, 70, 66, 62, 58, 64, 70, 76, 72, 68, 64, 60, 66, 72, 73, 69],
         "August": [69, 65, 61, 67, 73, 70, 66, 62, 58, 64, 70, 76, 68, 64, 60, 56, 62, 68, 74, 66, 62, 58, 54, 60, 66, 72, 64, 60, 56, 52, 58],
         "September": [59, 65, 61, 57, 53, 49, 55, 61, 67, 63, 59, 55, 51, 47, 53, 59, 65, 61, 57, 53, 49, 55, 61, 63, 59, 55, 51, 57, 63, 60],
         "October": [45, 48, 52, 38, 42, 55, 61, 58, 49, 43, 47, 51, 54, 48, 32, 39, 44, 56, 62, 71, 68, 55, 48, 41, 45, 52, 58, 61, 65, 59, 52]
     ]
 
-    var data: [CGFloat] {
-        monthsData[selectedMonth] ?? []
+    static func calendar(for month: String) -> [[Int?]] { calendars[month] ?? [] }
+    static func trend(for month: String) -> [CGFloat] { trends[month] ?? [] }
+
+    static func stats(for month: String) -> (average: Int, best: Int, worst: Int, bestDay: String, worstDay: String) {
+        let data = (calendars[month] ?? []).flatMap { $0 }.compactMap { $0 }
+        guard !data.isEmpty else { return (0, 0, 0, "—", "—") }
+        let avg = data.reduce(0, +) / data.count
+        let best = data.min() ?? 0
+        let worst = data.max() ?? 0
+        var counter = 1
+        var bd = 1, wd = 1
+        for w in (calendars[month] ?? []) {
+            for v in w {
+                if let v = v {
+                    if v == best { bd = counter }
+                    if v == worst { wd = counter }
+                    counter += 1
+                }
+            }
+        }
+        let abbrev = String(month.prefix(3))
+        return (avg, best, worst, "\(abbrev) \(bd)", "\(abbrev) \(wd)")
     }
 
+    static func comparison(for month: String, in months: [String]) -> (percentage: Int, isBetter: Bool, previousMonthName: String) {
+        guard let i = months.firstIndex(of: month), i > 0 else { return (0, true, "Previous") }
+        let prev = months[i - 1]
+        let current = stats(for: month).average
+        let previous = stats(for: prev).average
+        guard previous > 0 else { return (0, true, prev) }
+        let diff = previous - current
+        let pct = abs((diff * 100) / previous)
+        return (pct, current < previous, prev)
+    }
+
+    static func dayNumber(month: String, week: Int, dow: Int) -> Int {
+        let weeks = calendars[month] ?? []
+        var counter = 1
+        for w in 0..<weeks.count {
+            for d in 0..<7 {
+                if weeks[w][d] != nil {
+                    if w == week && d == dow { return counter }
+                    counter += 1
+                }
+            }
+        }
+        return counter
+    }
+}
+
+// MARK: - Tip Popup (kept)
+
+struct TipPopupView: View {
+    @Environment(\.weatherTheme) private var theme
+    let category: TipCategory
+    let currentTip: String
+    let onDismiss: () -> Void
+    let onNext: () -> Void
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Monthly Trend")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.horizontal)
+        ZStack {
+            Color.black.opacity(0.5).ignoresSafeArea()
+                .onTapGesture { onDismiss() }
 
-            GeometryReader { geometry in
-                Path { path in
-                    let maxValue: CGFloat = 100
-                    let stepX = geometry.size.width / CGFloat(data.count - 1)
-                    let stepY = geometry.size.height / maxValue
-
-                    path.move(to: CGPoint(x: 0, y: geometry.size.height - data[0] * stepY))
-
-                    for (index, value) in data.enumerated() {
-                        let x = CGFloat(index) * stepX
-                        let y = geometry.size.height - value * stepY
-                        path.addLine(to: CGPoint(x: x, y: y))
+            VStack(spacing: 20) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle().fill(Color(hex: category.color).opacity(0.2)).frame(width: 60, height: 60)
+                        Image(systemName: category.icon)
+                            .font(.system(size: 28))
+                            .foregroundColor(Color(hex: category.color))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(category.title).font(.title3.bold()).foregroundColor(.white)
+                        Text("Tips & facts").font(.caption).foregroundColor(.white.opacity(0.5))
+                    }
+                    Spacer()
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white.opacity(0.85))
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(.white.opacity(0.15)))
                     }
                 }
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#E0E0E0"),
-                            Color(hex: "#FDD835"),
-                            Color(hex: "#FF9800")
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 3
-                )
-            }
-            .frame(height: 120)
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(theme.cardColor)
-            )
-            .padding(.horizontal)
-        }
-    }
-}
 
-struct BestDaysInsightCard: View {
-    @Environment(\.weatherTheme) private var theme
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundColor(Color(hex: "#FDD835"))
-                Text("Insights")
-                    .font(.headline)
+                Text(currentTip)
+                    .font(.system(size: 15))
                     .foregroundColor(.white)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.08)))
+
+                Button(action: onNext) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Next tip")
+                    }
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(Color(hex: category.color).opacity(0.85)))
+                }
             }
-
-            VStack(alignment: .leading, spacing: 8) {
-                InsightRow(
-                    icon: "sun.max.fill",
-                    color: "#E0E0E0",
-                    text: "Sundays have 30% better AQI on average"
-                )
-
-                InsightRow(
-                    icon: "figure.run",
-                    color: "#4CAF50",
-                    text: "Best outdoor activity hours: 6-9 AM"
-                )
-
-                InsightRow(
-                    icon: "calendar",
-                    color: "#FDD835",
-                    text: "87% of days this month had moderate or good air quality"
-                )
-            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(theme.cardColor)
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.15), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.4), radius: 24, y: 8)
+            )
+            .padding(.horizontal, 28)
+            .transition(.opacity.combined(with: .scale(scale: 0.92)))
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            theme.cardColor,
-                            theme.cardColor.opacity(0.8)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
     }
 }
 
-struct InsightRow: View {
-    let icon: String
-    let color: String
-    let text: String
+// MARK: - Daily Exposure Chart (preserved)
+
+struct DailyExposureCircularChart: View {
+    let selectedDay: DailyForecast
+    @State private var selectedCategory = "All"
+    let categories = ["All", "Home", "Work", "Outdoor"]
+
+    var exposureData: (home: CGFloat, work: CGFloat, outdoor: CGFloat)? {
+        let cal = Calendar.current
+        let isToday = cal.isDateInToday(selectedDay.date)
+        let isPast = selectedDay.date < Date()
+        guard isPast || isToday else { return nil }
+        let dow = cal.component(.weekday, from: selectedDay.date)
+        switch dow {
+        case 1: return (8, 0, 2)
+        case 2: return (5, 6, 2)
+        case 3: return (6, 5, 3)
+        case 4: return (6, 4, 3)
+        case 5: return (6, 4, 3)
+        case 6: return (5, 5, 4)
+        case 7: return (7, 1, 4)
+        default: return (6, 4, 3)
+        }
+    }
+
+    var totalHours: CGFloat {
+        guard let d = exposureData else { return 0 }
+        return d.home + d.work + d.outdoor
+    }
+    var showHome: Bool { selectedCategory == "All" || selectedCategory == "Home" }
+    var showWork: Bool { selectedCategory == "All" || selectedCategory == "Work" }
+    var showOutdoor: Bool { selectedCategory == "All" || selectedCategory == "Outdoor" }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(Color(hex: color))
-                .frame(width: 30)
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                ForEach(categories, id: \.self) { cat in
+                    ExposureCategoryTab(title: cat, isSelected: selectedCategory == cat) {
+                        withAnimation(.spring(response: 0.3)) { selectedCategory = cat }
+                    }
+                }
+            }
 
-            Text(text)
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
+            if let data = exposureData {
+                ZStack {
+                    ForEach(0..<24, id: \.self) { hour in
+                        ExposureHourMarker(hour: hour, totalHours: totalHours)
+                    }
+                    ZStack {
+                        if showHome {
+                            ExposureSegmentArc(startHour: 0, endHour: data.home, color: Color(hex: "#FFD54F"))
+                        }
+                        if showWork {
+                            ExposureSegmentArc(startHour: data.home, endHour: data.home + data.work, color: Color(hex: "#81C784"))
+                        }
+                        if showOutdoor {
+                            ExposureSegmentArc(startHour: data.home + data.work, endHour: data.home + data.work + data.outdoor, color: Color(hex: "#FFA726"))
+                        }
+                    }
+                    VStack(spacing: 6) {
+                        if selectedCategory == "All" {
+                            Image(systemName: "figure.stand").font(.system(size: 44)).foregroundColor(.white.opacity(0.35))
+                            Text("\(Int(totalHours))h").font(.title3.bold()).foregroundColor(.white.opacity(0.7))
+                            Text("Total").font(.caption).foregroundColor(.white.opacity(0.4))
+                        } else {
+                            let h = selectedCategory == "Home" ? data.home : selectedCategory == "Work" ? data.work : data.outdoor
+                            Text("\(Int(h))h").font(.system(size: 40, weight: .heavy)).foregroundColor(.white)
+                            Text(selectedCategory.uppercased()).font(.caption.bold()).foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                .frame(height: 220)
+            } else {
+                ZStack {
+                    Circle()
+                        .stroke(style: StrokeStyle(lineWidth: 28, dash: [6, 6]))
+                        .foregroundColor(.white.opacity(0.1))
+                        .frame(width: 160, height: 160)
+                    VStack(spacing: 8) {
+                        Image(systemName: "calendar.badge.clock").font(.system(size: 40)).foregroundColor(.white.opacity(0.3))
+                        Text("No data").font(.subheadline.bold()).foregroundColor(.white.opacity(0.6))
+                        Text("Not available yet").font(.caption).foregroundColor(.white.opacity(0.4))
+                    }
+                }
+                .frame(height: 220)
+            }
+        }
+    }
+}
+
+struct ExposureCategoryTab: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var catColor: Color {
+        switch title {
+        case "Home": return Color(hex: "#FFD54F")
+        case "Work": return Color(hex: "#81C784")
+        case "Outdoor": return Color(hex: "#FFA726")
+        default: return .white
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? catColor.opacity(0.28) : .white.opacity(0.08))
+                        .overlay(Capsule().stroke(isSelected ? catColor : .clear, lineWidth: 1.5))
+                )
+        }
+    }
+}
+
+struct ExposureHourMarker: View {
+    let hour: Int
+    let totalHours: CGFloat
+
+    var body: some View {
+        VStack {
+            Rectangle()
+                .fill(.white.opacity(0.25))
+                .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 10 : 5)
+            Spacer()
+            if hour % 3 == 0 {
+                Text("\(hour)")
+                    .font(.system(size: 8))
+                    .foregroundColor(.white.opacity(0.45))
+                    .offset(y: -8)
+            }
+        }
+        .frame(width: 90, height: 90)
+        .rotationEffect(.degrees(Double(hour) * 15))
+    }
+}
+
+struct ExposureSegmentArc: View {
+    let startHour: CGFloat
+    let endHour: CGFloat
+    let color: Color
+
+    var body: some View {
+        Circle()
+            .trim(from: startHour / 24, to: endHour / 24)
+            .stroke(color, lineWidth: 28)
+            .frame(width: 160, height: 160)
+            .rotationEffect(.degrees(-90))
+            .shadow(color: color.opacity(0.35), radius: 6)
+    }
+}
+
+// MARK: - Compact Exposure Chart
+
+struct CompactExposureChart: View {
+    let selectedDay: DailyForecast
+    @State private var selectedCategory = "All"
+
+    private let categories = ["All", "Home", "Work", "Outdoor"]
+
+    private var exposureData: (home: CGFloat, work: CGFloat, outdoor: CGFloat)? {
+        let cal = Calendar.current
+        let isToday = cal.isDateInToday(selectedDay.date)
+        let isPast = selectedDay.date < Date()
+        guard isPast || isToday else { return nil }
+        let dow = cal.component(.weekday, from: selectedDay.date)
+        switch dow {
+        case 1: return (8, 0, 2)
+        case 2: return (5, 6, 2)
+        case 3: return (6, 5, 3)
+        case 4: return (6, 4, 3)
+        case 5: return (6, 4, 3)
+        case 6: return (5, 5, 4)
+        case 7: return (7, 1, 4)
+        default: return (6, 4, 3)
+        }
+    }
+
+    private var totalHours: CGFloat {
+        guard let d = exposureData else { return 0 }
+        return d.home + d.work + d.outdoor
+    }
+
+    private var showHome: Bool { selectedCategory == "All" || selectedCategory == "Home" }
+    private var showWork: Bool { selectedCategory == "All" || selectedCategory == "Work" }
+    private var showOutdoor: Bool { selectedCategory == "All" || selectedCategory == "Outdoor" }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                if let data = exposureData {
+                    Circle().stroke(.white.opacity(0.08), lineWidth: 16)
+                        .frame(width: 110, height: 110)
+
+                    ZStack {
+                        if showHome {
+                            Circle().trim(from: 0, to: data.home / 24)
+                                .stroke(Color(hex: "#FFD54F"), style: StrokeStyle(lineWidth: 16, lineCap: .butt))
+                                .transition(.opacity)
+                        }
+                        if showWork {
+                            Circle().trim(from: data.home / 24, to: (data.home + data.work) / 24)
+                                .stroke(Color(hex: "#81C784"), style: StrokeStyle(lineWidth: 16, lineCap: .butt))
+                                .transition(.opacity)
+                        }
+                        if showOutdoor {
+                            Circle().trim(from: (data.home + data.work) / 24, to: (data.home + data.work + data.outdoor) / 24)
+                                .stroke(Color(hex: "#FFA726"), style: StrokeStyle(lineWidth: 16, lineCap: .butt))
+                                .transition(.opacity)
+                        }
+                    }
+                    .frame(width: 110, height: 110)
+                    .rotationEffect(.degrees(-90))
+
+                    VStack(spacing: 1) {
+                        if selectedCategory == "All" {
+                            Text("\(Int(totalHours))h")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("Total")
+                                .font(.system(size: 9))
+                                .foregroundColor(.white.opacity(0.5))
+                        } else {
+                            let h: CGFloat = {
+                                switch selectedCategory {
+                                case "Home": return data.home
+                                case "Work": return data.work
+                                case "Outdoor": return data.outdoor
+                                default: return 0
+                                }
+                            }()
+                            Text("\(Int(h))h")
+                                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                            Text(selectedCategory.uppercased())
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                    }
+                } else {
+                    Circle()
+                        .stroke(style: StrokeStyle(lineWidth: 16, dash: [4, 4]))
+                        .foregroundColor(.white.opacity(0.12))
+                        .frame(width: 110, height: 110)
+                    VStack(spacing: 3) {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white.opacity(0.3))
+                        Text("No data")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.45))
+                    }
+                }
+            }
+
+            // Tabs grid 2x2 to fit narrow column
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    CompactExposureTab(title: "All", isSelected: selectedCategory == "All") { selectedCategory = "All" }
+                    CompactExposureTab(title: "Home", isSelected: selectedCategory == "Home") { selectedCategory = "Home" }
+                }
+                HStack(spacing: 4) {
+                    CompactExposureTab(title: "Work", isSelected: selectedCategory == "Work") { selectedCategory = "Work" }
+                    CompactExposureTab(title: "Outdoor", isSelected: selectedCategory == "Outdoor") { selectedCategory = "Outdoor" }
+                }
+            }
+        }
+    }
+}
+
+struct CompactExposureTab: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var tint: Color {
+        switch title {
+        case "Home": return Color(hex: "#FFD54F")
+        case "Work": return Color(hex: "#81C784")
+        case "Outdoor": return Color(hex: "#FFA726")
+        default: return .white
+        }
+    }
+
+    var body: some View {
+        Button(action: { withAnimation(.spring(response: 0.3)) { action() } }) {
+            Text(title)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isSelected ? tint.opacity(0.3) : .white.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(isSelected ? tint : .clear, lineWidth: 1)
+                        )
+                )
         }
     }
 }
@@ -1797,5 +1328,7 @@ struct InsightRow: View {
 // MARK: - Preview
 
 #Preview {
-    DailyForecastView()
+    NavigationStack {
+        DailyForecastView()
+    }
 }

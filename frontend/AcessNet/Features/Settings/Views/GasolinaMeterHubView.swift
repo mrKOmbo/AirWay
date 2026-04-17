@@ -48,75 +48,29 @@ struct GasolinaMeterHubView: View {
                         activeVehicleCard
                         fuelPricesCard
 
-                        phaseSection(
-                            number: "1",
-                            title: "Mi vehículo",
-                            subtitle: "Configura rendimiento oficial CONUEE",
-                            icon: "car.side.fill",
-                            color: .blue
-                        ) {
-                            PhaseRow(
-                                icon: "car.fill",
-                                title: "Mis vehículos",
-                                subtitle: "49 autos · búsqueda rápida",
-                                theme: theme,
-                                action: { showingVehicleProfile = true }
-                            )
-                            PhaseRow(
-                                icon: "camera.viewfinder",
-                                title: "Escanear con cámara",
-                                subtitle: "Gemini Vision identifica · foto tablero/placa",
-                                theme: theme,
-                                action: { showingVehicleScan = true }
-                            )
-                        }
+                        VehicleProfilePreviewCard(
+                            onExpand: { showingVehicleProfile = true },
+                            onAdd: { showingVehicleProfile = true }
+                        )
 
-                        phaseSection(
-                            number: "2",
-                            title: "Gasolineras",
-                            subtitle: "Precios Profeco · mapa cercanas",
-                            icon: "fuelpump.fill",
-                            color: .orange
-                        ) {
-                            PhaseRow(
-                                icon: "mappin.circle.fill",
-                                title: "Más baratas cerca",
-                                subtitle: "Top 5 en radio 5 km · apple maps",
-                                theme: theme,
-                                action: { showingStations = true }
-                            )
-                        }
+                        FuelStationsPreviewCard(
+                            origin: demoOrigin,
+                            onExpand: { showingStations = true }
+                        )
 
-                        phaseSection(
-                            number: "3",
-                            title: "Compara modos",
-                            subtitle: "Auto · Metro · Uber · Bici",
-                            icon: "arrow.triangle.branch",
-                            color: .purple
-                        ) {
-                            PhaseRow(
-                                icon: "chart.bar.horizontal.page.fill",
-                                title: "Ver 4 modos",
-                                subtitle: "Costo real + CO₂ + tiempo · insight Gemini",
-                                theme: theme,
-                                action: { showingModeComparison = true }
+                        HStack(alignment: .top, spacing: 10) {
+                            CompareModesPreviewCard(
+                                origin: demoOrigin,
+                                destination: demoDestination,
+                                vehicle: vehicleService.activeProfile,
+                                onExpand: { showingModeComparison = true }
                             )
-                        }
+                            .frame(maxWidth: .infinity)
 
-                        phaseSection(
-                            number: "4",
-                            title: "Mejor momento",
-                            subtitle: "Multi-objetivo: tiempo + $ + aire",
-                            icon: "clock.badge.checkmark",
-                            color: .indigo
-                        ) {
-                            PhaseRow(
-                                icon: "chart.xyaxis.line",
-                                title: "Analizar 12 ventanas",
-                                subtitle: "Chart 6h · hora óptima sugerida",
-                                theme: theme,
-                                action: { showingOptimalDeparture = true }
+                            OptimalDeparturePreviewCard(
+                                onExpand: { showingOptimalDeparture = true }
                             )
+                            .frame(maxWidth: .infinity)
                         }
 
                         phaseSection(
@@ -190,8 +144,8 @@ struct GasolinaMeterHubView: View {
                 NoVehicleHintView()
             }
         }
-        .sheet(isPresented: $showingStations) {
-            StationsNearbyTestView(origin: demoOrigin)
+        .fullScreenCover(isPresented: $showingStations) {
+            FuelStationsMapView(origin: demoOrigin)
                 .environment(\.weatherTheme, theme)
         }
     }

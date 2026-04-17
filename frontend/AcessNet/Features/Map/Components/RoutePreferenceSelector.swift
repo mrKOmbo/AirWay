@@ -46,9 +46,18 @@ struct RoutePreferenceSelector: View {
             // Footer con botones
             footerView
         }
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(20, corners: [.topLeft, .topRight])
-        .shadow(radius: 20)
+        .background(
+            ZStack {
+                Color(hex: "#0A0F1A").ignoresSafeArea()
+                LinearGradient(
+                    colors: [Color(hex: "#1A2438").opacity(0.6), Color.clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.6), radius: 20, y: -5)
         .transition(.move(edge: .bottom))
     }
 
@@ -56,39 +65,60 @@ struct RoutePreferenceSelector: View {
 
     private var headerView: some View {
         VStack(spacing: 8) {
-            // Handle bar
             Capsule()
-                .fill(Color.gray.opacity(0.3))
+                .fill(.white.opacity(0.25))
                 .frame(width: 40, height: 5)
-                .padding(.top, 8)
+                .padding(.top, 10)
 
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Route Preferences")
-                        .font(.title2.bold())
+            HStack(alignment: .center, spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "#A78BFA"), Color(hex: "#7C3AED")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
+                }
+                .shadow(color: Color(hex: "#7C3AED").opacity(0.5), radius: 6)
 
-                    Text("Customize your optimal route")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Preferencias de ruta")
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundColor(.white)
+                    Text("Personaliza tu ruta óptima")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.55))
                 }
 
                 Spacer()
 
-                Button(action: { isPresented = false }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.gray)
+                Button(action: {
+                    HapticFeedback.light()
+                    isPresented = false
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.white.opacity(0.75))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(.white.opacity(0.1)))
+                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
     }
 
     private var presetsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Presets")
-                .font(.headline)
-                .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("PRESETS RÁPIDOS")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -121,31 +151,28 @@ struct RoutePreferenceSelector: View {
     }
 
     private var slidersSection: some View {
-        VStack(spacing: 20) {
-            // Speed Priority
+        VStack(spacing: 16) {
             PreferenceSlider(
-                title: "Speed Priority",
+                title: "Velocidad",
                 icon: "bolt.fill",
                 value: $preferences.speedWeight,
-                color: .purple,
+                color: Color(hex: "#A78BFA"),
                 description: speedDescription
             )
 
-            // Safety Priority
             PreferenceSlider(
-                title: "Safety Priority",
+                title: "Seguridad",
                 icon: "shield.fill",
                 value: $preferences.safetyWeight,
-                color: .green,
+                color: Color(hex: "#34D399"),
                 description: safetyDescription
             )
 
-            // Air Quality Priority
             PreferenceSlider(
-                title: "Clean Air Priority",
+                title: "Aire limpio",
                 icon: "leaf.fill",
                 value: $preferences.airQualityWeight,
-                color: .teal,
+                color: Color(hex: "#22D3EE"),
                 description: airDescription
             )
         }
@@ -155,30 +182,32 @@ struct RoutePreferenceSelector: View {
     }
 
     private var advancedOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Advanced Options")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("OPCIONES AVANZADAS")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 ToggleOption(
-                    title: "Avoid Highways",
+                    title: "Evitar autopistas",
                     icon: "road.lanes",
                     isOn: $preferences.avoidHighways,
-                    description: "Take local roads when possible"
+                    description: "Usa calles locales cuando sea posible"
                 )
 
                 ToggleOption(
-                    title: "Consider Traffic Patterns",
+                    title: "Patrones de tráfico",
                     icon: "clock.arrow.circlepath",
                     isOn: $preferences.considerTrafficPatterns,
-                    description: "Use historical traffic data"
+                    description: "Usa datos históricos de tráfico"
                 )
 
                 ToggleOption(
-                    title: "Predictive Analysis",
+                    title: "Análisis predictivo",
                     icon: "chart.line.uptrend.xyaxis",
                     isOn: $preferences.predictiveAnalysis,
-                    description: "Anticipate future conditions"
+                    description: "Anticipa condiciones futuras"
                 )
             }
         }
@@ -186,103 +215,137 @@ struct RoutePreferenceSelector: View {
     }
 
     private var impactPreviewSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Route Impact Preview")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("IMPACTO EN LA RUTA")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.55))
 
-            HStack(spacing: 16) {
+            HStack(spacing: 10) {
                 ImpactIndicator(
-                    label: "Time",
+                    label: "Tiempo",
                     impact: preferences.timeImpact,
                     icon: "clock.fill",
-                    color: .blue
+                    color: Color(hex: "#60A5FA")
                 )
 
                 ImpactIndicator(
-                    label: "Safety",
+                    label: "Seguridad",
                     impact: preferences.safetyImpact,
                     icon: "shield.fill",
-                    color: .green
+                    color: Color(hex: "#34D399")
                 )
 
                 ImpactIndicator(
-                    label: "Health",
+                    label: "Salud",
                     impact: preferences.healthImpact,
                     icon: "heart.fill",
-                    color: .red
+                    color: Color(hex: "#F472B6")
                 )
             }
 
             Text(preferences.impactSummary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white.opacity(0.65))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
-        .padding()
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.05))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
         )
     }
 
     private var footerView: some View {
-        HStack(spacing: 12) {
-            // Advanced toggle
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    showingAdvanced.toggle()
-                }
-            }) {
-                Label(
-                    showingAdvanced ? "Hide Advanced" : "Show Advanced",
-                    systemImage: showingAdvanced ? "chevron.up" : "chevron.down"
-                )
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.blue)
-            }
-
+        HStack(spacing: 8) {
+            advancedToggleButton
             Spacer()
-
-            // Reset button
-            Button(action: {
-                preferences.reset()
-                selectedPreset = nil
-            }) {
-                Text("Reset")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(Color.red.opacity(0.1))
-                    )
-            }
-
-            // Apply button
-            Button(action: {
-                onApply()
-                isPresented = false
-            }) {
-                Text("Apply")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue, .blue.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-            }
+            resetButton
+            applyButton
         }
-        .padding()
-        .background(.ultraThinMaterial)
+        .padding(14)
+        .background(
+            Rectangle().fill(.black.opacity(0.5))
+                .overlay(Rectangle().fill(.ultraThinMaterial))
+        )
+        .overlay(alignment: .top) {
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+        }
+    }
+
+    private var advancedToggleButton: some View {
+        Button(action: {
+            HapticFeedback.light()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                showingAdvanced.toggle()
+            }
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: showingAdvanced ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .heavy))
+                Text(showingAdvanced ? "Ocultar" : "Avanzado")
+                    .font(.system(size: 11, weight: .heavy))
+            }
+            .foregroundColor(Color(hex: "#A78BFA"))
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(Capsule().fill(Color(hex: "#A78BFA").opacity(0.15)))
+            .overlay(Capsule().stroke(Color(hex: "#A78BFA").opacity(0.35), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var resetButton: some View {
+        Button(action: {
+            HapticFeedback.warning()
+            preferences.reset()
+            selectedPreset = nil
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 10, weight: .heavy))
+                Text("Reset")
+                    .font(.system(size: 12, weight: .heavy))
+            }
+            .foregroundColor(Color(hex: "#F87171"))
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Capsule().fill(Color(hex: "#F87171").opacity(0.15)))
+            .overlay(Capsule().stroke(Color(hex: "#F87171").opacity(0.35), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var applyButton: some View {
+        Button(action: {
+            HapticFeedback.confirm()
+            onApply()
+            isPresented = false
+        }) {
+            HStack(spacing: 5) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .heavy))
+                Text("Aplicar")
+                    .font(.system(size: 13, weight: .heavy))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 22).padding(.vertical, 10)
+            .background(applyButtonBackground)
+            .shadow(color: Color(hex: "#3B82F6").opacity(0.45), radius: 8, y: 3)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var applyButtonBackground: some View {
+        Capsule().fill(
+            LinearGradient(
+                colors: [Color(hex: "#3B82F6"), Color(hex: "#1E40AF")],
+                startPoint: .leading, endPoint: .trailing
+            )
+        )
     }
 
     // MARK: - Helper Methods
@@ -296,28 +359,28 @@ struct RoutePreferenceSelector: View {
 
     private var speedDescription: String {
         switch preferences.speedWeight {
-        case 0..<0.3: return "Prioritize other factors over speed"
-        case 0.3..<0.6: return "Moderate speed consideration"
-        case 0.6..<0.8: return "Prefer faster routes"
-        default: return "Fastest route possible"
+        case 0..<0.3:   return "Prioriza otros factores antes que velocidad"
+        case 0.3..<0.6: return "Velocidad moderada"
+        case 0.6..<0.8: return "Prefiere rutas más rápidas"
+        default:        return "Ruta más rápida posible"
         }
     }
 
     private var safetyDescription: String {
         switch preferences.safetyWeight {
-        case 0..<0.3: return "Accept some risk for efficiency"
-        case 0.3..<0.6: return "Balance safety with other factors"
-        case 0.6..<0.8: return "Prioritize avoiding incidents"
-        default: return "Maximum safety, avoid all hazards"
+        case 0..<0.3:   return "Aceptas riesgo por eficiencia"
+        case 0.3..<0.6: return "Seguridad balanceada"
+        case 0.6..<0.8: return "Evita incidentes activamente"
+        default:        return "Máxima seguridad, evita peligros"
         }
     }
 
     private var airDescription: String {
         switch preferences.airQualityWeight {
-        case 0..<0.3: return "Air quality is less important"
-        case 0.3..<0.6: return "Consider air quality moderately"
-        case 0.6..<0.8: return "Prefer cleaner air routes"
-        default: return "Cleanest air possible"
+        case 0..<0.3:   return "La calidad del aire no es prioridad"
+        case 0.3..<0.6: return "Considera calidad moderadamente"
+        case 0.6..<0.8: return "Prefiere aire limpio"
+        default:        return "Máxima calidad de aire"
         }
     }
 }
@@ -335,20 +398,28 @@ struct PreferenceSlider: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(color)
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.2))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(color)
+                }
 
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white)
 
                 Spacer()
 
                 Text("\(Int(value * 100))%")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(color)
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(color)
                     .monospacedDigit()
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(color.opacity(0.15)))
             }
 
             CustomSlider(
@@ -358,10 +429,18 @@ struct PreferenceSlider: View {
             )
 
             Text(description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .opacity(isEditing ? 1 : 0.7)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white.opacity(isEditing ? 0.75 : 0.55))
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(color.opacity(isEditing ? 0.35 : 0.12), lineWidth: 1)
+        )
     }
 }
 
@@ -375,44 +454,37 @@ struct CustomSlider: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // Track
                 Capsule()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 8)
+                    .fill(.white.opacity(0.08))
+                    .frame(height: 6)
 
-                // Progress
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [color, color.opacity(0.6)],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                            colors: [color, color.opacity(0.55)],
+                            startPoint: .leading, endPoint: .trailing
                         )
                     )
-                    .frame(width: geometry.size.width * CGFloat(value), height: 8)
+                    .frame(width: geometry.size.width * CGFloat(value), height: 6)
+                    .shadow(color: color.opacity(0.5), radius: 4)
 
-                // Thumb
                 Circle()
                     .fill(.white)
-                    .frame(width: 24, height: 24)
-                    .shadow(color: color.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .frame(width: 22, height: 22)
+                    .shadow(color: color.opacity(0.55), radius: 5, y: 1)
                     .overlay(
-                        Circle()
-                            .stroke(color, lineWidth: 3)
+                        Circle().stroke(color, lineWidth: 3)
                     )
-                    .scaleEffect(isEditing ? 1.2 : 1.0)
-                    .offset(x: geometry.size.width * CGFloat(value) - 12)
+                    .scaleEffect(isEditing ? 1.22 : 1.0)
+                    .offset(x: geometry.size.width * CGFloat(value) - 11)
                     .gesture(
                         DragGesture()
                             .onChanged { gesture in
                                 isEditing = true
                                 let newValue = gesture.location.x / geometry.size.width
                                 value = min(max(0, Double(newValue)), 1)
-
-                                // Haptic feedback
                                 if Int(value * 10) != Int(newValue * 10) {
-                                    let impact = UIImpactFeedbackGenerator(style: .light)
-                                    impact.impactOccurred()
+                                    HapticFeedback.selection()
                                 }
                             }
                             .onEnded { _ in
@@ -423,7 +495,7 @@ struct CustomSlider: View {
                     )
             }
         }
-        .frame(height: 24)
+        .frame(height: 22)
     }
 }
 
@@ -436,27 +508,42 @@ struct ToggleOption: View {
     let description: String
 
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.blue)
-                .frame(width: 30)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.weight(.medium))
-
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#3B82F6").opacity(isOn ? 0.25 : 0.1))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(isOn ? Color(hex: "#3B82F6") : .white.opacity(0.6))
             }
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(.white)
+                Text(description)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 4)
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
-                .tint(.blue)
+                .tint(Color(hex: "#3B82F6"))
+                .scaleEffect(0.85)
         }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -468,29 +555,37 @@ struct PresetButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
+        Button(action: {
+            HapticFeedback.light()
+            action()
+        }) {
+            VStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(
-                            LinearGradient(
-                                colors: isSelected ? type.colors : [Color.gray.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            isSelected
+                                ? LinearGradient(colors: type.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                                : LinearGradient(colors: [.white.opacity(0.1), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom)
                         )
-                        .frame(width: 48, height: 48)
+                        .frame(width: 50, height: 50)
+                    Circle()
+                        .stroke(isSelected ? .white.opacity(0.25) : .white.opacity(0.1), lineWidth: 1)
+                        .frame(width: 50, height: 50)
 
                     Image(systemName: type.icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(isSelected ? .white : .primary)
+                        .font(.system(size: 19, weight: .heavy))
+                        .foregroundColor(isSelected ? .white : .white.opacity(0.7))
                 }
+                .shadow(
+                    color: isSelected ? type.colors.first?.opacity(0.5) ?? .clear : .clear,
+                    radius: 7
+                )
 
                 Text(type.label)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(isSelected ? type.colors[0] : .secondary)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(isSelected ? type.colors.first ?? .white : .white.opacity(0.55))
             }
-            .scaleEffect(isSelected ? 1.05 : 1.0)
+            .scaleEffect(isSelected ? 1.06 : 1.0)
         }
         .buttonStyle(.plain)
     }
@@ -505,24 +600,29 @@ struct ImpactIndicator: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(impact.color)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundColor(impact.color)
 
-            Text(label)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .heavy))
+                .tracking(0.6)
+                .foregroundColor(.white.opacity(0.55))
 
             Text(impact.label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(impact.color)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(impact.color)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(impact.color.opacity(0.1))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(impact.color.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(impact.color.opacity(0.3), lineWidth: 0.8)
         )
     }
 }
