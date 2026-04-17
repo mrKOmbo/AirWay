@@ -46,13 +46,76 @@ struct AQIHomeView: View {
     @State private var weeklyForecast: [DailyWeatherPoint] = []
     @State private var showConditionsDetail: Bool = false
 
+    // Editable layout
+    @State private var sectionOrder: [HomeSection] = HomeSection.allCases
+    @State private var hiddenSections: Set<HomeSection> = []
+    @State private var isEditMode: Bool = false
+    @State private var sectionFrames: [HomeSection: CGRect] = [:]
+    @State private var draggingSection: HomeSection? = nil
+    @State private var dragStartY: CGFloat = 0
+    @AppStorage("homeSectionOrder_v1") private var sectionOrderRaw: String = ""
+    @AppStorage("homeHiddenSections_v1") private var hiddenSectionsRaw: String = ""
+
     enum ForecastTab {
         case hourly
         case daily
     }
 
+    enum HomeSection: String, CaseIterable, Identifiable, Codable {
+        case aqiCard
+        case insightBanner
+        case environmentCard
+        case bentoGrid
+        case hourly
+        case todaysExposure
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .aqiCard:         return "Air Quality Index"
+            case .insightBanner:   return "Insights"
+            case .environmentCard: return "Environment"
+            case .bentoGrid:       return "Exposure & Forecast"
+            case .hourly:          return "Hourly / Weekly"
+            case .todaysExposure:  return "Today's Exposure"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .aqiCard:         return "aqi.medium"
+            case .insightBanner:   return "sparkles"
+            case .environmentCard: return "leaf.fill"
+            case .bentoGrid:       return "square.grid.2x2.fill"
+            case .hourly:          return "clock.fill"
+            case .todaysExposure:  return "chart.pie.fill"
+            }
+        }
+    }
+
     init(showBusinessPulse: Binding<Bool>) {
         self._showBusinessPulse = showBusinessPulse
+
+        // Restore persisted order
+        let storedOrder = UserDefaults.standard.string(forKey: "homeSectionOrder_v1") ?? ""
+        let parsed = storedOrder.split(separator: ",").compactMap { HomeSection(rawValue: String($0)) }
+        let missing = HomeSection.allCases.filter { !parsed.contains($0) }
+        _sectionOrder = State(initialValue: parsed + missing)
+
+        // Restore hidden
+        let storedHidden = UserDefaults.standard.string(forKey: "homeHiddenSections_v1") ?? ""
+        let hiddenSet = Set(storedHidden.split(separator: ",").compactMap { HomeSection(rawValue: String($0)) })
+        _hiddenSections = State(initialValue: hiddenSet)
+    }
+
+    private var visibleSections: [HomeSection] {
+        sectionOrder.filter { !hiddenSections.contains($0) }
+    }
+
+    private func persistLayout() {
+        sectionOrderRaw = sectionOrder.map(\.rawValue).joined(separator: ",")
+        hiddenSectionsRaw = hiddenSections.map(\.rawValue).joined(separator: ",")
     }
 
     var body: some View {
@@ -64,14 +127,8 @@ struct AQIHomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Header
+                        // Header (fixed at top — not reorderable)
                         headerView
-
-                        // AQI Main Card
-                        aqiMainCard
-
-                        // AI Insight banner (collapsible, below AQI)
-                        insightBanner
 
                         // Error message
                         if let error = dataLoadError, !hasLoadedBackend {
@@ -81,20 +138,46 @@ struct AQIHomeView: View {
                                 .padding(.horizontal)
                         }
 
-                        // Environment Card (Pollutants + Weather)
-                        environmentCard
+                        // Reorderable sections
+                        ForEach(visibleSections) { section in
+                            sectionView(for: section)
+                                .allowsHitTesting(!isEditMode)
+                                .overlay(alignment: .topTrailing) {
+                                    if isEditMode { editHideButton(for: section) }
+                                }
+                                .overlay(alignment: .topLeading) {
+                                    if isEditMode { editDragHandle(for: section) }
+                                }
+                                .modifier(JiggleModifier(active: isEditMode, seed: section.rawValue))
+                                .padding(.horizontal, isEditMode ? 6 : 0)
+                                .padding(.vertical, isEditMode ? 4 : 0)
+                                .background(editModeBackground(isActive: isEditMode))
+                                .scaleEffect(draggingSection == section ? 1.03 : 1.0)
+                                .shadow(color: .black.opacity(draggingSection == section ? 0.4 : 0), radius: 12, y: 4)
+                                .zIndex(draggingSection == section ? 10 : 0)
+                                .background(
+                                    GeometryReader { geo in
+                                        Color.clear.preference(
+                                            key: SectionFramePreferenceKey.self,
+                                            value: [section: geo.frame(in: .named("homeScroll"))]
+                                        )
+                                    }
+                                )
+                        }
 
-                        // Bento Grid: Exposure + Forecast + AR + AI
-                        bentoGrid
-
-                        // Hourly / Weekly Forecast
-                        hourlySection
-
-                        // Today's Exposure Detail
-                        todaysExposureView
+                        if isEditMode && !hiddenSections.isEmpty {
+                            hiddenSectionsPanel
+                        }
                     }
                     .padding(.top, 16)
                     .avoidTabBar(extraPadding: 20)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.85), value: sectionOrder)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.85), value: hiddenSections)
+                    .animation(.easeInOut(duration: 0.25), value: isEditMode)
+                }
+                .coordinateSpace(name: "homeScroll")
+                .onPreferenceChange(SectionFramePreferenceKey.self) { frames in
+                    sectionFrames = frames
                 }
 
                 if let info = pressedPollutant {
@@ -153,6 +236,156 @@ struct AQIHomeView: View {
         }
         .onChange(of: airQualityData.aqi) { _ in
             triggerAnimations()
+        }
+    }
+
+    // MARK: - Section Builder (reorderable)
+
+    @ViewBuilder
+    private func sectionView(for section: HomeSection) -> some View {
+        switch section {
+        case .aqiCard:         aqiMainCard
+        case .insightBanner:   insightBanner
+        case .environmentCard: environmentCard
+        case .bentoGrid:       bentoGrid
+        case .hourly:          hourlySection
+        case .todaysExposure:  todaysExposureView
+        }
+    }
+
+    // MARK: - Edit Mode Controls
+
+    private func editHideButton(for section: HomeSection) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                hiddenSections.insert(section)
+            }
+            persistLayout()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            Image(systemName: "minus")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.red))
+                .shadow(color: .black.opacity(0.3), radius: 4)
+        }
+        .offset(x: -2, y: -8)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    private func editDragHandle(for section: HomeSection) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 11, weight: .heavy))
+            .foregroundColor(.white.opacity(0.9))
+            .frame(width: 28, height: 24)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .offset(x: 8, y: -8)
+            .contentShape(Rectangle())
+            .gesture(reorderGesture(for: section))
+            .transition(.scale.combined(with: .opacity))
+    }
+
+    private func editModeBackground(isActive: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .fill(Color.white.opacity(isActive ? 0.03 : 0))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(
+                        isActive ? Color.white.opacity(0.1) : .clear,
+                        style: StrokeStyle(lineWidth: 1, dash: [5, 4])
+                    )
+            )
+    }
+
+    private var hiddenSectionsPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "eye.slash.fill")
+                    .font(.system(size: 10, weight: .bold))
+                Text("HIDDEN SECTIONS")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(1.2)
+            }
+            .foregroundColor(.white.opacity(0.55))
+
+            VStack(spacing: 8) {
+                ForEach(HomeSection.allCases.filter { hiddenSections.contains($0) }) { section in
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            hiddenSections.remove(section)
+                        }
+                        persistLayout()
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: section.icon)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(.white.opacity(0.08)))
+
+                            Text(section.displayName)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+
+                            Spacer()
+
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.green)
+                        }
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(.white.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+    }
+
+    // MARK: - Reorder Drag Gesture
+
+    private func reorderGesture(for section: HomeSection) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .named("homeScroll"))
+            .onChanged { value in
+                if draggingSection == nil {
+                    draggingSection = section
+                    dragStartY = sectionFrames[section]?.midY ?? value.startLocation.y
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+                let fingerY = dragStartY + value.translation.height
+                attemptReorder(currentlyDragging: section, fingerY: fingerY)
+            }
+            .onEnded { _ in
+                draggingSection = nil
+                persistLayout()
+            }
+    }
+
+    private func attemptReorder(currentlyDragging section: HomeSection, fingerY: CGFloat) {
+        // Find the section whose vertical range contains fingerY
+        let others = visibleSections.filter { $0 != section }
+        for other in others {
+            guard let frame = sectionFrames[other] else { continue }
+            if fingerY >= frame.minY && fingerY <= frame.maxY,
+               let from = sectionOrder.firstIndex(of: section),
+               let to = sectionOrder.firstIndex(of: other) {
+                let dest = to > from ? to + 1 : to
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    sectionOrder.move(fromOffsets: IndexSet(integer: from), toOffset: dest)
+                }
+                return
+            }
         }
     }
 
@@ -411,6 +644,19 @@ struct AQIHomeView: View {
             Spacer()
 
             HStack(spacing: 16) {
+                // Edit layout toggle
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        isEditMode.toggle()
+                    }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    if !isEditMode { persistLayout() }
+                } label: {
+                    Image(systemName: isEditMode ? "checkmark.circle.fill" : "slider.horizontal.3")
+                        .font(.title3)
+                        .foregroundColor(isEditMode ? .green : .white.opacity(0.7))
+                }
+
                 // ContingencyCast — pronóstico probabilístico 48-72h
                 Button(action: { showContingencyCast = true }) {
                     ZStack {
@@ -2363,6 +2609,49 @@ struct ForecastDetailOverlay: View {
         case 201..<301: return "V.Unhealthy"
         default:        return "Hazardous"
         }
+    }
+}
+
+// MARK: - Reorderable Layout Support
+
+struct SectionFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [AQIHomeView.HomeSection: CGRect] = [:]
+    static func reduce(value: inout [AQIHomeView.HomeSection: CGRect],
+                       nextValue: () -> [AQIHomeView.HomeSection: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
+/// Subtle iOS-widget-like jiggle. Stagger via seed so sections desync.
+struct JiggleModifier: ViewModifier {
+    let active: Bool
+    let seed: String
+
+    @State private var jiggle: Bool = false
+
+    private var phase: Double {
+        Double(abs(seed.hashValue) % 100) / 100.0
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(.degrees(active ? (jiggle ? 0.6 : -0.6) : 0))
+            .animation(
+                active
+                    ? .easeInOut(duration: 0.16).repeatForever(autoreverses: true).delay(phase * 0.08)
+                    : .default,
+                value: jiggle
+            )
+            .onChange(of: active) { newValue in
+                if newValue {
+                    jiggle = true
+                } else {
+                    jiggle = false
+                }
+            }
+            .onAppear {
+                if active { jiggle = true }
+            }
     }
 }
 
