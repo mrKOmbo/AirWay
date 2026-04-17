@@ -183,88 +183,173 @@ class AirQualityAggregator:
 
     # ── IDW ──────────────────────────────────────────────────
 
+    # Peso relativo del modelo atmosférico (CAMS) vs estaciones tierra.
+    # Estudios de validación CAMS vs red RAMA muestran que el modelo tiene sesgo
+    # sistemático en México (tiende a sobre-estimar O3 y PM2.5). Se le da 20%
+    # cuando hay buena cobertura tierra, 40% si pocas estaciones, 100% si ninguna.
+    MODEL_WEIGHT_MANY_STATIONS = 0.20   # >= 3 estaciones a <15km
+    MODEL_WEIGHT_FEW_STATIONS = 0.40    # 1-2 estaciones a <15km
+    MODEL_WEIGHT_NO_STATIONS = 1.00     # sin estaciones cercanas
+    STATION_NEAR_RADIUS_M = 15000       # 15 km
+
     def _idw_interpolate(self, stations: list, target_lat: float, target_lon: float, power: float = 2) -> int:
         """
-        Inverse Distance Weighting con corrección altitudinal.
+        Agrega AQI combinando estaciones tierra y modelo atmosférico (CAMS).
 
-        w_i = (1 / dist_i^p) × altitude_factor × source_factor
+        Arquitectura en 2 pasos para evitar que el modelo domine por su
+        distance_m=0 artificial:
 
-        - altitude_factor: reduce peso de estaciones en altitud muy diferente
-        - source_factor: modelos atmosféricos pesan 0.3x vs estaciones reales
+            1. Calcula IDW sólo entre estaciones tierra (outlier-aware).
+            2. Promedia el AQI reportado por modelos.
+            3. Combina ambos con peso adaptativo según cuántas estaciones
+               cercanas hay (ver MODEL_WEIGHT_*).
+
+        Si sólo hay modelos → se usa el promedio de modelos.
+        Si sólo hay estaciones → se usa IDW puro de estaciones.
         """
+        station_aqi = self._idw_stations_only(stations, target_lat, target_lon, power)
+        model_aqi = self._avg_models(stations)
+        model_weight = self._model_weight(stations)
+
+        if station_aqi is None and model_aqi is None:
+            return 0
+        if station_aqi is None:
+            logger.info(f"AQI combinado: sólo modelo={model_aqi:.0f}")
+            return int(round(model_aqi))
+        if model_aqi is None:
+            logger.info(f"AQI combinado: sólo estaciones={station_aqi:.0f}")
+            return int(round(station_aqi))
+
+        combined = (1.0 - model_weight) * station_aqi + model_weight * model_aqi
+        logger.info(
+            f"AQI combinado: estaciones={station_aqi:.0f} · "
+            f"modelo={model_aqi:.0f} · peso_modelo={model_weight:.2f} → {combined:.0f}"
+        )
+        return int(round(combined))
+
+    # ---------- helpers nuevos ----------
+
+    def _idw_stations_only(
+        self,
+        stations: list,
+        target_lat: float,
+        target_lon: float,
+        power: float,
+    ) -> float | None:
+        """IDW sólo sobre estaciones tierra (ignora modelos)."""
         numerator = 0.0
         denominator = 0.0
-
         for s in stations:
+            if s.get("source_type") == "model":
+                continue
             aqi = s.get("aqi", 0)
             if aqi <= 0:
                 continue
 
             dist = s.get("distance_m", 0)
             if dist == 0:
-                dist = _haversine_m(target_lat, target_lon, s.get("lat", 0), s.get("lon", 0))
+                dist = _haversine_m(
+                    target_lat, target_lon, s.get("lat", 0), s.get("lon", 0)
+                )
             dist = max(dist, 100)
 
             w = 1.0 / (dist ** power)
-
-            # Factor de altitud (Fase 2)
             w *= s.get("altitude_factor", 1.0)
-
-            # Factor eólico: estaciones upwind pesan más
             w *= s.get("wind_factor", 1.0)
-
-            # Factor de outlier (Fase 3) — no eliminar, solo reducir
             if s.get("is_outlier"):
                 w *= 0.2
-
-            # Factor de tipo de fuente
-            if s.get("source_type") == "model":
-                w *= 0.3
 
             numerator += aqi * w
             denominator += w
 
         if denominator == 0:
-            return 0
+            return None
+        return numerator / denominator
 
-        return round(numerator / denominator)
+    def _avg_models(self, stations: list) -> float | None:
+        """Promedio simple de modelos atmosféricos (actualmente sólo CAMS)."""
+        models = [
+            s.get("aqi", 0)
+            for s in stations
+            if s.get("source_type") == "model" and s.get("aqi", 0) > 0
+        ]
+        if not models:
+            return None
+        return sum(models) / len(models)
+
+    def _model_weight(self, stations: list) -> float:
+        """
+        Peso adaptativo del modelo según cuántas estaciones tierra cercanas hay.
+
+        Más estaciones tierra → menor confianza relativa al modelo.
+        """
+        nearby = sum(
+            1
+            for s in stations
+            if s.get("source_type") != "model"
+            and s.get("aqi", 0) > 0
+            and s.get("distance_m", 1e9) <= self.STATION_NEAR_RADIUS_M
+        )
+        if nearby >= 3:
+            return self.MODEL_WEIGHT_MANY_STATIONS
+        if nearby >= 1:
+            return self.MODEL_WEIGHT_FEW_STATIONS
+        return self.MODEL_WEIGHT_NO_STATIONS
 
     def _interpolate_pollutants(self, stations: list, lat: float, lon: float) -> dict:
         """IDW con corrección altitudinal para cada contaminante."""
         pollutant_keys = ["pm25", "pm10", "no2", "o3", "so2", "co"]
         result = {}
+        model_weight = self._model_weight(stations)
 
         for key in pollutant_keys:
-            numerator = 0.0
-            denominator = 0.0
-            count = 0
-
+            # Paso 1: IDW sólo estaciones tierra
+            s_num = 0.0
+            s_den = 0.0
+            s_count = 0
             for s in stations:
+                if s.get("source_type") == "model":
+                    continue
                 val = s.get(key)
                 if val is None:
                     continue
-
                 dist = max(s.get("distance_m", 100), 100)
                 w = 1.0 / (dist ** 2)
                 w *= s.get("altitude_factor", 1.0)
                 w *= s.get("wind_factor", 1.0)
                 if s.get("is_outlier"):
                     w *= 0.2
-                if s.get("source_type") == "model":
-                    w *= 0.3
+                s_num += val * w
+                s_den += w
+                s_count += 1
 
-                numerator += val * w
-                denominator += w
-                count += 1
+            station_val = (s_num / s_den) if s_den > 0 else None
 
-            if denominator > 0:
-                result[key] = {
-                    "value": round(numerator / denominator, 2),
-                    "unit": "µg/m³",
-                    "sources_reporting": count,
-                }
+            # Paso 2: promedio de modelos
+            model_vals = [
+                s.get(key)
+                for s in stations
+                if s.get("source_type") == "model" and s.get(key) is not None
+            ]
+            model_val = (sum(model_vals) / len(model_vals)) if model_vals else None
+
+            # Paso 3: combinar con peso adaptativo
+            total_count = s_count + len(model_vals)
+            if station_val is not None and model_val is not None:
+                final = (1.0 - model_weight) * station_val + model_weight * model_val
+            elif station_val is not None:
+                final = station_val
+            elif model_val is not None:
+                final = model_val
             else:
                 result[key] = None
+                continue
+
+            result[key] = {
+                "value": round(final, 2),
+                "unit": "µg/m³",
+                "sources_reporting": total_count,
+            }
 
         return result
 
