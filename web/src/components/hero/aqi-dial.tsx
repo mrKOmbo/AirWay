@@ -138,12 +138,9 @@ export function AQIDial({ aqi, size = 280 }: AQIDialProps) {
         <span className="aw-eyebrow">AQI Live</span>
         <div
           ref={numberRef}
-          className="aw-display aw-number text-[84px] leading-none"
+          className="aw-display aw-number text-[84px] leading-none text-aw-primary tracking-tight"
           style={{
-            backgroundImage: meta.gradient,
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
+            textShadow: `0 2px 14px ${meta.color}33`,
           }}
         >
           0
