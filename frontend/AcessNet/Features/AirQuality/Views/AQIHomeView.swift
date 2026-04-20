@@ -277,7 +277,7 @@ struct AQIHomeView: View {
     private func editDragHandle(for section: HomeSection) -> some View {
         Image(systemName: "line.3.horizontal")
             .font(.system(size: 11, weight: .heavy))
-            .foregroundColor(.white.opacity(0.9))
+            .foregroundColor(.white)
             .frame(width: 28, height: 24)
             .background(Capsule().fill(Color.black.opacity(0.55)))
             .offset(x: 8, y: -8)
@@ -288,11 +288,11 @@ struct AQIHomeView: View {
 
     private func editModeBackground(isActive: Bool) -> some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(Color.white.opacity(isActive ? 0.03 : 0))
+            .fill(theme.textTint.opacity(isActive ? 0.03 : 0))
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .strokeBorder(
-                        isActive ? Color.white.opacity(0.1) : .clear,
+                        isActive ? theme.textTint.opacity(0.18) : .clear,
                         style: StrokeStyle(lineWidth: 1, dash: [5, 4])
                     )
             )
@@ -307,7 +307,7 @@ struct AQIHomeView: View {
                     .font(.system(size: 11, weight: .heavy))
                     .tracking(1.2)
             }
-            .foregroundColor(.white.opacity(0.55))
+            .foregroundColor(theme.textTint.opacity(0.55))
 
             VStack(spacing: 8) {
                 ForEach(HomeSection.allCases.filter { hiddenSections.contains($0) }) { section in
@@ -321,13 +321,13 @@ struct AQIHomeView: View {
                         HStack(spacing: 10) {
                             Image(systemName: section.icon)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(theme.textTint.opacity(0.7))
                                 .frame(width: 28, height: 28)
                                 .background(Circle().fill(.white.opacity(0.08)))
 
                             Text(section.displayName)
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.85))
+                                .foregroundColor(theme.textTint.opacity(0.85))
 
                             Spacer()
 
@@ -608,35 +608,35 @@ struct AQIHomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "location.fill")
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(theme.textTint.opacity(0.7))
                         .font(.caption)
 
                     Text(airQualityData.location)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
 
                 Text(airQualityData.city)
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(theme.textTint.opacity(0.6))
 
                 HStack(spacing: 12) {
                     HStack(spacing: 4) {
                         Image(systemName: "sensor.tag.radiowaves.forward")
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                         Text("Monitor: \(String(format: "%.1f", airQualityData.distance)) km")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                     }
 
                     HStack(spacing: 4) {
                         Image(systemName: "globe.americas")
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                         Text("NASA TEMPO")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                     }
                 }
             }
@@ -669,7 +669,7 @@ struct AQIHomeView: View {
                             .frame(width: 36, height: 36)
                         Image(systemName: "wind.circle.fill")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                     }
                 }
 
@@ -694,7 +694,7 @@ struct AQIHomeView: View {
                 Button(action: { showSearchModal = true }) {
                     Image(systemName: "magnifyingglass")
                         .font(.title3)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(theme.textTint.opacity(0.7))
                 }
             }
         }
@@ -709,11 +709,11 @@ struct AQIHomeView: View {
                 VStack(spacing: 12) {
                     Text("Air Quality Index")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
 
                     Text("\(Int(animatedAQI))")
                         .font(.system(size: 80, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .shadow(color: Color(hex: airQualityData.qualityLevel.color).opacity(0.6), radius: 20)
 
                     // "Good" badge
@@ -783,7 +783,7 @@ struct AQIHomeView: View {
                         colors: [
                             Color(hex: "#4CAF50"),
                             Color(hex: "#8BC34A"),
-                            Color(hex: "#FFEB3B"),
+                            Color(hex: "#FBC02D"),
                             Color(hex: "#FF9800"),
                             Color(hex: "#F44336"),
                             Color(hex: "#9C27B0")
@@ -808,7 +808,7 @@ struct AQIHomeView: View {
                 Text("Good"); Spacer(); Text("Moderate"); Spacer(); Text("Poor"); Spacer(); Text("Hazardous")
             }
             .font(.system(size: 9))
-            .foregroundColor(.white.opacity(0.4))
+            .foregroundColor(theme.textTint.opacity(0.4))
         }
     }
 
@@ -944,11 +944,11 @@ struct AQIHomeView: View {
                                 .foregroundColor(.green)
                             Text("Go out")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(theme.textTint.opacity(0.5))
                         }
                         Text(formatTimeWindow(best.start, best.end))
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                         Text("AQI \(best.avg_aqi)")
                             .font(.system(size: 11))
                             .foregroundColor(.green)
@@ -966,11 +966,11 @@ struct AQIHomeView: View {
                                     .foregroundColor(.red.opacity(0.7))
                                 Text("Avoid")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                             }
                             Text(formatTimeWindow(worst.start, worst.end))
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                             Text("AQI \(worst.avg_aqi)")
                                 .font(.system(size: 11))
                                 .foregroundColor(.red)
@@ -1107,11 +1107,11 @@ struct AQIHomeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(notif.title)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
                     .lineLimit(1)
                 Text(notif.body)
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -1119,7 +1119,7 @@ struct AQIHomeView: View {
 
             Image(systemName: "chevron.down")
                 .font(.system(size: 8, weight: .bold))
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
                 .frame(width: 18, height: 18)
                 .background(Circle().fill(.white.opacity(0.08)))
 
@@ -1138,7 +1138,7 @@ struct AQIHomeView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 7, weight: .bold))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                     .frame(width: 18, height: 18)
                     .background(Circle().fill(.white.opacity(0.08)))
             }
@@ -1163,17 +1163,17 @@ struct AQIHomeView: View {
                     .frame(width: 44, height: 44)
                 Image(systemName: notif.icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: notif.color.opacity(0.5), radius: 8, y: 2)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(notif.title)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text(notif.body)
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
             }
@@ -1186,7 +1186,7 @@ struct AQIHomeView: View {
             } label: {
                 Image(systemName: "chevron.up")
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .frame(width: 22, height: 22)
                     .background(Circle().fill(.white.opacity(0.1)))
             }
@@ -1214,7 +1214,7 @@ struct AQIHomeView: View {
             ],
             scaleStops: [
                 ScaleStop(label: "Good", color: Color(hex: "#4CAF50"), limit: 12),
-                ScaleStop(label: "Moderate", color: Color(hex: "#FFEB3B"), limit: 35),
+                ScaleStop(label: "Moderate", color: Color(hex: "#FBC02D"), limit: 35),
                 ScaleStop(label: "USG", color: Color(hex: "#FF9800"), limit: 55),
                 ScaleStop(label: "Unhealthy", color: Color(hex: "#F44336"), limit: 150),
                 ScaleStop(label: "Hazardous", color: Color(hex: "#9C27B0"), limit: 250)
@@ -1242,7 +1242,7 @@ struct AQIHomeView: View {
             ],
             scaleStops: [
                 ScaleStop(label: "Good", color: Color(hex: "#4CAF50"), limit: 54),
-                ScaleStop(label: "Moderate", color: Color(hex: "#FFEB3B"), limit: 154),
+                ScaleStop(label: "Moderate", color: Color(hex: "#FBC02D"), limit: 154),
                 ScaleStop(label: "USG", color: Color(hex: "#FF9800"), limit: 254),
                 ScaleStop(label: "Unhealthy", color: Color(hex: "#F44336"), limit: 354),
                 ScaleStop(label: "Hazardous", color: Color(hex: "#9C27B0"), limit: 500)
@@ -1270,7 +1270,7 @@ struct AQIHomeView: View {
             ],
             scaleStops: [
                 ScaleStop(label: "Good", color: Color(hex: "#4CAF50"), limit: 54),
-                ScaleStop(label: "Moderate", color: Color(hex: "#FFEB3B"), limit: 70),
+                ScaleStop(label: "Moderate", color: Color(hex: "#FBC02D"), limit: 70),
                 ScaleStop(label: "USG", color: Color(hex: "#FF9800"), limit: 85),
                 ScaleStop(label: "Unhealthy", color: Color(hex: "#F44336"), limit: 105),
                 ScaleStop(label: "Hazardous", color: Color(hex: "#9C27B0"), limit: 200)
@@ -1283,7 +1283,7 @@ struct AQIHomeView: View {
     private func pm25Status(_ v: Int) -> (String, Color) {
         switch v {
         case 0..<13:   return ("Good", Color(hex: "#4CAF50"))
-        case 13..<36:  return ("Moderate", Color(hex: "#FFEB3B"))
+        case 13..<36:  return ("Moderate", Color(hex: "#FBC02D"))
         case 36..<56:  return ("Unhealthy for sensitive", Color(hex: "#FF9800"))
         case 56..<151: return ("Unhealthy", Color(hex: "#F44336"))
         default:       return ("Hazardous", Color(hex: "#9C27B0"))
@@ -1293,7 +1293,7 @@ struct AQIHomeView: View {
     private func pm10Status(_ v: Int) -> (String, Color) {
         switch v {
         case 0..<55:    return ("Good", Color(hex: "#4CAF50"))
-        case 55..<155:  return ("Moderate", Color(hex: "#FFEB3B"))
+        case 55..<155:  return ("Moderate", Color(hex: "#FBC02D"))
         case 155..<255: return ("Unhealthy for sensitive", Color(hex: "#FF9800"))
         case 255..<355: return ("Unhealthy", Color(hex: "#F44336"))
         default:        return ("Hazardous", Color(hex: "#9C27B0"))
@@ -1303,7 +1303,7 @@ struct AQIHomeView: View {
     private func o3Status(_ v: Int) -> (String, Color) {
         switch v {
         case 0..<55:    return ("Good", Color(hex: "#4CAF50"))
-        case 55..<71:   return ("Moderate", Color(hex: "#FFEB3B"))
+        case 55..<71:   return ("Moderate", Color(hex: "#FBC02D"))
         case 71..<86:   return ("Unhealthy for sensitive", Color(hex: "#FF9800"))
         case 86..<106:  return ("Unhealthy", Color(hex: "#F44336"))
         default:        return ("Hazardous", Color(hex: "#9C27B0"))
@@ -1313,7 +1313,7 @@ struct AQIHomeView: View {
     private func aqiLevelColor(_ aqi: Int) -> Color {
         switch aqi {
         case 0..<51: return Color(hex: "#4CAF50")    // Green — Good
-        case 51..<101: return Color(hex: "#FFEB3B")   // Yellow — Moderate
+        case 51..<101: return Color(hex: "#FBC02D")   // Yellow — Moderate
         case 101..<151: return Color(hex: "#FF9800")  // Orange — Unhealthy for sensitive
         case 151..<201: return Color(hex: "#F44336")  // Red — Unhealthy
         case 201..<301: return Color(hex: "#9C27B0")  // Purple — Very unhealthy
@@ -1464,7 +1464,7 @@ struct AQIHomeView: View {
             HStack {
                 Text("Hourly")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Spacer()
 
@@ -1526,7 +1526,7 @@ struct AQIHomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Today's exposure")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 16)
 
             NavigationLink(destination: DailyForecastView()) {
@@ -1633,6 +1633,7 @@ struct LiveIndicator: View {
 // MARK: - Mini Pollutant Gauge (compact, inside unified card)
 
 struct MiniPollutantGauge: View {
+    @Environment(\.weatherTheme) private var theme
     let value: Int
     let maxValue: Int
     let name: String
@@ -1661,13 +1662,13 @@ struct MiniPollutantGauge: View {
 
                 Text("\(displayValue)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .frame(width: 40, height: 40)
 
             Text(name)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
         .scaleEffect(isPressed ? 1.05 : 1.0)
@@ -1737,7 +1738,7 @@ enum WeatherStatKind {
         case .wind:        return Color(hex: "#4DD0E1")
         case .uv(let u):
             if u < 3       { return Color(hex: "#81C784") }
-            else if u < 6  { return Color(hex: "#FFD54F") }
+            else if u < 6  { return Color(hex: "#FFC107") }
             else if u < 8  { return Color(hex: "#FFB74D") }
             else if u < 11 { return Color(hex: "#EF5350") }
             else           { return Color(hex: "#AB47BC") }
@@ -1746,6 +1747,7 @@ enum WeatherStatKind {
 }
 
 struct AnimatedWeatherStat: View {
+    @Environment(\.weatherTheme) private var theme
     let kind: WeatherStatKind
 
     @State private var animate: Bool = false
@@ -1767,7 +1769,7 @@ struct AnimatedWeatherStat: View {
 
             Text(kind.label)
                 .font(.system(size: 8, weight: .medium))
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(theme.textTint.opacity(0.35))
         }
         .frame(maxWidth: .infinity)
         .onAppear { animate = true }
@@ -1877,6 +1879,7 @@ struct PollutantInfo: Equatable {
 }
 
 struct PollutantDetailOverlay: View {
+    @Environment(\.weatherTheme) private var theme
     let info: PollutantInfo
 
     @State private var animateRing: Bool = false
@@ -1904,7 +1907,7 @@ struct PollutantDetailOverlay: View {
                         )
                     Text(info.fullName)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                         .textCase(.uppercase)
                         .tracking(1.2)
                 }
@@ -1922,11 +1925,11 @@ struct PollutantDetailOverlay: View {
                     VStack(spacing: 0) {
                         Text("\(animateValue)")
                             .font(.system(size: 44, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .contentTransition(.numericText())
                         Text(info.unit)
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                     }
                 }
                 .frame(width: 140, height: 140)
@@ -1937,7 +1940,7 @@ struct PollutantDetailOverlay: View {
                     Circle().fill(info.statusColor).frame(width: 8, height: 8)
                     Text(info.status)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -1953,7 +1956,7 @@ struct PollutantDetailOverlay: View {
                 // Description
                 Text(info.description)
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -1971,7 +1974,7 @@ struct PollutantDetailOverlay: View {
                             }
                             Text(src.label)
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundColor(.white.opacity(0.55))
+                                .foregroundColor(theme.textTint.opacity(0.55))
                         }
                     }
                 }
@@ -1979,7 +1982,7 @@ struct PollutantDetailOverlay: View {
                 // Hint
                 Text("Release to close")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(theme.textTint.opacity(0.3))
                     .padding(.top, 4)
             }
             .padding(24)
@@ -2037,7 +2040,7 @@ struct PollutantDetailOverlay: View {
                 // Marker triangle
                 Image(systemName: "triangle.fill")
                     .font(.system(size: 9))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .rotationEffect(.degrees(180))
                     .offset(x: max(0, min(geo.size.width - 9, geo.size.width * info.scalePosition - 4.5)), y: -10)
                     .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
@@ -2050,6 +2053,7 @@ struct PollutantDetailOverlay: View {
 // MARK: - Forecast Sparkline Card (bento)
 
 struct ForecastSparklineCard: View {
+    @Environment(\.weatherTheme) private var theme
     struct Point: Identifiable {
         let id = UUID()
         let label: String
@@ -2088,10 +2092,10 @@ struct ForecastSparklineCard: View {
                 Text("FORECAST")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                 Text("· 6h")
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(theme.textTint.opacity(0.3))
                 Spacer()
                 if let t = trendMeta {
                     trendChip(label: t.label, color: t.color, icon: t.icon)
@@ -2114,7 +2118,7 @@ struct ForecastSparklineCard: View {
                     .shadow(color: currentColor.opacity(0.4), radius: 8, y: 2)
                 Image(systemName: "arrow.right")
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(theme.textTint.opacity(0.3))
                     .padding(.bottom, 4)
                 Text("\(projectedAQI)")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -2137,7 +2141,7 @@ struct ForecastSparklineCard: View {
                 holdDot
                 Text("Hold for detail")
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                 Spacer()
                 if let pk = peak, pk.id != points.first?.id {
                     HStack(spacing: 2) {
@@ -2146,7 +2150,7 @@ struct ForecastSparklineCard: View {
                             .foregroundColor(colorForAQI(pk.aqi))
                         Text("Peak \(pk.aqi) · \(pk.label)")
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(theme.textTint.opacity(0.45))
                     }
                 }
             }
@@ -2336,6 +2340,7 @@ struct ForecastDetailInfo: Equatable {
 }
 
 struct ForecastDetailOverlay: View {
+    @Environment(\.weatherTheme) private var theme
     let info: ForecastDetailInfo
 
     @State private var animate: Bool = false
@@ -2480,7 +2485,7 @@ struct ForecastDetailOverlay: View {
                 Text("ATMOSPHERIC FORECAST")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.8)
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                 Text("Next 6 Hours")
                     .font(.system(size: 26, weight: .heavy, design: .rounded))
                     .foregroundStyle(
@@ -2538,7 +2543,7 @@ struct ForecastDetailOverlay: View {
                     Text((delta >= 0 ? "+" : "") + "\(delta) vs now")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                 }
-                .foregroundColor(.white.opacity(0.72))
+                .foregroundColor(theme.textTint.opacity(0.72))
             }
             .padding(.bottom, 6)
             Spacer(minLength: 0)
@@ -2593,13 +2598,13 @@ struct ForecastDetailOverlay: View {
             Text(label.uppercased())
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .tracking(1.2)
-                .foregroundColor(.white.opacity(0.42))
+                .foregroundColor(theme.textTint.opacity(0.42))
             Text(value)
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
                 .foregroundColor(color)
             Text(sub)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2618,7 +2623,7 @@ struct ForecastDetailOverlay: View {
                     )
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .frame(width: 30, height: 30)
             .shadow(color: .purple.opacity(0.4), radius: 6)
@@ -2630,7 +2635,7 @@ struct ForecastDetailOverlay: View {
                     .foregroundColor(.purple.opacity(0.9))
                 Text(recommendation)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.82))
+                    .foregroundColor(theme.textTint.opacity(0.82))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -2660,7 +2665,7 @@ struct ForecastDetailOverlay: View {
             Text("Release to close")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .tracking(0.6)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(theme.textTint.opacity(0.35))
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -2772,7 +2777,7 @@ struct ForecastDetailOverlay: View {
         if isAnchorPt {
             Text("\(p.aqi)")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2.5)
                 .background(
@@ -2891,6 +2896,7 @@ struct JiggleModifier: ViewModifier {
 // MARK: - Exposure Bento Card (animated)
 
 struct ExposureBentoCard: View {
+    @Environment(\.weatherTheme) private var theme
     let level: String
     let cigValue: Double
     let progress: CGFloat       // 0...1 ring fill
@@ -2947,7 +2953,7 @@ struct ExposureBentoCard: View {
                         .foregroundColor(color)
                     Text("\(formattedValue) cig")
                         .font(.system(size: 8, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                         .contentTransition(.numericText())
                 }
                 .opacity(animateContent ? 1 : 0)
@@ -2958,7 +2964,7 @@ struct ExposureBentoCard: View {
 
             Text("Exposure")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .opacity(animateContent ? 1 : 0)
                 .offset(y: animateContent ? 0 : 4)
                 .animation(.easeOut(duration: 0.4).delay(0.75), value: animateContent)
@@ -3011,6 +3017,7 @@ struct ExposureHotspot: Identifiable {
 }
 
 struct ExposureMapOverlay: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var isPresented: Bool
     @State private var camera: MapCameraPosition
     @State private var animate: Bool = false
@@ -3093,7 +3100,7 @@ struct ExposureMapOverlay: View {
         self.peakTime = "8:11 AM"
         self.minutesByLevel = [
             ("Good",       Color(hex: "#4CAF50"), 520),
-            ("Moderate",   Color(hex: "#FFEB3B"),  78),
+            ("Moderate",   Color(hex: "#FBC02D"),  78),
             ("USG",        Color(hex: "#FF9800"),  42),
             ("Unhealthy",  Color(hex: "#F44336"),  27)
         ]
@@ -3110,7 +3117,7 @@ struct ExposureMapOverlay: View {
     private static func colorForAQI(_ aqi: Int) -> Color {
         switch aqi {
         case 0..<51:    return Color(hex: "#4CAF50")
-        case 51..<101:  return Color(hex: "#FFEB3B")
+        case 51..<101:  return Color(hex: "#FBC02D")
         case 101..<151: return Color(hex: "#FF9800")
         case 151..<201: return Color(hex: "#F44336")
         case 201..<301: return Color(hex: "#9C27B0")
@@ -3195,7 +3202,7 @@ struct ExposureMapOverlay: View {
         } label: {
             Image(systemName: "location.fill")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(.black.opacity(0.7)))
                 .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
@@ -3209,7 +3216,7 @@ struct ExposureMapOverlay: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Today's Exposure")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .textCase(.uppercase)
                     .tracking(1.3)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -3220,7 +3227,7 @@ struct ExposureMapOverlay: View {
                         )
                     Text("cig equiv.")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
             }
             Spacer()
@@ -3231,16 +3238,16 @@ struct ExposureMapOverlay: View {
                     Text(String(format: "%.1f km", totalDistanceKm))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                 }
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(theme.textTint.opacity(0.8))
                 Text("\(segments.count) trips")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
 
             Button(action: close) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .frame(width: 30, height: 30)
                     .background(Circle().fill(.white.opacity(0.1)))
                     .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
@@ -3280,11 +3287,11 @@ struct ExposureMapOverlay: View {
                                 .frame(width: 28, height: 28)
                             Image(systemName: stop.icon)
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                         }
                         Text(stop.title)
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(Capsule().fill(.black.opacity(0.65)))
@@ -3303,7 +3310,7 @@ struct ExposureMapOverlay: View {
                 let color: Color = {
                     switch label {
                     case "Good":      return Color(hex: "#4CAF50")
-                    case "Moderate":  return Color(hex: "#FFEB3B")
+                    case "Moderate":  return Color(hex: "#FBC02D")
                     case "USG":       return Color(hex: "#FF9800")
                     case "Unhealthy": return Color(hex: "#F44336")
                     default:          return .white
@@ -3313,7 +3320,7 @@ struct ExposureMapOverlay: View {
                     Circle().fill(color).frame(width: 6, height: 6)
                     Text(label)
                         .font(.system(size: 8, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(theme.textTint.opacity(0.8))
                 }
             }
         }
@@ -3328,13 +3335,13 @@ struct ExposureMapOverlay: View {
             HStack {
                 Text("Exposure Breakdown")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .textCase(.uppercase)
                     .tracking(1.0)
                 Spacer()
                 Text("\(total) min total")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
             }
 
             // Stacked bar
@@ -3361,10 +3368,10 @@ struct ExposureMapOverlay: View {
                         Circle().fill(item.color).frame(width: 6, height: 6)
                         Text("\(item.minutes)m")
                             .font(.system(size: 9, weight: .heavy, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                         Text(item.label)
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                     }
                 }
                 Spacer(minLength: 0)
@@ -3393,7 +3400,7 @@ struct ExposureMapOverlay: View {
                     .foregroundColor(Self.colorForAQI(peakAQI))
                 Text("\(peakLocation) · \(peakTime)")
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
         }
@@ -3412,6 +3419,7 @@ struct ExposureMapOverlay: View {
 // MARK: - Hourly Card
 
 struct HourlyCard: View {
+    @Environment(\.weatherTheme) private var theme
     let hour: String
     let aqi: Int
     let icon: String
@@ -3430,11 +3438,11 @@ struct HourlyCard: View {
         VStack(spacing: 10) {
             Text(hour)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
 
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .symbolRenderingMode(.multicolor)
 
             Text("\(aqi)")
@@ -3479,6 +3487,7 @@ struct ForecastPill: View {
 // MARK: - Hourly Inline Item (inside single glass card)
 
 struct HourlyInlineItem: View {
+    @Environment(\.weatherTheme) private var theme
     let hour: String
     let aqi: Int
     let temp: Int
@@ -3488,7 +3497,7 @@ struct HourlyInlineItem: View {
     private var aqiColor: Color {
         switch aqi {
         case 0..<51: return Color(hex: "#4CAF50")
-        case 51..<101: return Color(hex: "#FFEB3B")
+        case 51..<101: return Color(hex: "#FBC02D")
         case 101..<151: return Color(hex: "#FF9800")
         default: return Color(hex: "#F44336")
         }
@@ -3502,12 +3511,12 @@ struct HourlyInlineItem: View {
 
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(theme.textTint.opacity(0.7))
                 .symbolRenderingMode(.multicolor)
 
             Text("\(temp)°")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
 
             Text("\(aqi)")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -3548,6 +3557,7 @@ struct DailyWeatherPoint: Identifiable {
 // MARK: - Daily Compact Row (inside glass card)
 
 struct DailyCompactRow: View {
+    @Environment(\.weatherTheme) private var theme
     let forecast: DailyForecastData
 
     var body: some View {
@@ -3555,13 +3565,13 @@ struct DailyCompactRow: View {
             // Day
             Text(forecast.dayName)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .frame(width: 80, alignment: .leading)
 
             // Weather icon
             Image(systemName: forecast.weatherIcon)
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
                 .symbolRenderingMode(.multicolor)
                 .frame(width: 30)
 
@@ -3590,12 +3600,12 @@ struct DailyCompactRow: View {
             // Temp
             Text("\(forecast.temp)°")
                 .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(theme.textTint.opacity(0.4))
                 .frame(width: 30, alignment: .trailing)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 8))
-                .foregroundColor(.white.opacity(0.15))
+                .foregroundColor(theme.textTint.opacity(0.15))
                 .padding(.leading, 6)
         }
         .padding(.horizontal, 14)
@@ -3606,6 +3616,7 @@ struct DailyCompactRow: View {
 // MARK: - Daily Forecast Card (Redesigned)
 
 struct DailyForecastCard: View {
+    @Environment(\.weatherTheme) private var theme
     let forecast: DailyForecastData
 
     var body: some View {
@@ -3613,21 +3624,21 @@ struct DailyForecastCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(forecast.dayName)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text(formatDate(forecast.date))
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             .frame(width: 85, alignment: .leading)
 
             VStack(spacing: 4) {
                 Text("\(forecast.aqi)")
                     .font(.title2.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("AQI")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -3646,22 +3657,22 @@ struct DailyForecastCard: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(forecast.weatherDescription)
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("\(forecast.temp)°C")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
 
                 Image(systemName: forecast.weatherIcon)
                     .font(.title2)
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .symbolRenderingMode(.multicolor)
                     .frame(width: 35)
             }
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(theme.textTint.opacity(0.3))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -3685,6 +3696,7 @@ struct DailyForecastCard: View {
 // MARK: - Supporting Views (preserved)
 
 struct AQIScaleBar: View {
+    @Environment(\.weatherTheme) private var theme
     let currentAQI: Int
 
     var body: some View {
@@ -3693,13 +3705,13 @@ struct AQIScaleBar: View {
                 Text("Good"); Spacer(); Text("Moderate"); Spacer(); Text("Poor"); Spacer(); Text("Hazardous")
             }
             .font(.caption2)
-            .foregroundColor(.white.opacity(0.4))
+            .foregroundColor(theme.textTint.opacity(0.4))
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     LinearGradient(
                         colors: [
-                            Color(hex: "#4CAF50"), Color(hex: "#FFEB3B"),
+                            Color(hex: "#4CAF50"), Color(hex: "#FBC02D"),
                             Color(hex: "#FF9800"), Color(hex: "#F44336"),
                             Color(hex: "#9C27B0")
                         ],
@@ -3721,6 +3733,7 @@ struct AQIScaleBar: View {
 }
 
 struct WeatherInfoItem: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let value: String
     let unit: String
@@ -3730,14 +3743,14 @@ struct WeatherInfoItem: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value).font(.title3.bold()).foregroundColor(.white)
+                Text(value).font(.title3.bold()).foregroundColor(theme.textTint)
                 if !unit.isEmpty {
-                    Text(unit).font(.caption).foregroundColor(.white.opacity(0.6))
+                    Text(unit).font(.caption).foregroundColor(theme.textTint.opacity(0.6))
                 }
             }
-            Text(label).font(.caption2).foregroundColor(.white.opacity(0.6))
+            Text(label).font(.caption2).foregroundColor(theme.textTint.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
     }
@@ -3764,15 +3777,16 @@ struct ForecastTabButton: View {
 }
 
 struct HourlyForecastItem: View {
+    @Environment(\.weatherTheme) private var theme
     let hour: String
     let temp: Int
     let icon: String
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(hour).font(.caption).foregroundColor(.white.opacity(0.6))
-            Image(systemName: icon).font(.title2).foregroundColor(.white).symbolRenderingMode(.multicolor)
-            Text("\(temp)°").font(.title3.bold()).foregroundColor(.white)
+            Text(hour).font(.caption).foregroundColor(theme.textTint.opacity(0.6))
+            Image(systemName: icon).font(.title2).foregroundColor(theme.textTint).symbolRenderingMode(.multicolor)
+            Text("\(temp)°").font(.title3.bold()).foregroundColor(theme.textTint)
         }
         .frame(width: 60)
         .padding(.vertical, 12)
@@ -3853,7 +3867,7 @@ struct ExposureCircularChart: View {
                 // Home — inner ring
                 ExposureRing(
                     progress: animateInner ? homeHours / 12 : 0,
-                    color: Color(hex: "#FFD54F"),
+                    color: Color(hex: "#FFC107"),
                     size: ringSize - (strokeWidth * 4 + 12),
                     strokeWidth: strokeWidth
                 )
@@ -3863,11 +3877,11 @@ struct ExposureCircularChart: View {
                 VStack(spacing: 1) {
                     Text("\(displayTotal)h")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .contentTransition(.numericText())
                     Text("Total")
                         .font(.system(size: 8))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(theme.textTint.opacity(0.4))
                 }
                 .opacity(animateCenter ? 1 : 0)
                 .scaleEffect(animateCenter ? 1 : 0.5)
@@ -3881,7 +3895,7 @@ struct ExposureCircularChart: View {
             VStack(alignment: .leading, spacing: 12) {
                 legendItem(delay: 1.05, color: Color(hex: "#FFA726"), label: "Outdoor", hours: outdoorHours)
                 legendItem(delay: 1.20, color: Color(hex: "#81C784"), label: "Work",    hours: workHours)
-                legendItem(delay: 1.35, color: Color(hex: "#FFD54F"), label: "Home",    hours: homeHours)
+                legendItem(delay: 1.35, color: Color(hex: "#FFC107"), label: "Home",    hours: homeHours)
             }
 
             Spacer(minLength: 0)
@@ -3950,6 +3964,7 @@ struct ExposureRing: View {
 }
 
 struct ExposureLegendItem: View {
+    @Environment(\.weatherTheme) private var theme
     let color: Color
     let label: String
     let hours: CGFloat
@@ -3964,16 +3979,16 @@ struct ExposureLegendItem: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(theme.textTint.opacity(0.6))
 
                 HStack(spacing: 4) {
                     Text("\(Int(hours))h")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
 
                     Text("/ \(Int(total))h")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.3))
+                        .foregroundColor(theme.textTint.opacity(0.3))
                 }
             }
         }
@@ -3981,16 +3996,17 @@ struct ExposureLegendItem: View {
 }
 
 struct PMIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let value: Double
     let unit: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.subheadline.bold()).foregroundColor(.white.opacity(0.7))
+            Text(title).font(.subheadline.bold()).foregroundColor(theme.textTint.opacity(0.7))
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(Int(value))").font(.system(size: 32, weight: .bold)).foregroundColor(.white)
-                Text(unit).font(.caption).foregroundColor(.white.opacity(0.6))
+                Text("\(Int(value))").font(.system(size: 32, weight: .bold)).foregroundColor(theme.textTint)
+                Text(unit).font(.caption).foregroundColor(theme.textTint.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -4099,16 +4115,16 @@ struct LocationSearchModal: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Explore")
                     .font(.title2.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("Search a city to view its air quality")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             Spacer()
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(theme.textTint.opacity(0.6))
             }
         }
         .padding(.horizontal, 20)
@@ -4122,11 +4138,11 @@ struct LocationSearchModal: View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.title3)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
 
             TextField("Search city, place, address...", text: $searchText)
                 .font(.body)
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .autocorrectionDisabled()
                 .focused($searchFieldFocused)
 
@@ -4140,7 +4156,7 @@ struct LocationSearchModal: View {
                     loadError = nil
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.title3).foregroundColor(.white.opacity(0.4))
+                        .font(.title3).foregroundColor(theme.textTint.opacity(0.4))
                 }
             }
         }
@@ -4156,7 +4172,7 @@ struct LocationSearchModal: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quick Navigation")
                 .font(.subheadline.bold())
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .padding(.horizontal, 20)
 
             VStack(spacing: 10) {
@@ -4184,7 +4200,7 @@ struct LocationSearchModal: View {
             HStack {
                 Text("Results")
                     .font(.subheadline.bold())
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 if let err = searchManager.errorMessage {
                     Text(err).font(.caption).foregroundColor(.red.opacity(0.8))
@@ -4214,9 +4230,9 @@ struct LocationSearchModal: View {
     private var emptyResults: some View {
         VStack(spacing: 10) {
             Image(systemName: "mappin.slash.circle")
-                .font(.title).foregroundColor(.white.opacity(0.3))
+                .font(.title).foregroundColor(theme.textTint.opacity(0.3))
             Text("No results")
-                .font(.subheadline).foregroundColor(.white.opacity(0.5))
+                .font(.subheadline).foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
@@ -4231,13 +4247,13 @@ struct LocationSearchModal: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Image(systemName: "location.fill")
-                            .font(.caption).foregroundColor(.white.opacity(0.7))
+                            .font(.caption).foregroundColor(theme.textTint.opacity(0.7))
                         Text(location.title)
-                            .font(.headline).foregroundColor(.white)
+                            .font(.headline).foregroundColor(theme.textTint)
                     }
                     if !location.subtitle.isEmpty {
                         Text(location.subtitle)
-                            .font(.subheadline).foregroundColor(.white.opacity(0.6))
+                            .font(.subheadline).foregroundColor(theme.textTint.opacity(0.6))
                             .lineLimit(1)
                     }
                 }
@@ -4253,7 +4269,7 @@ struct LocationSearchModal: View {
                         Text("Change")
                     }
                     .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(theme.textTint.opacity(0.8))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Capsule().fill(.white.opacity(0.1)))
@@ -4275,7 +4291,7 @@ struct LocationSearchModal: View {
         VStack(spacing: 14) {
             ProgressView().tint(.white).scaleEffect(1.2)
             Text("Fetching air quality...")
-                .font(.caption).foregroundColor(.white.opacity(0.5))
+                .font(.caption).foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
@@ -4288,13 +4304,13 @@ struct LocationSearchModal: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.title2).foregroundColor(.orange)
             Text("Couldn't load air quality")
-                .font(.subheadline.bold()).foregroundColor(.white)
+                .font(.subheadline.bold()).foregroundColor(theme.textTint)
             Text(message)
-                .font(.caption).foregroundColor(.white.opacity(0.5))
+                .font(.caption).foregroundColor(theme.textTint.opacity(0.5))
                 .multilineTextAlignment(.center)
             Button(action: { Task { await fetchAQI(for: location) } }) {
                 Text("Retry")
-                    .font(.caption.bold()).foregroundColor(.white)
+                    .font(.caption.bold()).foregroundColor(theme.textTint)
                     .padding(.horizontal, 24).padding(.vertical, 8)
                     .background(Capsule().fill(.white.opacity(0.15)))
             }
@@ -4312,11 +4328,11 @@ struct LocationSearchModal: View {
         VStack(spacing: 16) {
             VStack(spacing: 10) {
                 Text("Air Quality Index")
-                    .font(.subheadline).foregroundColor(.white.opacity(0.5))
+                    .font(.subheadline).foregroundColor(theme.textTint.opacity(0.5))
 
                 Text("\(snap.aqi)")
                     .font(.system(size: 72, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .shadow(color: Color(hex: level.color).opacity(0.6), radius: 20)
 
                 HStack(spacing: 6) {
@@ -4330,7 +4346,7 @@ struct LocationSearchModal: View {
 
                 if let dom = snap.dominant, !dom.isEmpty {
                     Text("Dominant: \(dom.uppercased())")
-                        .font(.caption2).foregroundColor(.white.opacity(0.5))
+                        .font(.caption2).foregroundColor(theme.textTint.opacity(0.5))
                         .padding(.top, 2)
                 }
             }
@@ -4371,7 +4387,7 @@ struct LocationSearchModal: View {
                     Text("View on Home")
                 }
                 .font(.subheadline.bold())
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
@@ -4394,18 +4410,18 @@ struct LocationSearchModal: View {
                     .frame(width: 42, height: 42)
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.body.bold()).foregroundColor(.white)
+                Text(title).font(.body.bold()).foregroundColor(theme.textTint)
                 if !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.caption).foregroundColor(.white.opacity(0.5))
+                        .font(.caption).foregroundColor(theme.textTint.opacity(0.5))
                         .lineLimit(1)
                 }
             }
             Spacer()
-            Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.3))
+            Image(systemName: "chevron.right").foregroundColor(theme.textTint.opacity(0.3))
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(glassCard)
@@ -4476,13 +4492,14 @@ struct LocationSearchModal: View {
 // MARK: - Day Comparison Dot
 
 struct DayDot: View {
+    @Environment(\.weatherTheme) private var theme
     let label: String
     let aqi: Int
 
     var dotColor: Color {
         switch aqi {
-        case 0..<51: return Color(hex: "#E0E0E0")
-        case 51..<101: return Color(hex: "#FDD835")
+        case 0..<51: return Color(hex: "#90A4AE")
+        case 51..<101: return Color(hex: "#F9A825")
         case 101..<151: return Color(hex: "#FF9800")
         default: return Color(hex: "#E53935")
         }
@@ -4492,7 +4509,7 @@ struct DayDot: View {
         VStack(spacing: 3) {
             Circle().fill(dotColor).frame(width: 12, height: 12)
                 .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
-            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.white.opacity(0.6))
+            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(theme.textTint.opacity(0.6))
         }
     }
 }
@@ -4512,7 +4529,7 @@ struct DailyForecastData: Identifiable {
     var aqiColor: Color {
         switch aqi {
         case 0..<51: return Color(hex: "#4CAF50")
-        case 51..<101: return Color(hex: "#FDD835")
+        case 51..<101: return Color(hex: "#F9A825")
         case 101..<151: return Color(hex: "#FF9800")
         default: return Color(hex: "#E53935")
         }
@@ -4621,17 +4638,17 @@ struct WeatherConditionsDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "cloud.fill")
                     .font(.system(size: 20))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("Conditions")
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .frame(maxWidth: .infinity)
 
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(theme.textTint.opacity(0.85))
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(.white.opacity(0.15)))
             }
@@ -4654,7 +4671,7 @@ struct WeatherConditionsDetailView: View {
                         VStack(spacing: 8) {
                             Text(dayLetter(day.date))
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(theme.textTint.opacity(0.5))
                             ZStack {
                                 if selectedDayIndex == idx {
                                     Circle().fill(Color(hex: "#4AB8FF"))
@@ -4676,7 +4693,7 @@ struct WeatherConditionsDetailView: View {
     private var selectedDateTitle: some View {
         Text(fullDateString(selectedDate))
             .font(.system(size: 16, weight: .semibold))
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
             .padding(.top, -8)
@@ -4698,16 +4715,16 @@ struct WeatherConditionsDetailView: View {
                 HStack(spacing: 10) {
                     Text("\(currentTemp)°")
                         .font(.system(size: 56, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Image(systemName: icon)
                         .font(.system(size: 32))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .symbolRenderingMode(.multicolor)
                 }
                 if let d = day {
                     Text("H:\(d.tempMax)°  L:\(d.tempMin)°")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
             }
             Spacer()
@@ -4740,7 +4757,7 @@ struct WeatherConditionsDetailView: View {
             toggleRow
             Text(tempMode == .actual ? "The actual temperature." : "What the temperature feels like.")
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 14)
         }
@@ -4759,7 +4776,7 @@ struct WeatherConditionsDetailView: View {
         if points.isEmpty {
             Text("No data available")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(theme.textTint.opacity(0.4))
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             let values: [(hour: Int, value: Int)] = points.map {
@@ -4778,7 +4795,7 @@ struct WeatherConditionsDetailView: View {
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: "#FFCB6B"), Color(hex: "#FF9800")],
+                            colors: [Color(hex: "#FFB300"), Color(hex: "#FF9800")],
                             startPoint: .leading, endPoint: .trailing
                         )
                     )
@@ -4791,7 +4808,7 @@ struct WeatherConditionsDetailView: View {
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: "#FFCB6B").opacity(0.35), Color(hex: "#4AB8FF").opacity(0.05)],
+                            colors: [Color(hex: "#FFB300").opacity(0.35), Color(hex: "#4AB8FF").opacity(0.05)],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
@@ -4802,7 +4819,7 @@ struct WeatherConditionsDetailView: View {
                         .foregroundStyle(.white)
                         .symbolSize(60)
                         .annotation(position: .top) {
-                            Text("H").font(.caption2.bold()).foregroundColor(.white.opacity(0.7))
+                            Text("H").font(.caption2.bold()).foregroundColor(theme.textTint.opacity(0.7))
                         }
                 }
                 if let lo = values.first(where: { $0.value == minVal }) {
@@ -4810,7 +4827,7 @@ struct WeatherConditionsDetailView: View {
                         .foregroundStyle(.white)
                         .symbolSize(60)
                         .annotation(position: .bottom) {
-                            Text("L").font(.caption2.bold()).foregroundColor(.white.opacity(0.7))
+                            Text("L").font(.caption2.bold()).foregroundColor(theme.textTint.opacity(0.7))
                         }
                 }
             }
@@ -4844,7 +4861,7 @@ struct WeatherConditionsDetailView: View {
                 }) {
                     Text(mode.rawValue)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(
@@ -4867,12 +4884,12 @@ struct WeatherConditionsDetailView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Chance of Precipitation")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 20)
 
             Text("Today's chance: \(todayChance)%")
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .padding(.horizontal, 20)
 
             if !values.isEmpty {

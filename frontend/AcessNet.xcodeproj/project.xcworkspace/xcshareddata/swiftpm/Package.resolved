@@ -1,6 +1,15 @@
 {
-  "originHash" : "0a79f2009ea5ba6a9e7c2c6471d05458a7ac9a981d2fd7ab914f1eb741af1ea1",
+  "originHash" : "d851b1c48570d512f71a1a62fc0a10b7f86def529664e64efa1af851fe996f08",
   "pins" : [
+    {
+      "identity" : "humankit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/biodigital-inc/HumanKit.git",
+      "state" : {
+        "revision" : "ce447d99b54b74f6e0a3c8c345df73fc8c34b2d7",
+        "version" : "147.0.11"
+      }
+    },
     {
       "identity" : "lottie-ios",
       "kind" : "remoteSourceControl",

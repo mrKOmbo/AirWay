@@ -44,10 +44,34 @@ enum TabTheme {
 
 struct EnhancedTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
+    @Environment(\.weatherTheme) private var theme
     @Namespace private var namespace
     @State private var showLabel = false
 
     let tabs: [MainTabView.Tab] = [.home, .map, .fuel, .health, .body, .settings]
+
+    // MARK: - Colores adaptativos (AirWay light vs. temas de clima oscuros)
+    private var iconActiveColor: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D") : .white
+    }
+    private var iconInactiveColor: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.45) : .white.opacity(0.4)
+    }
+    private var pillFill: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.08) : .white.opacity(0.12)
+    }
+    private var pillStroke: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.12) : .white.opacity(0.1)
+    }
+    private var barFill: Color {
+        theme.isAirWay ? .white.opacity(0.7) : .black.opacity(0.5)
+    }
+    private var barStroke: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.08) : .white.opacity(0.08)
+    }
+    private var barShadow: Color {
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.12) : .black.opacity(0.3)
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -77,13 +101,13 @@ struct EnhancedTabBar: View {
                             // Mostrar solo el nombre
                             Text(theme.title)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(iconActiveColor)
                                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                         } else {
                             // Mostrar solo el icono
                             Image(systemName: theme.icon)
                                 .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
-                                .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                                .foregroundColor(isSelected ? iconActiveColor : iconInactiveColor)
                                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                         }
                     }
@@ -91,10 +115,10 @@ struct EnhancedTabBar: View {
                     .background {
                         if isSelected {
                             Capsule()
-                                .fill(.white.opacity(0.12))
+                                .fill(pillFill)
                                 .overlay(
                                     Capsule()
-                                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                                        .stroke(pillStroke, lineWidth: 1)
                                 )
                                 .matchedGeometryEffect(id: "pill", in: namespace)
                         }
@@ -109,10 +133,10 @@ struct EnhancedTabBar: View {
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(.black.opacity(0.5))
+                .fill(barFill)
                 .overlay(
                     Capsule()
-                        .stroke(.white.opacity(0.08), lineWidth: 1)
+                        .stroke(barStroke, lineWidth: 1)
                 )
                 .background(
                     Capsule()
@@ -122,7 +146,7 @@ struct EnhancedTabBar: View {
         .clipShape(Capsule())
         .padding(.horizontal, 20)
         .padding(.bottom, 28)
-        .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 8)
+        .shadow(color: barShadow, radius: 16, x: 0, y: 8)
     }
 
     private func themeForTab(_ tab: MainTabView.Tab) -> TabTheme {

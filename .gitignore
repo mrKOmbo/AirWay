@@ -6,6 +6,10 @@
 *.env
 !.env.example
 
+# iOS xcconfig secrets (BioDigital HumanKit y futuros SDKs)
+**/Secrets.xcconfig
+!**/Secrets.example.xcconfig
+
 # ── Python ────────────────────────────────────────────
 __pycache__/
 *.py[cod]
