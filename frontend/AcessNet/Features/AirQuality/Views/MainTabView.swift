@@ -27,8 +27,8 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Base background — prevents white flash
-            Color(hex: "#0A0A0F")
+            // Base background — coincide con el tema activo (AirWay light o clima oscuro)
+            (appSettings.isAirWayTheme ? Color(hex: "#FAFBFC") : Color(hex: "#0A0A0F"))
                 .ignoresSafeArea()
 
             // Content

@@ -27,15 +27,17 @@ struct WeatherTheme {
     /// Si true, ignora la condición climática y usa la paleta de marca AirWay (sincronizada con la página web).
     let isAirWay: Bool
 
-    init(condition: WeatherCondition = .overcast, isAirWay: Bool = false) {
+    /// Si `isAirWay` no se especifica, se lee automáticamente de `AppSettings.shared` —
+    /// así cualquier vista que construya un `WeatherTheme` adopta el modo AirWay global.
+    init(condition: WeatherCondition = .overcast, isAirWay: Bool? = nil) {
         self.condition = condition
-        self.isAirWay = isAirWay
+        self.isAirWay = isAirWay ?? AppSettings.shared.isAirWayTheme
     }
 
     // Card background
     var cardColor: Color {
-        // AirWay surface: #121A30 @ 68% (sincronizado con --color-aw-surface de la web)
-        if isAirWay { return Color(hex: "#121A30").opacity(0.68) }
+        // AirWay surface: blanco @ 72% (sincronizado con --color-aw-surface del modo claro de la web)
+        if isAirWay { return Color.white.opacity(0.72) }
         switch condition {
         case .sunny:  return Color(hex: "#1E3858")
         case .cloudy: return Color(hex: "#282E3E")
@@ -47,7 +49,8 @@ struct WeatherTheme {
 
     // Card border
     var borderColor: Color {
-        if isAirWay { return .white.opacity(0.08) }
+        // AirWay border: navy @ 8% (--color-aw-border del modo claro)
+        if isAirWay { return Color(hex: "#0A1D4D").opacity(0.08) }
         switch condition {
         case .sunny:  return .white.opacity(0.18)
         case .cloudy: return .white.opacity(0.12)
@@ -71,7 +74,8 @@ struct WeatherTheme {
 
     // Page background (for subviews without WeatherBackground)
     var pageBackground: Color {
-        if isAirWay { return Color(hex: "#060A18") }
+        // AirWay bg: casi blanco (--color-aw-bg del modo claro)
+        if isAirWay { return Color(hex: "#FAFBFC") }
         switch condition {
         case .sunny:  return Color(hex: "#0E1E30")
         case .cloudy: return Color(hex: "#0E1218")
@@ -83,7 +87,8 @@ struct WeatherTheme {
 
     // Text tint (subtle warm/cool shift)
     var textTint: Color {
-        if isAirWay { return Color(hex: "#F5F9FF") }
+        // AirWay ink: navy oscuro sobre fondo claro (--color-aw-ink del modo claro)
+        if isAirWay { return Color(hex: "#0A1D4D") }
         switch condition {
         case .sunny:  return Color(hex: "#FFF5E0")
         case .cloudy: return .white

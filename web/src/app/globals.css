@@ -1,0 +1,464 @@
+@import "tailwindcss";
+
+/* ============================================================
+   AirWay Web · Design System (Light Glass adaptation from iOS)
+   ============================================================ */
+
+@theme inline {
+  /* ---- Brand palette (mirrors iOS Assets.xcassets) ---- */
+  --color-aw-primary: #0a1d4d;
+  --color-aw-primary-600: #102a6b;
+  --color-aw-primary-400: #2444a0;
+  --color-aw-secondary: #4aa1b3;
+  --color-aw-body: #59b7d1;
+  --color-aw-accent: #0099ff;
+  --color-aw-accent-bright: #4ccfff;
+  --color-aw-success: #2e7d32;
+  --color-aw-warning: #ff6f00;
+  --color-aw-danger: #d32f2f;
+
+  /* ---- Light surfaces ---- */
+  --color-aw-bg: #fafbfc;
+  --color-aw-bg-elev: #ffffff;
+  --color-aw-surface: rgba(255, 255, 255, 0.72);
+  --color-aw-surface-hover: rgba(255, 255, 255, 0.88);
+  --color-aw-border: rgba(10, 29, 77, 0.08);
+  --color-aw-border-strong: rgba(10, 29, 77, 0.16);
+  --color-aw-ink: #0a1d4d;
+  --color-aw-ink-soft: #3a4a6b;
+  --color-aw-ink-muted: #6b7a95;
+
+  /* ---- AQI ramp (EPA) ---- */
+  --color-aqi-good: #00e676;
+  --color-aqi-moderate: #ffd400;
+  --color-aqi-sensitive: #ff8f00;
+  --color-aqi-unhealthy: #ff3d3d;
+  --color-aqi-very-unhealthy: #9c27b0;
+  --color-aqi-hazardous: #6b0022;
+
+  /* ---- Fonts ---- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* ---- Radii ---- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+
+  /* ---- Shadows (azul tinted, not pure black) ---- */
+  --shadow-aw-sm: 0 1px 2px rgba(10, 29, 77, 0.06), 0 1px 3px rgba(10, 29, 77, 0.08);
+  --shadow-aw-md: 0 4px 12px rgba(10, 29, 77, 0.06), 0 8px 24px rgba(10, 29, 77, 0.08);
+  --shadow-aw-lg: 0 10px 28px rgba(10, 29, 77, 0.08), 0 24px 60px rgba(10, 29, 77, 0.12);
+  --shadow-aw-glow: 0 0 0 1px rgba(89, 183, 209, 0.24), 0 12px 40px rgba(0, 153, 255, 0.18);
+
+  /* ---- Animation tokens ---- */
+  --ease-aw-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-aw-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-aw-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+  --aurora-hue-a: 199;
+  --aurora-hue-b: 188;
+  --aurora-hue-c: 227;
+}
+
+/* ============================================================
+   Dark theme · overrides on data-theme
+   ============================================================ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-aw-bg: #060a18;
+  --color-aw-bg-elev: #0d1427;
+  --color-aw-surface: rgba(18, 26, 48, 0.68);
+  --color-aw-surface-hover: rgba(22, 32, 58, 0.88);
+  --color-aw-border: rgba(255, 255, 255, 0.08);
+  --color-aw-border-strong: rgba(255, 255, 255, 0.16);
+  --color-aw-ink: #f5f9ff;
+  --color-aw-ink-soft: #c5cde0;
+  --color-aw-ink-muted: #8a95b5;
+  --shadow-aw-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-aw-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-aw-lg: 0 10px 28px rgba(0, 0, 0, 0.5), 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .aw-aurora {
+  background:
+    radial-gradient(1200px 800px at 8% 0%, rgba(89, 183, 209, 0.16), transparent 60%),
+    radial-gradient(1000px 700px at 100% 12%, rgba(0, 153, 255, 0.14), transparent 55%),
+    radial-gradient(900px 900px at 50% 110%, rgba(74, 161, 179, 0.12), transparent 55%),
+    linear-gradient(180deg, #060a18 0%, #07101f 50%, #050813 100%);
+}
+:root[data-theme="dark"] .aw-aurora::after {
+  opacity: 0.2;
+  mix-blend-mode: screen;
+}
+
+:root[data-theme="dark"] ::selection {
+  background: rgba(0, 153, 255, 0.35);
+  color: #f5f9ff;
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+}
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme="dark"] .aw-glass-inset {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 32, 58, 0.85) 0%,
+    rgba(18, 26, 48, 0.5) 100%
+  );
+}
+
+:root[data-theme="dark"] .aw-glass-edge::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 40%
+  );
+}
+
+:root[data-theme="dark"] .aw-glass-strong {
+  background: rgba(22, 32, 58, 0.82);
+}
+
+/* Smooth transition between themes */
+html,
+body,
+.aw-glass,
+.aw-glass-strong,
+.aw-glass-inset,
+.aw-aurora {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+/* Dark mode: swap brand-primary text to ink so headings stay readable */
+:root[data-theme="dark"] .text-aw-primary,
+:root[data-theme="dark"] h1.text-aw-primary,
+:root[data-theme="dark"] h2.text-aw-primary,
+:root[data-theme="dark"] h3.text-aw-primary {
+  color: var(--color-aw-ink);
+}
+
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] input:not([type]) {
+  background: rgba(12, 18, 34, 0.75) !important;
+  color: var(--color-aw-ink);
+  border-color: var(--color-aw-border);
+}
+:root[data-theme="dark"] input::placeholder {
+  color: var(--color-aw-ink-muted);
+}
+
+:root[data-theme="dark"] .aw-glass-edge::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 40%
+  );
+}
+
+/* Feature grid / generic light bg replacements inside dark glass */
+:root[data-theme="dark"] .bg-white\/60,
+:root[data-theme="dark"] .bg-white\/70,
+:root[data-theme="dark"] .bg-white\/80 {
+  background: rgba(18, 26, 48, 0.55);
+}
+:root[data-theme="dark"] .bg-white\/50 {
+  background: rgba(18, 26, 48, 0.45);
+}
+:root[data-theme="dark"] .bg-white\/90 {
+  background: rgba(22, 32, 58, 0.85);
+}
+
+html,
+body {
+  background: var(--color-aw-bg);
+  color: var(--color-aw-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 153, 255, 0.2);
+  color: var(--color-aw-primary);
+}
+
+/* Subtle custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(10, 29, 77, 0.18) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(10, 29, 77, 0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(10, 29, 77, 0.28);
+  background-clip: padding-box;
+}
+
+/* ============================================================
+   Aurora background — layered radial gradients, GPU-friendly
+   ============================================================ */
+
+.aw-aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(1200px 800px at 8% 0%, rgba(89, 183, 209, 0.32), transparent 60%),
+    radial-gradient(1000px 700px at 100% 12%, rgba(0, 153, 255, 0.22), transparent 55%),
+    radial-gradient(900px 900px at 50% 110%, rgba(74, 161, 179, 0.2), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #f3f7fb 50%, #eaf2f8 100%);
+}
+
+.aw-aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.11 0 0 0 0 0.3 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+}
+
+/* Animated aurora blobs (slow, 60s loop) */
+.aw-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.55;
+  animation: aw-drift 60s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes aw-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4vw, -3vh, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-3vw, 4vh, 0) scale(0.95);
+  }
+}
+
+/* ============================================================
+   Glass surface (light)
+   ============================================================ */
+
+.aw-glass {
+  background: var(--color-aw-surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--color-aw-border);
+  box-shadow: var(--shadow-aw-md);
+}
+
+.aw-glass-strong {
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid var(--color-aw-border);
+  box-shadow: var(--shadow-aw-lg);
+}
+
+.aw-glass-inset {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--color-aw-border);
+}
+
+/* Inner highlight line (premium glass edge) */
+.aw-glass-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0) 40%
+  );
+  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1px;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Typography helpers
+   ============================================================ */
+
+.aw-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+.aw-eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-aw-ink-muted);
+}
+
+.aw-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+}
+
+/* ============================================================
+   AQI gradient text (reactive to level)
+   ============================================================ */
+
+.aw-aqi-gradient-good {
+  background: linear-gradient(135deg, #00e676 0%, #4aa1b3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.aw-aqi-gradient-moderate {
+  background: linear-gradient(135deg, #ffd400 0%, #ff8f00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.aw-aqi-gradient-unhealthy {
+  background: linear-gradient(135deg, #ff8f00 0%, #ff3d3d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.aw-aqi-gradient-hazardous {
+  background: linear-gradient(135deg, #9c27b0 0%, #6b0022 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============================================================
+   Pulsing live indicator
+   ============================================================ */
+
+.aw-live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #00e676;
+}
+.aw-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: #00e676;
+  opacity: 0.35;
+  animation: aw-pulse 1.6s ease-out infinite;
+}
+
+@keyframes aw-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   Shimmer (for skeletons / hero accents)
+   ============================================================ */
+
+.aw-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.aw-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: aw-shimmer 2.6s ease-in-out infinite;
+}
+
+@keyframes aw-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================================
+   Focus ring (accessibility, AirWay accent)
+   ============================================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--color-aw-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

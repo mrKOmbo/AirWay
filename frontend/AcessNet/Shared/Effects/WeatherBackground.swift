@@ -11,25 +11,47 @@ import SwiftUI
 
 struct WeatherBackground: View {
     let condition: WeatherCondition
-    /// Si true, usa la paleta de marca AirWay (navy + acento cian) en vez de la lógica por clima.
-    var isAirWay: Bool = false
+    /// Si nil, se resuelve automáticamente desde AppSettings.shared.isAirWayTheme
+    /// (así cualquier vista adopta el modo AirWay global sin cambios).
+    var isAirWayOverride: Bool? = nil
     @State private var cloudOffset: CGFloat = -100
+
+    /// Compatibilidad hacia atrás: permite `WeatherBackground(condition:, isAirWay:)` si se quiere fijar.
+    init(condition: WeatherCondition, isAirWay: Bool? = nil) {
+        self.condition = condition
+        self.isAirWayOverride = isAirWay
+    }
+
+    private var isAirWay: Bool {
+        isAirWayOverride ?? AppSettings.shared.isAirWayTheme
+    }
 
     var body: some View {
         ZStack {
-            // Layer 1: Gradient oscuro limpio (sin nubes, sin lottie, sin partículas, sin glow)
+            // Layer 1: Gradient base
             LinearGradient(colors: gradientColors, startPoint: .top, endPoint: .bottom)
 
-            // Layer 2: Vignette sutil para profundidad
-            RadialGradient(colors: [.clear, .black.opacity(0.35)], center: .center, startRadius: 150, endRadius: 500)
+            // Layer 2a (clima): vignette oscura sutil
+            if !isAirWay {
+                RadialGradient(colors: [.clear, .black.opacity(0.35)], center: .center, startRadius: 150, endRadius: 500)
+            }
 
-            // Layer 3 (solo AirWay): halo accent cian sutil en la esquina superior derecha
+            // Layer 2b (AirWay light): aurora radial cian + teal (como .aw-aurora de la web)
             if isAirWay {
                 RadialGradient(
-                    colors: [Color(hex: "#0099FF").opacity(0.22), .clear],
-                    center: .topTrailing,
-                    startRadius: 40,
-                    endRadius: 380
+                    colors: [Color(hex: "#59B7D1").opacity(0.18), .clear],
+                    center: UnitPoint(x: 0.08, y: 0.0),
+                    startRadius: 0, endRadius: 600
+                )
+                RadialGradient(
+                    colors: [Color(hex: "#0099FF").opacity(0.14), .clear],
+                    center: UnitPoint(x: 1.0, y: 0.12),
+                    startRadius: 0, endRadius: 550
+                )
+                RadialGradient(
+                    colors: [Color(hex: "#4AA1B3").opacity(0.12), .clear],
+                    center: UnitPoint(x: 0.5, y: 1.1),
+                    startRadius: 0, endRadius: 500
                 )
             }
         }
@@ -61,9 +83,9 @@ struct WeatherBackground: View {
     // MARK: - Gradients
 
     private var gradientColors: [Color] {
-        // AirWay: paleta de marca (sincronizada con la página web — bg / bgElev / primary)
+        // AirWay (modo claro de la web): base #FAFBFC con tintes cian/azul muy sutiles
         if isAirWay {
-            return [Color(hex: "#060A18"), Color(hex: "#0D1427"), Color(hex: "#0A1D4D")]
+            return [Color(hex: "#F3F7FB"), Color(hex: "#FAFBFC"), Color(hex: "#EAF2F8")]
         }
         switch condition {
         case .sunny:  return [Color(hex: "#1A3050"), Color(hex: "#2A5080"), Color(hex: "#183060")]

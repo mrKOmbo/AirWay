@@ -1,15 +1,19 @@
+import os
 import requests
 
 
 class OSRMClient:
     """
-    Cliente simple para consultar el servicio OSRM (Open Source Routing Machine)
-    dentro de tu red Docker.
+    Cliente simple para consultar el servicio OSRM (Open Source Routing Machine).
+    URL configurable via env var OSRM_BASE_URL (default: servicio local docker).
     """
 
-    def __init__(self, base_url: str = "http://osrm:5000"):
-        # "osrm" debe coincidir con el nombre del servicio en docker-compose
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: str | None = None):
+        self.base_url = (
+            base_url
+            or os.getenv("OSRM_BASE_URL")
+            or "http://osrm:5000"
+        ).rstrip("/")
 
     def route(self, coords, profile="bike", alternatives=3):
         """
@@ -32,7 +36,7 @@ class OSRMClient:
             "alternatives": str(alternatives).lower(),
             "overview": "full",
             "geometries": "polyline6",  # codificación compacta
-            "steps": False,
+            "steps": "false",  # OSRM es case-sensitive, no admite False
         }
 
         try:

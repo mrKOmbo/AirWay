@@ -1,0 +1,96 @@
+# AirWay · backend production stack
+# Usa: docker compose -f docker-compose.prod.yml up -d
+#
+# Requiere un .env en la raíz del repo (../.env) con:
+#   DB_PASSWORD, OPENAQ_API_KEY, WAQI_TOKEN, GEMINI_API_KEY,
+#   SECRET_KEY, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: airway
+      POSTGRES_USER: airway
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airway -d airway"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: airway
+      DB_USER: airway
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"   # solo localhost; Cloudflare Tunnel lo publica
+    command:
+      - sh
+      - -c
+      - "cd /app/src && python manage.py migrate --noinput && exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/contingency/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: airway
+      DB_USER: airway
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      api:
+        condition: service_started
+    command: ["sh", "-c", "cd /app/src && exec celery -A core worker -l INFO --concurrency=2"]
+
+  beat:
+    build: .
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: airway
+      DB_USER: airway
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      worker:
+        condition: service_started
+    command: ["sh", "-c", "cd /app/src && exec celery -A core beat -l INFO"]
+
+volumes:
+  dbdata:
