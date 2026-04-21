@@ -265,16 +265,40 @@ class NavigationManager: ObservableObject {
         return (progress, distanceCovered)
     }
 
-    /// Actualiza la zona actual de calidad del aire
+    /// Actualiza la zona actual de calidad del aire.
+    /// Si el grid no ha cargado zonas todavía, sintetiza una zona "fallback"
+    /// con AQI moderado (75) para evitar el spinner eterno "Cargando calidad
+    /// del aire…" en el panel de navegación.
     private func updateCurrentZone(location: CLLocationCoordinate2D) {
         guard let gridManager = airQualityGridManager else { return }
 
-        // Buscar zona más cercana
-        currentZone = gridManager.zones.min { zone1, zone2 in
-            let dist1 = location.distance(to: zone1.coordinate)
-            let dist2 = location.distance(to: zone2.coordinate)
-            return dist1 < dist2
+        // 1. Buscar zona más cercana del grid.
+        if let nearest = gridManager.zones.min(by: { zone1, zone2 in
+            location.distance(to: zone1.coordinate) < location.distance(to: zone2.coordinate)
+        }) {
+            currentZone = nearest
+            return
         }
+
+        // 2. Fallback: grid vacío → sintetizar zona con AQI del scoredRoute
+        //    si hay, o 75 (moderate) como default razonable. Evita el spinner
+        //    infinito cuando no hay cobertura de grid.
+        let fallbackAQI: Double = {
+            if let avg = activeRoute?.averageAQI, avg > 0 { return avg }
+            return 75.0
+        }()
+        let syntheticPoint = AirQualityPoint(
+            coordinate: location,
+            aqi: fallbackAQI,
+            pm25: fallbackAQI * 0.4,
+            pm10: fallbackAQI * 0.55,
+            timestamp: Date()
+        )
+        currentZone = AirQualityZone(
+            coordinate: location,
+            radius: 500,
+            airQuality: syntheticPoint
+        )
     }
 
     /// Actualiza el paso actual de navegación

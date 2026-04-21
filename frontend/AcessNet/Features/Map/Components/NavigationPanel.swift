@@ -29,11 +29,12 @@ struct NavigationPanel: View {
                 distanceToManeuver: distanceToManeuver
             )
 
-            // Middle: Zona de calidad del aire actual
+            // Middle: Zona de calidad del aire actual.
+            // Solo se muestra cuando hay datos de zona disponibles — no
+            // queremos el placeholder "Cargando calidad del aire…" que
+            // ocupa espacio sin informar.
             if let zone = currentZone {
                 CurrentZoneCard(zone: zone)
-            } else {
-                EmptyZoneCard()
             }
 
             // Predicted AQI at arrival

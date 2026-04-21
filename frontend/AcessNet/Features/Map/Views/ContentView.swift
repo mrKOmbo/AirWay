@@ -142,6 +142,11 @@ struct EnhancedMapView: View {
     /// eligió ruta ahí, no queremos re-preguntarle con otro selector).
     @State private var autoStartNavigationPending: Bool = false
 
+    /// Firma de las últimas `allScoredRoutes` procesadas para dedupe del
+    /// `updateZonesAlongRoutes` — evita recálculos redundantes cuando
+    /// `routeManager` publica la misma lista (p. ej. tras re-análisis AQI).
+    @State private var lastScoredRoutesSignature: String = ""
+
     // MARK: - Air Quality Overlay State
     @StateObject private var airQualityGridManager = AirQualityGridManager()
     @State private var showAirQualityLayer: Bool = false
@@ -365,24 +370,19 @@ struct EnhancedMapView: View {
             }
 
             // Air Quality Banner — solo cuando el mapa está "limpio"
-            // (sin cards, zonas, rutas). Centrado horizontalmente y elevado
-            // por encima de los floating buttons de la izquierda para no
-            // competir por el mismo espacio vertical.
-            //
-            // Cálculo del offset inferior:
-            //   tabBarHeight + 20pt margen base de los botones
-            //   + 3 botones × 50pt + 2 × 15pt spacing = 180pt columna botones
-            //   + 14pt de gap visual entre banner y botones
+            // (sin cards, zonas, rutas). Anclado a la parte inferior,
+            // alineado a la derecha con un padding leading que libra la
+            // columna izquierda de los floating buttons (≈80pt).
             if !hasActiveRoute && !isSearchFocused && !showLocationInfo && !showAirQualityLayer && !showZoneDetail && selectedZone == nil {
                 VStack {
                     Spacer()
                     HStack {
-                        Spacer()
+                        Spacer(minLength: 92)  // libra los floating buttons a la izq
                         AQIPredictionBanner()
                             .frame(maxWidth: 280)
-                        Spacer()
+                        Spacer(minLength: 12)
                     }
-                    .padding(.bottom, tabBarHeight + 20 + 180 + 14)
+                    .padding(.bottom, tabBarHeight - 4)
                 }
                 .transition(.opacity)
                 .allowsHitTesting(false)
@@ -545,6 +545,35 @@ struct EnhancedMapView: View {
                 }
             }
 
+            // Pill minimalista mientras esperamos que la ruta termine
+            // de calcularse y arranque la navegación automática. Evita
+            // que el mapa se vea "vacío" durante los 1-2 segundos de
+            // espera entre "Ir ahora" y el arranque real.
+            if autoStartNavigationPending {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(.white)
+                            .scaleEffect(0.85)
+                        Text("Iniciando navegación…")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .fill(.black.opacity(0.78))
+                            .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 0.8))
+                    )
+                    .padding(.bottom, tabBarHeight + 18)
+                    .transition(.opacity.combined(with: .scale))
+                }
+                .allowsHitTesting(false)
+            }
+
             // Route Info Card o Calculating Indicator.
             // Si `autoStartNavigationPending` está activo → el usuario ya
             // eligió ruta en el briefing y esperamos a que se calcule para
@@ -615,7 +644,7 @@ struct EnhancedMapView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, tabBarHeight + 12)
+                    .padding(.bottom, tabBarHeight - 6)
                 }
             }
 
@@ -729,14 +758,15 @@ struct EnhancedMapView: View {
                 if isInNavigationMode {
                     navigationManager.updateUserLocation(location, speed: locationManager.speed)
 
-                    // Actualizar cámara para seguir al usuario en navegación (modo 2D con heading)
-                    withAnimation(.easeOut(duration: 0.5)) {
+                    // Actualizar cámara en navegación con mismo pitch/distance que el
+                    // zoom inicial de startNavigation → cinematic turn-by-turn.
+                    withAnimation(.easeOut(duration: 0.35)) {
                         camera = .camera(
                             MapCamera(
                                 centerCoordinate: location,
-                                distance: 1000,
-                                heading: locationManager.heading,  // Sigue la dirección del celular
-                                pitch: 0  // Modo 2D sin inclinación
+                                distance: 350,
+                                heading: locationManager.heading,
+                                pitch: 55
                             )
                         )
                     }
@@ -794,17 +824,16 @@ struct EnhancedMapView: View {
             }
         }
         .onReceive(routeManager.$currentRoute) { newRoute in
-            if let newRoute {
+            if newRoute != nil {
                 // Marching ants solo si NO hay capa AQI activa — la animación
                 // .repeatForever dispara re-render del body constantemente y
                 // recomputa los 40+ círculos AQI en cada frame interpolado.
                 startOrStopMarchingAnts()
 
-                // Generar zones a lo largo del trayecto para ver
-                // contaminación sobre la ruta elegida.
-                airQualityGridManager.updateZonesAlongRoutes(polylines: [newRoute.polyline])
-
-                print("✅ Ruta activa (sin flechas direccionales)")
+                // NOTA: la generación de zones a lo largo de la ruta vive en
+                // `.onReceive(routeManager.$allScoredRoutes)` más abajo — evita
+                // disparar updateZonesAlongRoutes dos veces por cada ruta nueva
+                // (una desde currentRoute, otra desde allScoredRoutes → flicker).
             } else {
                 dashPhase = 0
             }
@@ -817,16 +846,22 @@ struct EnhancedMapView: View {
             // Recomputa visibles (hasActiveRoute ahora depende de esta prop).
             recomputeVisibleAirQualityZones()
 
-            // Cuando se calculan rutas nuevas, generar círculos a lo largo
-            // de TODAS las rutas. No requerimos `showAirQualityLayer` porque
-            // el overlay ya se muestra cuando hay ruta activa.
-            guard !routes.isEmpty else { return }
+            guard !routes.isEmpty else {
+                lastScoredRoutesSignature = ""
+                return
+            }
 
-            // Obtener todos los polylines de todas las rutas.
+            // Dedupe: `allScoredRoutes` cambia varias veces durante el flujo
+            // normal (re-análisis AQI, startNavigation filtrando a la elegida).
+            // Evitamos regenerar los círculos si la firma de polylines no cambió
+            // realmente — ahorra trabajo y elimina parpadeos.
             let allPolylines = routes.map { $0.routeInfo.route.polyline }
+            let sig = allPolylines
+                .map { "\($0.pointCount)_\(Int($0.boundingMapRect.size.width))" }
+                .joined(separator: "|")
+            guard sig != lastScoredRoutesSignature else { return }
+            lastScoredRoutesSignature = sig
 
-            // Generar círculos de calidad del aire SOLO a lo largo de las rutas
-            // con espaciado dinámico.
             airQualityGridManager.updateZonesAlongRoutes(polylines: allPolylines)
 
             print("🗺️ Rutas calculadas: generando círculos de calidad del aire a lo largo de \(routes.count) rutas")
@@ -1449,12 +1484,13 @@ struct EnhancedMapView: View {
         }
 
         // Configurar cámara en modo navigation estilo Waze/Google Maps:
-        // - Seguimiento continuo de la ubicación del usuario
-        // - Heading rota con el movimiento (la ruta apunta hacia arriba)
         // - Perspectiva 3D (pitch 55°) para efecto turn-by-turn
         // - Distance cercana (350m) para detalle de la ruta
+        // - MapCamera MANUAL (NO .userLocation(...)) para conservar pitch/distance.
+        //   Un .onReceive(locationManager.$userLocation) en el Map actualiza la
+        //   posición y heading a medida que el usuario se mueve.
         if let userLocation = locationManager.userLocation {
-            withAnimation(.easeInOut(duration: 1.0)) {
+            withAnimation(.easeInOut(duration: 1.2)) {
                 camera = .camera(
                     MapCamera(
                         centerCoordinate: userLocation,
@@ -1464,23 +1500,13 @@ struct EnhancedMapView: View {
                     )
                 )
             }
-            // Tras el tween inicial, delegamos el follow+rotate al sistema nativo.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) { [self] in
-                guard isInNavigationMode else { return }
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    camera = .userLocation(followsHeading: true, fallback: .automatic)
-                }
-            }
-        } else {
-            // Sin userLocation todavía, ir directo al modo follow.
-            camera = .userLocation(followsHeading: true, fallback: .automatic)
         }
 
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
 
-        print("✅ Navegación iniciada - cámara sigue al usuario con heading (modo turn-by-turn)")
+        print("✅ Navegación iniciada - cámara 3D turn-by-turn a 350m distance / 55° pitch")
     }
 
     private func stopNavigation() {
@@ -1572,21 +1598,15 @@ struct EnhancedMapView: View {
 
     // MARK: - Trip Briefing overlay (2 pasos)
 
-    /// Renderiza el briefing de 2 pasos debajo del search bar.
-    /// Se llama desde el body con condicionales simples, lo cual
-    /// evita que SwiftUI colapse el type-check por tamaño.
+    /// Renderiza el briefing anclado al BOTTOM del mapa, arriba del tab bar.
+    /// Deja la parte alta del mapa libre para ver la ruta preview + overlays AQI.
     @ViewBuilder
     private func briefingOverlay(
         userLocation: CLLocationCoordinate2D,
         locationInfo: LocationInfo
     ) -> some View {
         VStack(spacing: 0) {
-            // Sólo espaciador para safe area — el search bar se oculta
-            // mientras el briefing está activo, así que el panel sube
-            // hasta justo debajo de la Dynamic Island / status bar.
-            Color.clear
-                .frame(height: AppConstants.safeAreaTop + 12)
-                .allowsHitTesting(false)
+            Spacer()
 
             TripBriefingContainer(
                 origin: userLocation,
@@ -1603,9 +1623,8 @@ struct EnhancedMapView: View {
             )
             .id("\(locationInfo.coordinate.latitude)_\(locationInfo.coordinate.longitude)")
             .padding(.horizontal, 12)
-            .transition(.move(edge: .top).combined(with: .opacity))
-
-            Spacer()
+            .padding(.bottom, tabBarHeight + 12)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
