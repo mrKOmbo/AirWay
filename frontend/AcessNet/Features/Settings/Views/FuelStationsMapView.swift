@@ -146,7 +146,7 @@ struct FuelStationsMapView: View {
                 .presentationDetents([.fraction(0.18), .fraction(0.45), .large], selection: $sheetDetent)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.45)))
                 .presentationDragIndicator(.visible)
-                .presentationBackground(.ultraThinMaterial)
+                .presentationBackground(theme.pageBackground)
                 .interactiveDismissDisabled()
         }
     }
@@ -229,7 +229,7 @@ struct FuelStationsMapView: View {
                     .font(.system(size: 15, weight: .heavy))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)
-                    .background(Circle().fill(.black.opacity(0.55)))
+                    .background(Circle().fill(.black.opacity(0.78)))
                     .overlay(Circle().stroke(.white.opacity(0.1), lineWidth: 1))
             }
 
@@ -246,7 +246,7 @@ struct FuelStationsMapView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(Capsule().fill(.black.opacity(0.55)))
+            .background(Capsule().fill(.black.opacity(0.78)))
             .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
 
             Spacer()
@@ -272,10 +272,11 @@ struct FuelStationsMapView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(Capsule().fill(.black.opacity(0.55)))
+                .background(Capsule().fill(.black.opacity(0.78)))
                 .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
             }
         }
+        .shadow(color: .black.opacity(0.25), radius: 12, y: 3)
     }
 
     private func fuelDot(_ t: FuelType) -> Color {
@@ -367,11 +368,11 @@ struct FuelStationsMapView: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(.black.opacity(0.7))
+                    .fill(.black.opacity(0.88))
                     .overlay(
                         Capsule().stroke(
                             LinearGradient(
-                                colors: [Color(hex: "#FBBF24"), Color(hex: "#F59E0B").opacity(0.4)],
+                                colors: [Color(hex: "#FBBF24"), Color(hex: "#F59E0B").opacity(0.5)],
                                 startPoint: .leading, endPoint: .trailing
                             ),
                             lineWidth: 1.5
@@ -387,8 +388,6 @@ struct FuelStationsMapView: View {
 
     private var stationsBottomSheet: some View {
         ZStack {
-            Color.black.opacity(0.35).ignoresSafeArea()
-
             VStack(alignment: .leading, spacing: 14) {
                 if let sel = vm.selectedStation {
                     selectedStationDetail(sel)
@@ -448,11 +447,16 @@ struct FuelStationsMapView: View {
                     }
                 } label: {
                     Text("\(Int(km)) km")
-                        .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(vm.radiusKm == km ? .black : theme.textTint.opacity(0.7))
-                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(vm.radiusKm == km ? .white : theme.textTint.opacity(0.75))
+                        .padding(.horizontal, 14).padding(.vertical, 7)
                         .background(
-                            Capsule().fill(vm.radiusKm == km ? Color.white : theme.textTint.opacity(0.08))
+                            Capsule()
+                                .fill(vm.radiusKm == km ? theme.textTint : theme.textTint.opacity(0.08))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(vm.radiusKm == km ? .clear : theme.textTint.opacity(0.15), lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -781,10 +785,10 @@ struct StationListRow: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(brandColor(station.brand).opacity(0.25))
-                    .frame(width: 38, height: 38)
+                    .fill(brandColor(station.brand).opacity(0.22))
+                    .frame(width: 42, height: 42)
                 Image(systemName: "fuelpump.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(brandColor(station.brand))
                 if isCheapest {
                     Image(systemName: "star.fill")
@@ -792,20 +796,29 @@ struct StationListRow: View {
                         .foregroundColor(.black)
                         .padding(3)
                         .background(Circle().fill(Color(hex: "#FBBF24")))
-                        .offset(x: 13, y: -13)
+                        .offset(x: 15, y: -15)
+                        .shadow(color: Color(hex: "#FBBF24").opacity(0.5), radius: 3)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
                     Text(station.brand)
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(.system(size: 14, weight: .heavy))
                         .foregroundColor(theme.textTint)
+                    if isCheapest {
+                        Text("MÁS BARATA")
+                            .font(.system(size: 8, weight: .heavy))
+                            .tracking(0.6)
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Capsule().fill(Color(hex: "#FBBF24")))
+                    }
                     Text("·")
                         .foregroundColor(theme.textTint.opacity(0.3))
                     Text(station.distanceKmFormatted)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(theme.textTint.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                 }
                 Text(station.address)
                     .font(.system(size: 10))
@@ -813,34 +826,43 @@ struct StationListRow: View {
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: 3) {
                 Text(station.priceFormatted)
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .foregroundColor(priceColor)
                     .monospacedDigit()
                 if let s = station.savingsFormatted {
                     Text(s)
                         .font(.system(size: 9, weight: .heavy))
-                        .foregroundColor(Color(hex: "#34D399"))
+                        .foregroundColor(Color(hex: "#15803D"))
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(
+                            Capsule().fill(Color(hex: "#34D399").opacity(0.22))
+                        )
                 }
             }
         }
-        .padding(10)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(isSelected ? theme.textTint.opacity(0.14) : theme.textTint.opacity(0.05))
+                .fill(
+                    isCheapest
+                        ? Color(hex: "#FBBF24").opacity(0.10)
+                        : (isSelected ? theme.textTint.opacity(0.10) : theme.cardColor)
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
                     isCheapest
-                        ? Color(hex: "#FBBF24").opacity(0.6)
-                        : (isSelected ? .white.opacity(0.3) : theme.textTint.opacity(0.08)),
+                        ? Color(hex: "#F59E0B").opacity(0.55)
+                        : (isSelected ? theme.textTint.opacity(0.25) : theme.textTint.opacity(0.08)),
                     lineWidth: isCheapest ? 1.5 : 1
                 )
         )
+        .shadow(color: isCheapest ? Color(hex: "#FBBF24").opacity(0.15) : .clear, radius: 6, y: 2)
     }
 
     private func brandColor(_ b: String) -> Color {

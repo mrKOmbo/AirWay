@@ -63,13 +63,13 @@ struct CompareModesPreviewCard: View {
                     ))
                     .frame(width: 28, height: 28)
                 Image(systemName: "arrow.triangle.branch")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("Compara modos")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(theme.textTint)
                     .lineLimit(1)
                 Text("4 opciones · IA")
@@ -81,7 +81,7 @@ struct CompareModesPreviewCard: View {
             Spacer(minLength: 2)
 
             Text("3")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(theme.textTint.opacity(0.55))
                 .padding(.horizontal, 5).padding(.vertical, 2)
                 .background(Capsule().fill(theme.textTint.opacity(0.1)))
@@ -100,15 +100,15 @@ struct CompareModesPreviewCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 4) {
                         Text("RECOMENDADO")
-                            .font(.system(size: 7, weight: .heavy))
+                            .font(.system(size: 7, weight: .semibold))
                             .tracking(0.8)
                             .foregroundColor(Color(hex: "#FBBF24"))
                         Image(systemName: "sparkles")
-                            .font(.system(size: 7, weight: .heavy))
+                            .font(.system(size: 7, weight: .semibold))
                             .foregroundColor(Color(hex: "#FBBF24"))
                     }
                     Text(rec.displayName)
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
@@ -117,11 +117,11 @@ struct CompareModesPreviewCard: View {
 
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(rec.durationFormatted)
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundColor(theme.textTint)
                         .monospacedDigit()
                     Text(rec.costFormatted)
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundColor(Color(hex: "#34D399"))
                         .monospacedDigit()
                 }
@@ -165,32 +165,32 @@ struct CompareModesPreviewCard: View {
                 Text(mode.emoji)
                     .font(.system(size: 13))
                 Text(mode.mode.capitalized)
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(theme.textTint.opacity(0.85))
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if isRecommended {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 7, weight: .heavy))
+                        .font(.system(size: 7, weight: .semibold))
                         .foregroundColor(Color(hex: "#FBBF24"))
                 }
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text("\(Int(mode.durationMin))")
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text("min")
-                    .font(.system(size: 7, weight: .heavy))
+                    .font(.system(size: 7, weight: .semibold))
                     .foregroundColor(theme.textTint.opacity(0.5))
             }
 
             HStack(spacing: 2) {
                 Image(systemName: "pesosign.circle.fill")
-                    .font(.system(size: 7, weight: .heavy))
+                    .font(.system(size: 7, weight: .semibold))
                 Text("\(Int(mode.totalCostMxn))")
-                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .monospacedDigit()
             }
             .foregroundColor(costColor(mode.totalCostMxn, max: maxCost))
@@ -235,12 +235,12 @@ struct CompareModesPreviewCard: View {
     private var footerCTA: some View {
         HStack(spacing: 4) {
             Image(systemName: "chart.bar.horizontal.page.fill")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
             Text("Ver comparación completa")
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 10, weight: .semibold))
             Spacer()
             Image(systemName: "arrow.up.right")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
         }
         .foregroundColor(theme.textTint)
         .padding(.horizontal, 9).padding(.vertical, 7)

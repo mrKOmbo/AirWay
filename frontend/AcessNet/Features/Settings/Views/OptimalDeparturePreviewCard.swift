@@ -75,13 +75,13 @@ struct OptimalDeparturePreviewCard: View {
                     ))
                     .frame(width: 28, height: 28)
                 Image(systemName: "clock.badge.checkmark.fill")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("Mejor momento")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(theme.textTint)
                     .lineLimit(1)
                 Text("\(windows.count) ventanas · 6h")
@@ -93,7 +93,7 @@ struct OptimalDeparturePreviewCard: View {
             Spacer(minLength: 2)
 
             Text("4")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(theme.textTint.opacity(0.55))
                 .padding(.horizontal, 5).padding(.vertical, 2)
                 .background(Capsule().fill(theme.textTint.opacity(0.1)))
@@ -107,9 +107,9 @@ struct OptimalDeparturePreviewCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 8, weight: .heavy))
+                        .font(.system(size: 8, weight: .semibold))
                     Text("HORA ÓPTIMA")
-                        .font(.system(size: 8, weight: .heavy))
+                        .font(.system(size: 8, weight: .semibold))
                         .tracking(1.0)
                 }
                 .foregroundColor(Color(hex: "#FBBF24"))
@@ -126,7 +126,7 @@ struct OptimalDeparturePreviewCard: View {
             VStack(alignment: .trailing, spacing: 2) {
                 scoreBadge(Int(best.score))
                 Text("AQI \(best.aqi)")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(aqiColor(best.aqi))
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(Capsule().fill(aqiColor(best.aqi).opacity(0.15)))
@@ -153,11 +153,11 @@ struct OptimalDeparturePreviewCard: View {
     private func scoreBadge(_ score: Int) -> some View {
         HStack(spacing: 2) {
             Text("\(score)")
-                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(theme.textTint)
             Text("/100")
-                .font(.system(size: 7, weight: .heavy))
+                .font(.system(size: 7, weight: .semibold))
                 .foregroundColor(theme.textTint.opacity(0.5))
         }
     }
@@ -205,7 +205,7 @@ struct OptimalDeparturePreviewCard: View {
                 Spacer()
                 Text(windows.last?.hour ?? "")
             }
-            .font(.system(size: 7, weight: .heavy))
+            .font(.system(size: 7, weight: .semibold))
             .foregroundColor(theme.textTint.opacity(0.4))
             .monospacedDigit()
         }
@@ -252,14 +252,14 @@ struct OptimalDeparturePreviewCard: View {
     private func savingTile(icon: String, value: String, label: String, color: Color) -> some View {
         VStack(spacing: 2) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundColor(theme.textTint)
                 .monospacedDigit()
             Text(label.uppercased())
-                .font(.system(size: 7, weight: .heavy))
+                .font(.system(size: 7, weight: .semibold))
                 .tracking(0.5)
                 .foregroundColor(theme.textTint.opacity(0.5))
         }
@@ -271,12 +271,12 @@ struct OptimalDeparturePreviewCard: View {
     private var footerCTA: some View {
         HStack(spacing: 4) {
             Image(systemName: "chart.xyaxis.line")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
             Text("Analizar 12 ventanas")
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 10, weight: .semibold))
             Spacer()
             Image(systemName: "arrow.up.right")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 9, weight: .semibold))
         }
         .foregroundColor(theme.textTint)
         .padding(.horizontal, 9).padding(.vertical, 7)

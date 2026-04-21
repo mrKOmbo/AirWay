@@ -34,7 +34,7 @@ struct SearchBarView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Icono con avatar glass
+            // Icono con avatar glass — usa theme.textTint para contraste en fondos claros.
             ZStack {
                 Circle()
                     .fill(
@@ -44,13 +44,13 @@ struct SearchBarView: View {
                                          Color(hex: "#1E40AF").opacity(0.9)],
                                 startPoint: .topLeading, endPoint: .bottomTrailing)
                             : LinearGradient(
-                                colors: [.white.opacity(0.12), .white.opacity(0.06)],
+                                colors: [theme.textTint.opacity(0.20), theme.textTint.opacity(0.10)],
                                 startPoint: .top, endPoint: .bottom)
                     )
                     .frame(width: 32, height: 32)
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(theme.textTint)
+                    .foregroundColor(isFocused ? .white : theme.textTint)
             }
             .shadow(
                 color: isFocused ? Color(hex: "#3B82F6").opacity(0.5) : .clear,
@@ -58,13 +58,14 @@ struct SearchBarView: View {
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFocused)
 
-            // Campo de texto
+            // Campo de texto — blanco fijo para máximo contraste sobre el mapa
+            // (independiente del tema del clima para lecturabilidad universal).
             TextField(placeholder, text: $searchText, prompt:
                 Text(placeholder)
-                    .foregroundColor(theme.textTint.opacity(0.4))
+                    .foregroundColor(.white.opacity(0.7))
             )
             .font(.system(size: 15, weight: .heavy))
-            .foregroundColor(theme.textTint)
+            .foregroundColor(.white)
             .tint(Color(hex: "#3B82F6"))
             .focused($isFocused)
             .submitLabel(.search)

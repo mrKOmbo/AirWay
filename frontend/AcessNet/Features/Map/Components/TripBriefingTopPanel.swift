@@ -75,14 +75,14 @@ struct TripBriefingTopPanel: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text("DESTINO")
-                        .font(.caption2.bold())
+                        .font(.caption2.weight(.semibold))
                         .tracking(1.5)
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Color.black.opacity(0.55))
                     Spacer()
                 }
                 Text(viewModel.destinationTitle)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.black.opacity(0.88))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
@@ -115,18 +115,18 @@ struct TripBriefingTopPanel: View {
     private func metricChip(icon: String, text: String, tint: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(tint)
             Text(text)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.92))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.black.opacity(0.82))
                 .monospacedDigit()
                 .lineLimit(1)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Capsule().fill(Color.white.opacity(0.08)))
-        .overlay(Capsule().stroke(tint.opacity(0.25), lineWidth: 0.5))
+        .background(Capsule().fill(Color.black.opacity(0.05)))
+        .overlay(Capsule().stroke(tint.opacity(0.35), lineWidth: 0.5))
     }
 
     private var actions: some View {
@@ -164,11 +164,11 @@ struct TripBriefingTopPanel: View {
                 isExpanded.toggle()
             } label: {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.82))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.black.opacity(0.7))
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(.white.opacity(0.12)))
-                    .overlay(Circle().stroke(.white.opacity(0.16), lineWidth: 0.6))
+                    .background(Circle().fill(Color.black.opacity(0.06)))
+                    .overlay(Circle().stroke(Color.black.opacity(0.1), lineWidth: 0.6))
                     .rotation3DEffect(
                         .degrees(isExpanded ? 180 : 0),
                         axis: (x: 1, y: 0, z: 0)
@@ -180,11 +180,11 @@ struct TripBriefingTopPanel: View {
             // Cerrar
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.black.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(Circle().fill(.white.opacity(0.10)))
-                    .overlay(Circle().stroke(.white.opacity(0.14), lineWidth: 0.6))
+                    .background(Circle().fill(Color.black.opacity(0.06)))
+                    .overlay(Circle().stroke(Color.black.opacity(0.1), lineWidth: 0.6))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Cerrar briefing")
@@ -295,16 +295,16 @@ struct TripBriefingTopPanel: View {
 
     private func secondaryIconBadge(icon: String) -> some View {
         Image(systemName: icon)
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white.opacity(0.85))
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Color.black.opacity(0.72))
             .frame(width: 46, height: 46)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(0.10))
+                    .fill(Color.black.opacity(0.06))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 0.6)
+                    .stroke(Color.black.opacity(0.12), lineWidth: 0.6)
             )
     }
 
@@ -346,20 +346,20 @@ struct TripBriefingTopPanel: View {
 
     private func loadingPlaceholder(title: String) -> some View {
         VStack(spacing: 12) {
-            ProgressView().tint(.white)
+            ProgressView().tint(Color.black.opacity(0.6))
             Text(title)
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.65))
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Color.black.opacity(0.65))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(theme.cardColor.opacity(0.6))
+                .fill(Color.black.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 0.6)
+                .stroke(Color.black.opacity(0.1), lineWidth: 0.6)
         )
     }
 
@@ -397,15 +397,17 @@ struct TripBriefingTopPanel: View {
         }
     }
 
-    // MARK: - Panel chrome (glass)
+    // MARK: - Panel chrome (glass blanco estilo Apple Maps)
 
     private var panelBackground: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(theme.pageBackground.opacity(0.88))
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
+        ZStack {
+            // Base blanca semi-opaca para textos oscuros legibles.
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.82))
+            // Material blur para efecto glass sobre el mapa.
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.regularMaterial)
+        }
     }
 
     private var panelBorder: some View {

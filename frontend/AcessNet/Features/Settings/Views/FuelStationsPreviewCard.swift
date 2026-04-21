@@ -41,7 +41,6 @@ struct FuelStationsPreviewCard: View {
                 topListSection
             }
             statsBar
-            expandButton
         }
         .padding(14)
         .background(
@@ -70,14 +69,14 @@ struct FuelStationsPreviewCard: View {
                     ))
                     .frame(width: 36, height: 36)
                 Image(systemName: "fuelpump.fill")
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text("Gasolineras cerca")
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(theme.textTint)
                     livePill
                 }
@@ -87,7 +86,7 @@ struct FuelStationsPreviewCard: View {
             }
             Spacer()
             Text("2")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 11, weight: .semibold))
                 .monospacedDigit()
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(theme.textTint.opacity(0.1))
@@ -104,7 +103,7 @@ struct FuelStationsPreviewCard: View {
                 .scaleEffect(pulseLive ? 1.5 : 1.0)
                 .opacity(pulseLive ? 0.4 : 1.0)
             Text("LIVE")
-                .font(.system(size: 8, weight: .heavy))
+                .font(.system(size: 8, weight: .semibold))
                 .tracking(0.8)
                 .foregroundColor(.green)
         }
@@ -179,10 +178,10 @@ struct FuelStationsPreviewCard: View {
 
     private var loadingChip: some View {
         HStack(spacing: 6) {
-            ProgressView().tint(theme.textTint).scaleEffect(0.6)
+            ProgressView().tint(.white).scaleEffect(0.6)
             Text("Cargando…")
-                .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(theme.textTint)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white)
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Capsule().fill(.black.opacity(0.7)))
@@ -193,14 +192,14 @@ struct FuelStationsPreviewCard: View {
         Button(action: onExpand) {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                 Text("Expandir")
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(.system(size: 10, weight: .semibold))
             }
-            .foregroundColor(theme.textTint)
+            .foregroundColor(.white)
             .padding(.horizontal, 8).padding(.vertical, 5)
             .background(Capsule().fill(.black.opacity(0.75)))
-            .overlay(Capsule().stroke(theme.textTint.opacity(0.2), lineWidth: 1))
+            .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .padding(8)
@@ -219,18 +218,18 @@ struct FuelStationsPreviewCard: View {
                         ))
                         .frame(width: 50, height: 50)
                     Image(systemName: "star.fill")
-                        .font(.system(size: 20, weight: .heavy))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(theme.textTint)
                 }
                 .shadow(color: Color(hex: "#FBBF24").opacity(0.6), radius: 8)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("MÁS BARATA")
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(.system(size: 9, weight: .semibold))
                         .tracking(1.2)
                         .foregroundColor(Color(hex: "#FBBF24"))
                     Text(s.brand)
-                        .font(.system(size: 16, weight: .heavy))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(theme.textTint)
                         .lineLimit(1)
                     HStack(spacing: 6) {
@@ -246,7 +245,7 @@ struct FuelStationsPreviewCard: View {
 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(s.priceFormatted)
-                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
                         .foregroundColor(theme.textTint)
                         .monospacedDigit()
                         .shadow(color: Color(hex: "#FBBF24").opacity(0.5), radius: 6)
@@ -255,7 +254,7 @@ struct FuelStationsPreviewCard: View {
                             Image(systemName: "arrow.down.right.circle.fill")
                                 .font(.system(size: 9, weight: .bold))
                             Text(savings)
-                                .font(.system(size: 10, weight: .heavy))
+                                .font(.system(size: 10, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: "#34D399"))
                     } else {
@@ -298,7 +297,7 @@ struct FuelStationsPreviewCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("OTRAS CERCANAS")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .tracking(1.2)
                     .foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
@@ -328,7 +327,7 @@ struct FuelStationsPreviewCard: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(s.brand)
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(theme.textTint)
                     .lineLimit(1)
                 Text("\(s.distanceKmFormatted) · \(s.address)")
@@ -340,7 +339,7 @@ struct FuelStationsPreviewCard: View {
             Spacer(minLength: 4)
 
             Text(s.priceFormatted)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(vm.priceColor(for: s))
                 .monospacedDigit()
         }
@@ -389,12 +388,12 @@ struct FuelStationsPreviewCard: View {
                     .font(.system(size: 8, weight: .bold))
                     .foregroundColor(color.opacity(0.7))
                 Text(label.uppercased())
-                    .font(.system(size: 8, weight: .heavy))
+                    .font(.system(size: 8, weight: .semibold))
                     .tracking(0.6)
                     .foregroundColor(theme.textTint.opacity(0.5))
             }
             Text(value)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(color)
                 .monospacedDigit()
         }
@@ -416,12 +415,12 @@ struct FuelStationsPreviewCard: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "map.fill")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 13, weight: .semibold))
                 Text("Ver mapa completo")
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 14, weight: .semibold))
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
             }
             .foregroundColor(theme.textTint)
             .padding(.horizontal, 14).padding(.vertical, 13)
@@ -495,12 +494,12 @@ struct MiniMapPin: View {
                 HStack(spacing: 2) {
                     if isCheapest {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 7, weight: .heavy))
+                            .font(.system(size: 7, weight: .semibold))
                             .foregroundColor(Color(hex: "#FBBF24"))
                     }
                     Text(station.priceFormatted)
-                        .font(.system(size: isCheapest ? 10 : 9, weight: .heavy, design: .rounded))
-                        .foregroundColor(theme.textTint)
+                        .font(.system(size: isCheapest ? 10 : 9, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
                         .monospacedDigit()
                 }
                 .padding(.horizontal, isCheapest ? 7 : 5)

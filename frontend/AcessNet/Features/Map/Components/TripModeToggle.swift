@@ -21,46 +21,14 @@ struct TripModeToggle: View {
         }
         .padding(4)
         .background(
-            ZStack {
-                // CAPA 1: material base translúcido
-                Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-
-                // CAPA 2: tint oscuro sutil para contraste sobre mapa
-                Capsule(style: .continuous)
-                    .fill(Color.black.opacity(0.28))
-
-                // CAPA 3: gradiente refracción (liquid glass)
-                Capsule(style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0.18),
-                                .clear,
-                                .white.opacity(0.10)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
+            Capsule(style: .continuous)
+                .fill(Color.black.opacity(0.06))
         )
         .overlay(
             Capsule(style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(0.45),
-                            .white.opacity(0.10),
-                            theme.accent.opacity(0.25)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+                .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.6)
         )
-        .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
+        .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: mode)
     }
 
@@ -96,11 +64,11 @@ struct TripModeToggle: View {
 
                 HStack(spacing: 8) {
                     Image(systemName: m.icon)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold))
                     Text(m.title)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
                 }
-                .foregroundStyle(active ? Color.black.opacity(0.85) : Color.white.opacity(0.72))
+                .foregroundStyle(active ? Color.white : Color.black.opacity(0.72))
                 .padding(.vertical, 9)
                 .padding(.horizontal, 18)
             }

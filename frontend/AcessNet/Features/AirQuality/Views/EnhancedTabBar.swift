@@ -52,11 +52,13 @@ struct EnhancedTabBar: View {
     let tabs: [MainTabView.Tab] = [.home, .map, .fuel, .health, .body, .settings]
 
     // MARK: - Colores adaptativos (AirWay light vs. temas de clima oscuros)
+    // En AirWay usamos navy sólido (mismo color que la lupa del header) para
+    // que los íconos sean legibles sobre el fondo casi blanco.
     private var iconActiveColor: Color {
         theme.isAirWay ? Color(hex: "#0A1D4D") : .white
     }
     private var iconInactiveColor: Color {
-        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.45) : .white.opacity(0.4)
+        theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.7) : .white.opacity(0.4)
     }
     private var pillFill: Color {
         theme.isAirWay ? Color(hex: "#0A1D4D").opacity(0.08) : .white.opacity(0.12)

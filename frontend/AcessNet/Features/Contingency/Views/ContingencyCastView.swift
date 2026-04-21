@@ -95,7 +95,6 @@ struct ContingencyCastView: View {
         }
         .navigationTitle("ContingencyCast")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
             await loadForecast()
         }
@@ -140,7 +139,11 @@ struct ContingencyCastView: View {
             Text("Probabilidad de Contingencia")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(
-                    LinearGradient(colors: [.white, .white.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(
+                        colors: [theme.textTint, theme.textTint.opacity(0.78)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
 
             HStack(spacing: 4) {

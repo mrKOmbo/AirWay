@@ -37,15 +37,11 @@ struct VersusBar: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#0A0A0F").opacity(0.75))
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
+                .fill(Color.black.opacity(0.05))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 0.6)
+                .stroke(Color.black.opacity(0.1), lineWidth: 0.6)
         )
     }
 
@@ -60,19 +56,19 @@ struct VersusBar: View {
     ) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(active ? tint : Color.white.opacity(0.58))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(active ? tint : Color.black.opacity(0.55))
                 .frame(width: 18)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(Color.black.opacity(0.08))
                         .frame(height: 6)
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             LinearGradient(
-                                colors: [tint.opacity(active ? 1 : 0.5), tint.opacity(active ? 0.55 : 0.25)],
+                                colors: [tint.opacity(active ? 1 : 0.55), tint.opacity(active ? 0.65 : 0.3)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -84,8 +80,8 @@ struct VersusBar: View {
             .frame(height: 6)
 
             Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(active ? Color.white : Color.white.opacity(0.68))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(active ? Color.black.opacity(0.88) : Color.black.opacity(0.6))
                 .monospacedDigit()
                 .frame(minWidth: 180, alignment: .trailing)
                 .lineLimit(1)

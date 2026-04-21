@@ -17,6 +17,10 @@ struct NavigationPanel: View {
     let distanceToManeuver: Double
     let onEndNavigation: () -> Void
 
+    /// Singleton observable — el navegador se entera de live stats sin polling.
+    /// Asignación por default para mantener el panel "dumb" desde el caller.
+    @ObservedObject private var telemetry: DrivingTelemetryService = .shared
+
     var body: some View {
         VStack(spacing: 12) {
             // Top: Instrucción actual
@@ -67,6 +71,11 @@ struct NavigationPanel: View {
                 )
             }
 
+            // Live telemetría — solo visible si hay grabación activa.
+            if telemetry.isRecording {
+                telemetryLiveRow
+            }
+
             NavigationProgressBar(
                 progress: navigationState.progress,
                 distanceRemaining: navigationState.distanceRemaining,
@@ -91,6 +100,97 @@ struct NavigationPanel: View {
         .shadow(color: .black.opacity(0.55), radius: 20, y: -6)
         .padding(.horizontal)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    // MARK: - Telemetry Live Row
+
+    /// Fila compacta con stats en vivo de la grabación del viaje.
+    /// REC · km/h · km · min · eventos bruscos.
+    private var telemetryLiveRow: some View {
+        HStack(spacing: 10) {
+            // REC badge con dot rojo pulsante
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color(hex: "#EF4444"))
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Color(hex: "#EF4444").opacity(0.7), radius: 4)
+                Text("REC")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundColor(Color(hex: "#EF4444"))
+            }
+
+            Rectangle().fill(theme.textTint.opacity(0.12)).frame(width: 1, height: 14)
+
+            // Velocidad
+            telemetryStat(
+                icon: "speedometer",
+                value: String(format: "%.0f", telemetry.liveStats.speedKmh),
+                unit: "km/h"
+            )
+
+            telemetrySeparator
+
+            // Distancia
+            telemetryStat(
+                icon: "arrow.left.and.right",
+                value: String(format: "%.1f", telemetry.liveStats.distanceKm),
+                unit: "km"
+            )
+
+            telemetrySeparator
+
+            // Duración
+            telemetryStat(
+                icon: "clock.fill",
+                value: String(format: "%.0f", telemetry.liveStats.durationMin),
+                unit: "min"
+            )
+
+            // Harsh events (solo si hay >0, para no saturar)
+            if telemetry.liveStats.harshEvents > 0 {
+                telemetrySeparator
+                HStack(spacing: 3) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(Color(hex: "#FBBF24"))
+                    Text("\(telemetry.liveStats.harshEvents)")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundColor(Color(hex: "#FBBF24"))
+                        .monospacedDigit()
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(hex: "#EF4444").opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color(hex: "#EF4444").opacity(0.25), lineWidth: 0.8)
+        )
+    }
+
+    private var telemetrySeparator: some View {
+        Rectangle().fill(theme.textTint.opacity(0.08)).frame(width: 1, height: 12)
+    }
+
+    private func telemetryStat(icon: String, value: String, unit: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .heavy))
+                .foregroundColor(theme.textTint.opacity(0.55))
+            Text(value)
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundColor(theme.textTint)
+                .monospacedDigit()
+            Text(unit)
+                .font(.system(size: 8, weight: .heavy))
+                .foregroundColor(theme.textTint.opacity(0.45))
+        }
     }
 }
 

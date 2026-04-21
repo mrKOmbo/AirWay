@@ -58,23 +58,23 @@ struct DrivingBriefingCard: View {
             ZStack {
                 Circle()
                     .fill(LinearGradient(
-                        colors: [Color(hex: "#3AA3FF").opacity(0.55), Color(hex: "#3AA3FF").opacity(0.12)],
+                        colors: [Color(hex: "#3AA3FF"), Color(hex: "#3AA3FF").opacity(0.7)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
                     .frame(width: 34, height: 34)
                 Image(systemName: "car.fill")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("EN COCHE")
-                    .font(.caption2.bold())
+                    .font(.caption2.weight(.semibold))
                     .tracking(1.8)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Color.black.opacity(0.5))
                 Text("\(briefing.durationLabel) · \(briefing.distanceLabel)")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.black.opacity(0.85))
                     .monospacedDigit()
             }
             Spacer()
@@ -86,14 +86,14 @@ struct DrivingBriefingCard: View {
         HStack(spacing: 4) {
             Circle().fill(aqiColor).frame(width: 6, height: 6)
             Text("AQI \(Int(briefing.aqiRouteAvg ?? 0))")
-                .font(.caption.bold())
+                .font(.caption.weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.82))
+                .foregroundStyle(Color.black.opacity(0.75))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Capsule().fill(.white.opacity(0.08)))
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.5))
+        .background(Capsule().fill(Color.black.opacity(0.05)))
+        .overlay(Capsule().stroke(aqiColor.opacity(0.4), lineWidth: 0.5))
     }
 
     // MARK: - Cost hero
@@ -127,20 +127,15 @@ struct DrivingBriefingCard: View {
     private func costReady(estimate: FuelEstimate) -> some View {
         VStack(spacing: 4) {
             Text(estimate.pesosFormatted)
-                .font(.system(size: 48, weight: .heavy, design: .rounded))
+                .font(.system(size: 48, weight: .semibold, design: .rounded))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [.white, Color(hex: "#7ED957").opacity(0.85)],
+                        colors: [Color(hex: "#2E7D32"), Color(hex: "#4CAF50")],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .monospacedDigit()
-                .modifier(MulticolorGlowModifier(
-                    colors: [Color(hex: "#7ED957"), Color(hex: "#3AA3FF").opacity(0.6), .white.opacity(0.3)],
-                    radius: 14,
-                    intensity: 0.85
-                ))
                 .contentTransition(.numericText(value: estimate.pesosCost))
 
             HStack(spacing: 6) {
@@ -149,7 +144,7 @@ struct DrivingBriefingCard: View {
                 if let v = vehicle { Text(v.displayName) } else { Text("estimado") }
             }
             .font(.caption.weight(.medium))
-            .foregroundStyle(.white.opacity(0.65))
+            .foregroundStyle(Color.black.opacity(0.62))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)
@@ -165,7 +160,7 @@ struct DrivingBriefingCard: View {
             .foregroundStyle(Color(hex: "#FF8C42"))
             Text(message)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(Color.black.opacity(0.5))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
             if let retry = onRetry {
@@ -178,11 +173,11 @@ struct DrivingBriefingCard: View {
                         Text("Reintentar")
                     }
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.black.opacity(0.78))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Capsule().fill(Color.white.opacity(0.12)))
-                    .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.6))
+                    .background(Capsule().fill(Color.black.opacity(0.06)))
+                    .overlay(Capsule().stroke(Color.black.opacity(0.14), lineWidth: 0.6))
                 }
                 .buttonStyle(.plain)
             }
@@ -215,7 +210,7 @@ struct DrivingBriefingCard: View {
             if let estimate = briefing.fuel.value {
                 Text(estimate.co2Formatted + " CO₂")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Color.black.opacity(0.5))
                     .monospacedDigit()
             }
         }
@@ -244,17 +239,17 @@ struct DrivingBriefingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Agrega tu vehículo")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.black.opacity(0.85))
                     Text("Para ver costo real, estaciones y mejor hora de salida")
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.60))
+                        .foregroundStyle(Color.black.opacity(0.58))
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Color.black.opacity(0.42))
             }
             .padding(12)
             .background(
@@ -294,7 +289,7 @@ struct DrivingBriefingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Mejor hora: \(best.departTimeLabel)")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.black.opacity(0.85))
                     if let s = savings, s.pesos > 0 {
                         Text("Ahorras $\(Int(s.pesos)) + \(Int(s.minutes)) min")
                             .font(.caption2)
@@ -302,13 +297,13 @@ struct DrivingBriefingCard: View {
                     } else {
                         Text("Salir ahora también está bien")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(Color.black.opacity(0.58))
                     }
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Color.black.opacity(0.42))
             }
             .padding(12)
             .background(subModuleBackground(tint: Color(hex: "#3AA3FF")))
@@ -342,26 +337,26 @@ struct DrivingBriefingCard: View {
                     HStack(spacing: 4) {
                         Text(station.brand)
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.black.opacity(0.85))
                         Text(station.priceFormatted)
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(Color(hex: "#7ED957"))
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color(hex: "#2E7D32"))
                             .monospacedDigit()
                     }
                     if let s = station.savingsFormatted {
                         Text("\(s) · \(station.distanceKmFormatted)")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(Color.black.opacity(0.58))
                     } else {
                         Text(station.distanceKmFormatted)
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(Color.black.opacity(0.58))
                     }
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Color.black.opacity(0.42))
             }
             .padding(12)
             .background(subModuleBackground(tint: brandColor(station.brand)))
@@ -389,15 +384,15 @@ struct DrivingBriefingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(estimate.co2Formatted) de CO₂")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.black.opacity(0.85))
                     if let trees = briefing.treesPerDayToOffset, trees > 0 {
                         Text("≈ \(trees) árboles/día para compensar")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(Color.black.opacity(0.58))
                     } else {
                         Text("Huella baja en este trayecto")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(Color.black.opacity(0.58))
                     }
                 }
                 Spacer()
@@ -418,16 +413,16 @@ struct DrivingBriefingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(briefing.cabinCigarettes.map { String(format: "%.2f", $0) } ?? "—")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(.white)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.black.opacity(0.85))
                             .monospacedDigit()
                         Text("🚬 en cabina")
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(Color.black.opacity(0.82))
                     }
                     Text("Ventanas cerradas · filtro estándar")
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Color.black.opacity(0.5))
                 }
                 Spacer()
             }
@@ -464,7 +459,7 @@ struct DrivingBriefingCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(Color.black.opacity(0.72))
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.white.opacity(0.09))
                     .frame(height: 10)
@@ -481,7 +476,7 @@ struct DrivingBriefingCard: View {
             iconBadge(system: icon, tint: Color(hex: "#FF8C42"))
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Color.black.opacity(0.72))
             Spacer()
         }
         .padding(12)
@@ -503,27 +498,12 @@ struct DrivingBriefingCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(theme.cardColor.opacity(0.92))
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
+            .fill(Color.black.opacity(0.04))
     }
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        .white.opacity(0.18),
-                        .white.opacity(0.04),
-                        Color(hex: "#3AA3FF").opacity(0.22)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: 1
-            )
+            .stroke(Color.black.opacity(0.1), lineWidth: 0.6)
     }
 }
 

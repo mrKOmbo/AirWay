@@ -37,7 +37,10 @@ struct VehicleProfilePreviewCard: View {
 
             if let active = active {
                 miniStage(for: active)
-                activeInfoRow(active)
+                // NOTA: `activeInfoRow(active)` se retiró — duplicaba la
+                // información que ya muestra `activeVehicleCard` del hub
+                // (Mi Lada · Magna · placa · km/L). Se mantiene el helper
+                // abajo por si se vuelve a usar en otro contexto.
                 if Vehicle3DAsset.forProfile(active) == .sedan, onConnectOBD != nil {
                     hardwarePremiumSection
                 }
@@ -72,18 +75,18 @@ struct VehicleProfilePreviewCard: View {
                     ))
                     .frame(width: 36, height: 36)
                 Image(systemName: "car.side.fill")
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text("Mi vehículo")
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(theme.textTint)
                     if !service.savedProfiles.isEmpty {
                         Text("\(service.savedProfiles.count)")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(theme.textTint)
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .background(Capsule().fill(theme.textTint.opacity(0.15)))
@@ -95,7 +98,7 @@ struct VehicleProfilePreviewCard: View {
             }
             Spacer()
             Text("1")
-                .font(.system(size: 11, weight: .heavy))
+                .font(.system(size: 11, weight: .semibold))
                 .monospacedDigit()
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(theme.textTint.opacity(0.1))
@@ -123,78 +126,77 @@ struct VehicleProfilePreviewCard: View {
             }) {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(.system(size: 9, weight: .semibold))
                     Text("Expandir")
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 10, weight: .semibold))
                 }
-                .foregroundColor(theme.textTint)
+                .foregroundColor(.white)
                 .padding(.horizontal, 8).padding(.vertical, 5)
                 .background(Capsule().fill(.black.opacity(0.75)))
-                .overlay(Capsule().stroke(theme.textTint.opacity(0.2), lineWidth: 1))
+                .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .padding(10)
         }
     }
 
-    // MARK: - Active Info Row
+    // MARK: - Active Info Row (compacto — 2 líneas)
 
     private func activeInfoRow(_ p: VehicleProfile) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(p.displayName)
-                            .font(.system(size: 15, weight: .heavy))
-                            .foregroundColor(theme.textTint)
-                            .lineLimit(1)
-                        activeBadge
-                    }
-                    HStack(spacing: 4) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(p.displayName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(theme.textTint)
+                        .lineLimit(1)
+                    activeBadge
+                }
+
+                HStack(spacing: 6) {
+                    // Fuel inline (ícono + nombre)
+                    HStack(spacing: 3) {
                         Image(systemName: p.fuelType.systemIcon)
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 9, weight: .semibold))
                         Text(p.fuelType.displayName)
-                            .font(.system(size: 10, weight: .heavy))
+                            .font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundColor(fuelColor(p.fuelType))
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Capsule().fill(fuelColor(p.fuelType).opacity(0.15)))
-                    .overlay(Capsule().stroke(fuelColor(p.fuelType).opacity(0.4), lineWidth: 1))
-                }
-                Spacer(minLength: 4)
 
-                miniStat(value: String(format: "%.1f", p.conueeKmPerL),
-                         unit: "km/L",
-                         color: Color(hex: "#34D399"))
-                miniStat(value: "\(p.engineCc)",
-                         unit: "cc",
-                         color: Color(hex: "#FBBF24"))
-            }
+                    if p.formattedLicensePlate != nil || (p.color ?? "").isEmpty == false {
+                        Text("·")
+                            .font(.system(size: 10))
+                            .foregroundColor(theme.textTint.opacity(0.3))
+                    }
 
-            if p.formattedLicensePlate != nil || p.color != nil || p.rangePerTankKm != nil {
-                HStack(spacing: 6) {
                     if let plate = p.formattedLicensePlate {
                         compactPlate(plate)
                     }
+
                     if let color = p.color, !color.isEmpty {
-                        compactColor(color)
+                        Circle()
+                            .fill(parseColor(color))
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(theme.textTint.opacity(0.25), lineWidth: 0.5))
                     }
-                    if let range = p.rangePerTankKm {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.triangle.swap")
-                                .font(.system(size: 8, weight: .heavy))
-                            Text("\(Int(range)) km")
-                                .font(.system(size: 10, weight: .heavy))
-                        }
-                        .foregroundColor(Color(hex: "#F472B6"))
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(Capsule().fill(Color(hex: "#F472B6").opacity(0.12)))
-                    }
-                    Spacer()
                 }
             }
+
+            Spacer(minLength: 4)
+
+            // Stat principal (km/L) — única métrica que importa en preview
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(String(format: "%.1f", p.conueeKmPerL))
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color(hex: "#34D399"))
+                    .monospacedDigit()
+                Text("KM/L")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(0.8)
+                    .foregroundColor(theme.textTint.opacity(0.5))
+            }
         }
-        .padding(10)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(theme.textTint.opacity(0.04))
@@ -205,7 +207,7 @@ struct VehicleProfilePreviewCard: View {
         HStack(spacing: 4) {
             Rectangle().fill(Color(hex: "#1E3A8A")).frame(width: 3, height: 12)
             Text(plate)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundColor(.black)
                 .tracking(0.8)
                 .padding(.trailing, 5)
@@ -223,7 +225,7 @@ struct VehicleProfilePreviewCard: View {
                 .frame(width: 10, height: 10)
                 .overlay(Circle().stroke(theme.textTint.opacity(0.3), lineWidth: 0.5))
             Text(name)
-                .font(.system(size: 10, weight: .heavy))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(theme.textTint.opacity(0.8))
         }
         .padding(.horizontal, 6).padding(.vertical, 3)
@@ -257,7 +259,7 @@ struct VehicleProfilePreviewCard: View {
                 .frame(width: 5, height: 5)
                 .shadow(color: .green, radius: 3)
             Text("ACTIVO")
-                .font(.system(size: 8, weight: .heavy))
+                .font(.system(size: 8, weight: .semibold))
                 .tracking(0.8)
                 .foregroundColor(.green)
         }
@@ -269,137 +271,68 @@ struct VehicleProfilePreviewCard: View {
     private func miniStat(value: String, unit: String, color: Color) -> some View {
         VStack(alignment: .trailing, spacing: 1) {
             Text(value)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(color)
                 .monospacedDigit()
             Text(unit.uppercased())
-                .font(.system(size: 8, weight: .heavy))
+                .font(.system(size: 8, weight: .semibold))
                 .tracking(0.5)
                 .foregroundColor(theme.textTint.opacity(0.5))
         }
     }
 
-    // MARK: - Hardware Premium (solo sedán)
+    // MARK: - Hardware OBD-II (row compacta — se expande en otra vista)
 
     private var hardwarePremiumSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
+        Button(action: {
+            HapticFeedback.confirm()
+            onConnectOBD?()
+        }) {
+            HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "#22D3EE").opacity(0.45),
-                                         Color(hex: "#0E7490").opacity(0.15)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 38, height: 38)
-                    Circle()
-                        .stroke(Color(hex: "#22D3EE").opacity(0.5), lineWidth: 1)
-                        .frame(width: 38, height: 38)
+                        .fill(Color(hex: "#22D3EE").opacity(0.18))
+                        .frame(width: 36, height: 36)
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color(hex: "#22D3EE"), Color(hex: "#06B6D4")],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "#06B6D4"))
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text("Hardware Premium")
-                            .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(theme.textTint)
-                        HStack(spacing: 3) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 8, weight: .heavy))
-                            Text("COMPATIBLE")
-                                .font(.system(size: 8, weight: .heavy))
-                                .tracking(0.8)
-                        }
-                        .foregroundColor(Color(hex: "#22D3EE"))
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(Capsule().fill(Color(hex: "#22D3EE").opacity(0.14)))
-                        .overlay(Capsule().stroke(Color(hex: "#22D3EE").opacity(0.45), lineWidth: 1))
-                    }
-                    Text("OBD-II BLE · ELM327 · Vgate · OBDLink")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(theme.textTint.opacity(0.6))
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        hwChip(icon: "gauge.open.with.lines.needle.33percent", label: "Velocidad")
-                        hwChip(icon: "waveform.path.ecg", label: "RPM")
-                        hwChip(icon: "fuelpump.fill", label: "L/hr")
+                        Text("Hardware OBD-II")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(theme.textTint)
+                        Text("COMPATIBLE")
+                            .font(.system(size: 8, weight: .semibold))
+                            .tracking(0.7)
+                            .foregroundColor(Color(hex: "#06B6D4"))
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Capsule().fill(Color(hex: "#22D3EE").opacity(0.14)))
                     }
-                    .padding(.top, 2)
+                    Text("Buscar dongle BLE · velocidad, RPM, L/hr")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(theme.textTint.opacity(0.55))
+                        .lineLimit(1)
                 }
+
                 Spacer(minLength: 0)
-            }
 
-            Button(action: {
-                HapticFeedback.confirm()
-                onConnectOBD?()
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                        .font(.system(size: 13, weight: .heavy))
-                    Text("Buscar dongles BLE")
-                        .font(.system(size: 14, weight: .heavy))
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 11, weight: .heavy))
-                }
-                .foregroundColor(theme.textTint)
-                .padding(.horizontal, 14).padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [Color(hex: "#22D3EE"), Color(hex: "#0E7490")],
-                        startPoint: .leading, endPoint: .trailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .shadow(color: Color(hex: "#22D3EE").opacity(0.45), radius: 10, y: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(theme.textTint.opacity(0.35))
             }
-            .buttonStyle(.plain)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(hex: "#22D3EE").opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color(hex: "#22D3EE").opacity(0.22), lineWidth: 1)
+            )
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color(hex: "#22D3EE").opacity(0.12),
-                                 Color(hex: "#06B6D4").opacity(0.04)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color(hex: "#22D3EE").opacity(0.5),
-                                 Color(hex: "#0E7490").opacity(0.15)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
-                )
-        )
-    }
-
-    private func hwChip(icon: String, label: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 8, weight: .heavy))
-            Text(label)
-                .font(.system(size: 9, weight: .heavy))
-                .tracking(0.3)
-        }
-        .foregroundColor(theme.textTint.opacity(0.75))
-        .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(Capsule().fill(theme.textTint.opacity(0.06)))
-        .overlay(Capsule().stroke(theme.textTint.opacity(0.1), lineWidth: 0.8))
+        .buttonStyle(.plain)
     }
 
     // MARK: - Other Vehicles Carousel
@@ -408,12 +341,12 @@ struct VehicleProfilePreviewCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("OTROS GUARDADOS")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .tracking(1.2)
                     .foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
                 Text("Toca para cambiar")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(theme.textTint.opacity(0.35))
             }
 
@@ -437,15 +370,15 @@ struct VehicleProfilePreviewCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 5) {
                     Image(systemName: Vehicle3DAsset.forProfile(p).systemIcon)
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(theme.textTint.opacity(0.85))
                     Text(shortName(p))
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
                 Text("\(String(format: "%.1f", p.conueeKmPerL)) km/L")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(fuelColor(p.fuelType))
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
@@ -465,9 +398,9 @@ struct VehicleProfilePreviewCard: View {
         Button(action: onAdd) {
             HStack(spacing: 5) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 11, weight: .semibold))
                 Text("Agregar")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 11, weight: .semibold))
             }
             .foregroundColor(theme.textTint)
             .padding(.horizontal, 12).padding(.vertical, 10)
@@ -495,12 +428,12 @@ struct VehicleProfilePreviewCard: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "car.2.fill")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(.system(size: 13, weight: .semibold))
                 Text("Ver todos (\(service.savedProfiles.count))")
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 14, weight: .semibold))
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 12, weight: .semibold))
             }
             .foregroundColor(theme.textTint)
             .padding(.horizontal, 14).padding(.vertical, 13)
@@ -535,12 +468,12 @@ struct VehicleProfilePreviewCard: View {
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: "car.2.fill")
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(.system(size: 13, weight: .semibold))
                     Text("Ver coches")
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(.system(size: 14, weight: .semibold))
                     Spacer()
                     Image(systemName: "arrow.up.right")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(.system(size: 11, weight: .semibold))
                 }
                 .foregroundColor(theme.textTint)
                 .padding(.horizontal, 14).padding(.vertical, 12)

@@ -18,7 +18,7 @@ struct HorizonCard: View {
     private var color: Color {
         switch forecast.probabilityLevel {
         case .low:      return Color(red: 0.298, green: 0.686, blue: 0.314) // #4CAF50
-        case .moderate: return Color(red: 1.000, green: 0.922, blue: 0.231) // #FFEB3B
+        case .moderate: return Color(red: 0.976, green: 0.659, blue: 0.145) // #F9A825 (ámbar legible sobre fondo claro)
         case .high:     return Color(red: 1.000, green: 0.596, blue: 0.000) // #FF9800
         case .veryHigh: return Color(red: 0.957, green: 0.263, blue: 0.212) // #F44336
         }

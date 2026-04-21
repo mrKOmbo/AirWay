@@ -145,9 +145,10 @@ class AirQualityGridManager: ObservableObject {
     /// Actualiza las zonas de calidad del aire a lo largo de las rutas con espaciado dinámico
     /// - Parameter polylines: Array de polylines de todas las rutas
     func updateZonesAlongRoutes(polylines: [MKPolyline]) {
-        // Limpiar zonas inmediatamente
+        // Marcar como calculando SIN limpiar zones — evita que los círculos
+        // "parpadeen" al cambiar entre variantes de ruta. Las zones viejas
+        // siguen visibles hasta que tengamos las nuevas listas para swap.
         DispatchQueue.main.async {
-            self.zones = []
             self.isCalculating = true
         }
 

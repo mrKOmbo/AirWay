@@ -111,7 +111,7 @@ private struct ImportanceBar: View {
         } else if intensity > 0.5 {
             return Color(red: 1.000, green: 0.596, blue: 0.000) // #FF9800
         } else if intensity > 0.25 {
-            return Color(red: 1.000, green: 0.922, blue: 0.231) // #FFEB3B
+            return Color(red: 0.976, green: 0.659, blue: 0.145) // #F9A825 (ámbar legible sobre fondo claro)
         } else {
             return Color(red: 0.298, green: 0.686, blue: 0.314) // #4CAF50
         }

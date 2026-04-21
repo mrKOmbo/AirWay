@@ -17,6 +17,8 @@ struct GasolinaMeterHubView: View {
     @State private var showingVehicleScan = false
     @State private var showingOBD2 = false
     @State private var showingStations = false
+    @State private var showingTripRecorder = false
+    @State private var showingTripSummary: TripTelemetry?
 
     // Coordenadas demo CDMX (Zócalo → Polanco)
     private let demoOrigin = CLLocationCoordinate2D(latitude: 19.4326, longitude: -99.1332)
@@ -58,6 +60,14 @@ struct GasolinaMeterHubView: View {
                             onExpand: { showingStations = true }
                         )
 
+                        // Historial de viajes (acumulados + últimos 3 con tap a summary).
+                        // La grabación en vivo se hace desde el mapa (auto + botón REC).
+                        TripHistoryCard(
+                            theme: theme,
+                            onOpen: { showingTripRecorder = true },
+                            onSelectTrip: { trip in showingTripSummary = trip }
+                        )
+
                         Spacer(minLength: 20)
                     }
                     .padding(.top, 16)
@@ -72,6 +82,17 @@ struct GasolinaMeterHubView: View {
         .sheet(isPresented: $showingVehicleProfile) { VehicleProfileView() }
         .sheet(isPresented: $showingVehicleScan) { VehicleScanView() }
         .sheet(isPresented: $showingOBD2) { OBD2ConnectionView() }
+        .sheet(isPresented: $showingTripRecorder) {
+            NavigationStack {
+                TripRecorderView()
+                    .navigationTitle("Historial")
+                    .environment(\.weatherTheme, theme)
+            }
+        }
+        .sheet(item: $showingTripSummary) { trip in
+            TripSummaryView(trip: trip)
+                .environment(\.weatherTheme, theme)
+        }
         .fullScreenCover(isPresented: $showingStations) {
             FuelStationsMapView(origin: demoOrigin)
                 .environment(\.weatherTheme, theme)
@@ -107,14 +128,14 @@ struct GasolinaMeterHubView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Vehículo activo")
-                    .font(.caption.bold())
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.5)
                     .textCase(.uppercase)
                 Spacer()
                 if vehicleService.activeProfile == nil {
                     Text("SIN CONFIGURAR")
-                        .font(.caption2.bold())
+                        .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.orange.opacity(0.3))
                         .foregroundColor(.orange)
@@ -162,7 +183,7 @@ struct GasolinaMeterHubView: View {
                             .font(.title2)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Agregar mi vehículo")
-                                .font(.subheadline.bold())
+                                .font(.subheadline.weight(.semibold))
                             Text("Elige de 49 autos CONUEE o escanea")
                                 .font(.caption)
                                 .foregroundColor(theme.textTint.opacity(0.7))
@@ -185,7 +206,7 @@ struct GasolinaMeterHubView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Precios hoy · Profeco")
-                    .font(.caption.bold())
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.5)
                     .textCase(.uppercase)
@@ -241,7 +262,7 @@ struct GasolinaMeterHubView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.subheadline.bold())
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(theme.textTint)
                     Text(subtitle)
                         .font(.caption2)
@@ -249,7 +270,7 @@ struct GasolinaMeterHubView: View {
                 }
                 Spacer()
                 Text(number)
-                    .font(.caption.bold())
+                    .font(.caption.weight(.semibold))
                     .monospacedDigit()
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(theme.textTint.opacity(0.1))
@@ -288,7 +309,7 @@ private struct PhaseRow: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.subheadline.bold())
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(theme.textTint)
                     Text(subtitle)
                         .font(.caption2)
@@ -298,7 +319,7 @@ private struct PhaseRow: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption.bold())
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(theme.textTint.opacity(0.35))
             }
             .padding(10)
@@ -442,7 +463,7 @@ struct StationsNearbyTestView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text("\(s.brand)").font(.subheadline.bold()).foregroundColor(theme.textTint)
+                        Text("\(s.brand)").font(.subheadline.weight(.semibold)).foregroundColor(theme.textTint)
                         Text("· \(s.distanceKmFormatted)")
                             .font(.caption).foregroundColor(theme.textTint.opacity(0.5))
                     }
@@ -454,11 +475,11 @@ struct StationsNearbyTestView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(s.priceFormatted)
-                        .font(.subheadline.bold())
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(.green)
                         .monospacedDigit()
                     if let sv = s.savingsFormatted {
-                        Text(sv).font(.caption2.bold()).foregroundColor(.green)
+                        Text(sv).font(.caption2.weight(.semibold)).foregroundColor(.green)
                     }
                 }
             }
@@ -521,7 +542,7 @@ struct BackendTestView: View {
                         // Base URL
                         VStack(alignment: .leading, spacing: 4) {
                             Text("BASE URL")
-                                .font(.caption2.bold())
+                                .font(.caption2.weight(.semibold))
                                 .foregroundColor(theme.textTint.opacity(0.5))
                                 .tracking(1.5)
                             Text(AppConfig.backendBaseURL.absoluteString)
@@ -568,7 +589,7 @@ struct BackendTestView: View {
                         if let err = lastError {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("ÚLTIMO ERROR")
-                                    .font(.caption2.bold())
+                                    .font(.caption2.weight(.semibold))
                                     .foregroundColor(theme.textTint.opacity(0.5))
                                     .tracking(1.5)
                                 Text(err)
@@ -602,7 +623,7 @@ struct BackendTestView: View {
                 .foregroundColor(theme.textTint.opacity(0.8))
             Spacer()
             Text(status)
-                .font(.caption.bold())
+                .font(.caption.weight(.semibold))
                 .foregroundColor(statusColor(status))
                 .monospacedDigit()
         }

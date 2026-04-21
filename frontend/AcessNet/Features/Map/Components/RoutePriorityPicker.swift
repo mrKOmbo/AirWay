@@ -69,9 +69,9 @@ struct RoutePriorityPicker: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text("¿QUÉ PRIORIZAS?")
-                    .font(.caption2.bold())
+                    .font(.caption2.weight(.semibold))
                     .tracking(1.5)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Color.black.opacity(0.55))
 
                 if let suggested, suggested != selection {
                     suggestedHint(suggested: suggested)
@@ -120,9 +120,9 @@ struct RoutePriorityPicker: View {
                 VStack(spacing: 4) {
                     ZStack {
                         Image(systemName: priority.icon)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(
-                                active ? Color.black.opacity(0.82) : Color.white.opacity(0.78)
+                                active ? Color.white : Color.black.opacity(0.65)
                             )
                         if isSuggested && !active {
                             // Dot indicando "sugerido"
@@ -134,9 +134,9 @@ struct RoutePriorityPicker: View {
                         }
                     }
                     Text(priority.title)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(
-                            active ? Color.black.opacity(0.85) : Color.white.opacity(0.72)
+                            active ? Color.white : Color.black.opacity(0.75)
                         )
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
@@ -148,7 +148,7 @@ struct RoutePriorityPicker: View {
             .background(
                 !active
                     ? RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.black.opacity(0.04))
                     : nil
             )
             .overlay(
@@ -156,8 +156,8 @@ struct RoutePriorityPicker: View {
                     ? RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(
                             isSuggested
-                                ? color.opacity(0.35)
-                                : Color.white.opacity(0.08),
+                                ? color.opacity(0.5)
+                                : Color.black.opacity(0.12),
                             lineWidth: isSuggested ? 1 : 0.6
                         )
                     : nil

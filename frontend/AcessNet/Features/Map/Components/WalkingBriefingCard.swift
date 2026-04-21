@@ -80,10 +80,10 @@ struct WalkingBriefingCard: View {
                 Text("A PIE")
                     .font(.caption2.bold())
                     .tracking(1.8)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Color.black.opacity(0.5))
                 Text("\(briefing.durationLabel) · \(briefing.distanceLabel)")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.black.opacity(0.85))
                     .monospacedDigit()
             }
             Spacer()
@@ -117,20 +117,15 @@ struct WalkingBriefingCard: View {
     private var heroSection: some View {
         VStack(spacing: 6) {
             Text(formattedCigs)
-                .font(.system(size: briefing.hasAirData ? 68 : 54, weight: .heavy, design: .rounded))
+                .font(.system(size: briefing.hasAirData ? 68 : 54, weight: .semibold, design: .rounded))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [.white, verdictColor.opacity(0.75)],
+                        colors: [verdictColor, verdictColor.opacity(0.75)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .monospacedDigit()
-                .modifier(MulticolorGlowModifier(
-                    colors: [verdictColor, verdictColor.opacity(0.6), .white.opacity(0.3)],
-                    radius: briefing.hasAirData ? 18 : 10,
-                    intensity: briefing.hasAirData ? 0.9 : 0.4
-                ))
                 .contentTransition(.numericText(value: briefing.cigarettes ?? 0))
                 .animation(.spring(response: 0.5, dampingFraction: 0.8), value: briefing.cigarettes)
                 .accessibilityLabel(Text("\(formattedCigs) cigarros equivalentes"))
@@ -138,7 +133,7 @@ struct WalkingBriefingCard: View {
 
             Text(briefing.hasAirData ? "cigarros equivalentes" : "sin datos de aire")
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Color.black.opacity(0.6))
                 .tracking(0.5)
                 .accessibilityHidden(true)
         }
@@ -176,7 +171,7 @@ struct WalkingBriefingCard: View {
                 Spacer()
                 Text("de 5")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(Color.black.opacity(0.4))
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity)
@@ -215,7 +210,7 @@ struct WalkingBriefingCard: View {
             Text("RITMO DE CAMINATA")
                 .font(.caption2.bold())
                 .tracking(1.5)
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(Color.black.opacity(0.4))
 
             HStack(spacing: 6) {
                 ForEach(WalkActivityLevel.allCases) { a in
@@ -302,10 +297,10 @@ struct WalkingBriefingCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Color.black.opacity(0.5))
                 Text(value)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.black.opacity(0.85))
                     .monospacedDigit()
             }
             Spacer(minLength: 0)
@@ -343,10 +338,10 @@ struct WalkingBriefingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(bannerTitle(totalMin: totalMin, worstAQI: worstAQI))
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.black.opacity(0.85))
                     Text(bannerSubtitle)
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(Color.black.opacity(0.6))
                 }
                 Spacer()
                 if isFindingCleanerRoute {
@@ -356,7 +351,7 @@ struct WalkingBriefingCard: View {
                 } else if !cleanerRouteActive {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(Color.black.opacity(0.4))
                 }
             }
             .padding(12)
@@ -415,11 +410,11 @@ struct WalkingBriefingCard: View {
                 )
             VStack(alignment: .leading, spacing: 2) {
                 Text(briefing.verdict.title)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.black.opacity(0.88))
                 Text(briefing.verdict.tone)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(Color.black.opacity(0.65))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -466,27 +461,12 @@ struct WalkingBriefingCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(theme.cardColor.opacity(0.92))
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
+            .fill(Color.black.opacity(0.04))
     }
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        .white.opacity(0.18),
-                        .white.opacity(0.04),
-                        verdictColor.opacity(0.22)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: 1
-            )
+            .stroke(verdictColor.opacity(0.28), lineWidth: 0.6)
     }
 }
 

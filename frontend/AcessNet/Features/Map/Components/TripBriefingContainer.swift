@@ -2,9 +2,12 @@
 //  TripBriefingContainer.swift
 //  AcessNet
 //
-//  Container que instancia TripBriefingViewModel como @StateObject
-//  para que ContentView no tenga que gestionar su ciclo de vida.
-//  Se re-crea vía `.id()` al cambiar el destino.
+//  Container del flujo de briefing en 2 pasos:
+//   1. ModeChoicePopup — elegir caminar o coche.
+//   2. RouteOptionsPanel — elegir variante de ruta y confirmar.
+//
+//  El container es dueño del @StateObject del VM; los pasos son
+//  sub-vistas stateless que comparten el mismo VM.
 //
 
 import SwiftUI
@@ -12,8 +15,7 @@ import CoreLocation
 import MapKit
 
 /// Payload que pasa el briefing al caller cuando el usuario presiona
-/// "Ir ahora" o "Empezar caminata". Incluye toda la información que
-/// RouteManager necesita para trazar la ruta correcta.
+/// "Ir ahora" — incluye toda la info para trazar la ruta final.
 struct TripStartContext {
     let mode: BriefingMode
     let priority: TripPriority
@@ -24,6 +26,7 @@ struct TripStartContext {
 }
 
 struct TripBriefingContainer: View {
+    // MARK: - Inputs
     let origin: CLLocationCoordinate2D
     let destination: CLLocationCoordinate2D
     let destinationTitle: String
@@ -33,16 +36,20 @@ struct TripBriefingContainer: View {
 
     let onDismiss: () -> Void
     let onStartRoute: (TripStartContext) -> Void
-    let onOpenStations: () -> Void
-    let onOpenDeparture: () -> Void
-    let onAddVehicle: () -> Void
-    /// Notifica al caller cuando cambia la ruta preview (al calcular
-    /// walking/driving o al cambiar modo o prioridad). El caller la
-    /// usa para dibujarla en el mapa detrás del sheet. Segundo
-    /// parámetro es el modo activo para colorear la polyline.
     let onPreviewRouteChanged: (PreviewRoute?, BriefingMode) -> Void
 
+    // MARK: - VM
     @StateObject private var viewModel: TripBriefingViewModel
+
+    // MARK: - Pasos del flujo
+    enum Step: Equatable {
+        case modeChoice
+        case routeOptions
+    }
+
+    @State private var step: Step = .modeChoice
+
+    // MARK: - Init
 
     init(
         origin: CLLocationCoordinate2D,
@@ -53,9 +60,6 @@ struct TripBriefingContainer: View {
         gridManager: AirQualityGridManager? = nil,
         onDismiss: @escaping () -> Void,
         onStartRoute: @escaping (TripStartContext) -> Void,
-        onOpenStations: @escaping () -> Void,
-        onOpenDeparture: @escaping () -> Void,
-        onAddVehicle: @escaping () -> Void,
         onPreviewRouteChanged: @escaping (PreviewRoute?, BriefingMode) -> Void = { _, _ in }
     ) {
         self.origin = origin
@@ -66,9 +70,6 @@ struct TripBriefingContainer: View {
         self.gridManager = gridManager
         self.onDismiss = onDismiss
         self.onStartRoute = onStartRoute
-        self.onOpenStations = onOpenStations
-        self.onOpenDeparture = onOpenDeparture
-        self.onAddVehicle = onAddVehicle
         self.onPreviewRouteChanged = onPreviewRouteChanged
 
         let vm = TripBriefingViewModel(
@@ -82,50 +83,84 @@ struct TripBriefingContainer: View {
         _viewModel = StateObject(wrappedValue: vm)
     }
 
+    // MARK: - Body
+
     var body: some View {
-        TripBriefingTopPanel(
-            viewModel: viewModel,
-            onDismiss: onDismiss,
-            onGo: {
-                HapticFeedback.medium()
-                let context = TripStartContext(
-                    mode: viewModel.mode,
-                    priority: viewModel.routePriority,
-                    preference: viewModel.routePriority.routePreference,
-                    transportType: viewModel.mode == .walking ? .walking : .automobile,
-                    destination: destination,
-                    destinationTitle: destinationTitle
+        Group {
+            switch step {
+            case .modeChoice:
+                ModeChoicePopup(
+                    destinationTitle: destinationTitle,
+                    onSelectMode: { mode in
+                        // Cambiar modo en VM y pasar al paso 2.
+                        viewModel.mode = mode
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            step = .routeOptions
+                        }
+                    },
+                    onDismiss: onDismiss
                 )
-                onStartRoute(context)
-            },
-            onOpenStations: onOpenStations,
-            onOpenDeparture: onOpenDeparture,
-            onAddVehicle: onAddVehicle
-        )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .offset(y: -4)),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
+
+            case .routeOptions:
+                RouteOptionsPanel(
+                    viewModel: viewModel,
+                    onBack: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            step = .modeChoice
+                        }
+                    },
+                    onGo: fireStartRoute,
+                    onDismiss: onDismiss
+                )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .offset(y: 6)),
+                    removal: .opacity.combined(with: .scale(scale: 0.96))
+                ))
+            }
+        }
         .onAppear {
             viewModel.load()
         }
         .onDisappear {
             onPreviewRouteChanged(nil, viewModel.mode)
         }
-        // El container observa el VM (es @StateObject) y propaga
-        // cambios de preview al caller via closure.
-        .onChange(of: viewModel.walkingRoute?.distance) { _, _ in
-            if viewModel.mode == .walking {
-                onPreviewRouteChanged(viewModel.walkingRoute, viewModel.mode)
-            }
-        }
-        .onChange(of: viewModel.drivingRoute?.distance) { _, _ in
-            if viewModel.mode == .driving {
-                onPreviewRouteChanged(viewModel.drivingRoute, viewModel.mode)
-            }
-        }
-        .onChange(of: viewModel.mode) { _, newMode in
-            onPreviewRouteChanged(viewModel.previewRoute, newMode)
-        }
-        // Cambio de prioridad → puede cambiar la variante visible.
-        .onChange(of: viewModel.routePriority) { _, _ in
+        // UN SOLO trigger para propagar preview al mapa. La firma combina
+        // mode + priority + distancia redondeada del previewRoute activo.
+        // Antes había 4 .onChange independientes (walkingRoute, drivingRoute,
+        // mode, priority) que disparaban 4 llamadas consecutivas a
+        // updateZonesAlongRoutes al cambiar variante — cada una limpiaba
+        // zones=[] antes de recalcular, haciendo "parpadear" los círculos.
+        .onChange(of: previewSignature) { _, _ in
             onPreviewRouteChanged(viewModel.previewRoute, viewModel.mode)
         }
+    }
+
+    /// Firma que representa el estado del preview activo. Cambia exactamente
+    /// cuando el mapa debe refrescar los círculos: nuevo modo, nueva
+    /// prioridad, o nueva distancia (carga inicial de MKDirections).
+    private var previewSignature: String {
+        let mode = viewModel.mode
+        let priority = viewModel.routePriority
+        let dist = Int((viewModel.previewRoute?.distance ?? 0).rounded())
+        return "\(mode)_\(priority)_\(dist)"
+    }
+
+    // MARK: - Go
+
+    private func fireStartRoute() {
+        HapticFeedback.medium()
+        let context = TripStartContext(
+            mode: viewModel.mode,
+            priority: viewModel.routePriority,
+            preference: viewModel.routePriority.routePreference,
+            transportType: viewModel.mode == .walking ? .walking : .automobile,
+            destination: destination,
+            destinationTitle: destinationTitle
+        )
+        onStartRoute(context)
     }
 }

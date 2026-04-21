@@ -763,7 +763,9 @@ struct AQIHomeView: View {
                         .foregroundColor(theme.textTint)
                         .shadow(color: Color(hex: airQualityData.qualityLevel.color).opacity(0.6), radius: 20)
 
-                    // "Good" badge
+                    // Category badge (Good / Moderate / ...)
+                    // En AirWay (fondo claro) el texto usa navy para contrastar
+                    // con el fondo pálido; el dot mantiene el color semántico.
                     HStack(spacing: 6) {
                         Circle()
                             .fill(Color(hex: airQualityData.qualityLevel.color))
@@ -771,13 +773,17 @@ struct AQIHomeView: View {
 
                         Text(airQualityData.qualityLevel.rawValue)
                             .font(.subheadline.bold())
-                            .foregroundColor(Color(hex: airQualityData.qualityLevel.color))
+                            .foregroundColor(
+                                theme.isAirWay
+                                    ? theme.textTint
+                                    : Color(hex: airQualityData.qualityLevel.color)
+                            )
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
                     .background(
                         Capsule()
-                            .fill(Color(hex: airQualityData.qualityLevel.color).opacity(0.15))
+                            .fill(Color(hex: airQualityData.qualityLevel.color).opacity(theme.isAirWay ? 0.25 : 0.15))
                     )
                     .opacity(animatedAQI > 0 ? 1 : 0)
                     .animation(.easeOut(duration: 0.3), value: animatedAQI)
@@ -1380,94 +1386,135 @@ struct AQIHomeView: View {
 
     // MARK: - Hourly Weather Forecast (Open-Meteo + backend AQI)
 
+    /// Genera 24 horas sintéticas (current weather repetido) para usar como
+    /// placeholder mientras Open-Meteo responde o si la red falla.
+    private func placeholderHourly() -> [HourlyPoint] {
+        let now = Date()
+        let cal = Calendar.current
+        let hourDf = DateFormatter()
+        hourDf.dateFormat = "ha"
+        let icon = activeWeather.icon
+        let aqi = airQualityData.aqi
+        let temp = Int(airQualityData.temperature)
+
+        return (0..<24).map { offset in
+            let date = cal.date(byAdding: .hour, value: offset, to: now) ?? now
+            let isNow = offset == 0
+            let label = isNow ? "Now" : hourDf.string(from: date).uppercased()
+            return HourlyPoint(
+                id: "placeholder-\(offset)",
+                label: label,
+                date: date,
+                temp: temp,
+                feelsLike: temp,
+                icon: icon,
+                aqi: aqi,
+                isNow: isNow,
+                precipProbability: 0
+            )
+        }
+    }
+
+    private struct OpenMeteoResponse: Decodable {
+        let hourly: Hourly
+        let daily: Daily
+        struct Hourly: Decodable {
+            let time: [String]
+            let temperature_2m: [Double]
+            let apparent_temperature: [Double]
+            let weather_code: [Int]
+            let precipitation_probability: [Int]
+        }
+        struct Daily: Decodable {
+            let time: [String]
+            let weather_code: [Int]
+            let temperature_2m_max: [Double]
+            let temperature_2m_min: [Double]
+        }
+    }
+
     private func loadHourlyForecast() async {
         let lat = 19.4326
         let lon = -99.1332
         guard let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7") else { return }
 
-        struct OpenMeteoResponse: Decodable {
-            let hourly: Hourly
-            let daily: Daily
-            struct Hourly: Decodable {
-                let time: [String]
-                let temperature_2m: [Double]
-                let apparent_temperature: [Double]
-                let weather_code: [Int]
-                let precipitation_probability: [Int]
-            }
-            struct Daily: Decodable {
-                let time: [String]
-                let weather_code: [Int]
-                let temperature_2m_max: [Double]
-                let temperature_2m_min: [Double]
+        // 2 intentos con backoff de 3s
+        for attempt in 1...2 {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let om = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+                applyOpenMeteo(om)
+                return
+            } catch {
+                print("[HourlyForecast] Open-Meteo attempt \(attempt) failed: \(error.localizedDescription)")
+                if attempt == 1 {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                }
             }
         }
+    }
 
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let om = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+    private func applyOpenMeteo(_ om: OpenMeteoResponse) {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        df.timeZone = TimeZone.current
 
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd'T'HH:mm"
-            df.timeZone = TimeZone.current
+        let dayDf = DateFormatter()
+        dayDf.dateFormat = "yyyy-MM-dd"
+        dayDf.timeZone = TimeZone.current
 
-            let dayDf = DateFormatter()
-            dayDf.dateFormat = "yyyy-MM-dd"
-            dayDf.timeZone = TimeZone.current
+        let hourDf = DateFormatter()
+        hourDf.dateFormat = "ha"
 
-            let hourDf = DateFormatter()
-            hourDf.dateFormat = "ha"
+        let now = Date()
+        let calendar = Calendar.current
 
-            let now = Date()
-            let calendar = Calendar.current
+        // Hourly (all 7 days for conditions detail; current +24 for home strip)
+        var allHourly: [HourlyPoint] = []
+        for (i, timeStr) in om.hourly.time.enumerated() {
+            guard let date = df.date(from: timeStr) else { continue }
+            guard i < om.hourly.temperature_2m.count,
+                  i < om.hourly.weather_code.count,
+                  i < om.hourly.apparent_temperature.count,
+                  i < om.hourly.precipitation_probability.count else { break }
 
-            // Hourly (all 7 days for conditions detail; current +24 for home strip)
-            var allHourly: [HourlyPoint] = []
-            for (i, timeStr) in om.hourly.time.enumerated() {
-                guard let date = df.date(from: timeStr) else { continue }
-                guard i < om.hourly.temperature_2m.count,
-                      i < om.hourly.weather_code.count,
-                      i < om.hourly.apparent_temperature.count,
-                      i < om.hourly.precipitation_probability.count else { break }
+            let temp = Int(om.hourly.temperature_2m[i].rounded())
+            let feels = Int(om.hourly.apparent_temperature[i].rounded())
+            let icon = weatherCodeToSymbol(om.hourly.weather_code[i])
+            let precip = om.hourly.precipitation_probability[i]
+            let aqi = aqiForTime(date)
+            let isNow = calendar.isDate(date, equalTo: now, toGranularity: .hour)
+            let label = isNow ? "Now" : hourDf.string(from: date).uppercased()
 
-                let temp = Int(om.hourly.temperature_2m[i].rounded())
-                let feels = Int(om.hourly.apparent_temperature[i].rounded())
-                let icon = weatherCodeToSymbol(om.hourly.weather_code[i])
-                let precip = om.hourly.precipitation_probability[i]
-                let aqi = aqiForTime(date)
-                let isNow = calendar.isDate(date, equalTo: now, toGranularity: .hour)
-                let label = isNow ? "Now" : hourDf.string(from: date).uppercased()
+            allHourly.append(HourlyPoint(id: timeStr, label: label, date: date, temp: temp, feelsLike: feels, icon: icon, aqi: aqi, isNow: isNow, precipProbability: precip))
+        }
 
-                allHourly.append(HourlyPoint(id: timeStr, label: label, date: date, temp: temp, feelsLike: feels, icon: icon, aqi: aqi, isNow: isNow, precipProbability: precip))
-            }
+        // Daily (7 days)
+        var daily: [DailyWeatherPoint] = []
+        for (i, dayStr) in om.daily.time.enumerated() {
+            guard let date = dayDf.date(from: dayStr) else { continue }
+            guard i < om.daily.temperature_2m_max.count,
+                  i < om.daily.temperature_2m_min.count,
+                  i < om.daily.weather_code.count else { break }
+            daily.append(DailyWeatherPoint(
+                id: dayStr,
+                date: date,
+                tempMax: Int(om.daily.temperature_2m_max[i].rounded()),
+                tempMin: Int(om.daily.temperature_2m_min[i].rounded()),
+                icon: weatherCodeToSymbol(om.daily.weather_code[i])
+            ))
+        }
 
-            // Daily (7 days)
-            var daily: [DailyWeatherPoint] = []
-            for (i, dayStr) in om.daily.time.enumerated() {
-                guard let date = dayDf.date(from: dayStr) else { continue }
-                guard i < om.daily.temperature_2m_max.count,
-                      i < om.daily.temperature_2m_min.count,
-                      i < om.daily.weather_code.count else { break }
-                daily.append(DailyWeatherPoint(
-                    id: dayStr,
-                    date: date,
-                    tempMax: Int(om.daily.temperature_2m_max[i].rounded()),
-                    tempMin: Int(om.daily.temperature_2m_min[i].rounded()),
-                    icon: weatherCodeToSymbol(om.daily.weather_code[i])
-                ))
-            }
+        // Home strip: current hour onwards, capped at 24
+        let stripCutoff = calendar.date(byAdding: .hour, value: -1, to: now) ?? now
+        let strip = allHourly.filter { $0.date >= stripCutoff }.prefix(24)
 
-            // Home strip: current hour onwards, capped at 24
-            let stripCutoff = calendar.date(byAdding: .hour, value: -1, to: now) ?? now
-            let strip = allHourly.filter { $0.date >= stripCutoff }.prefix(24)
-
-            await MainActor.run {
-                hourlyForecast = Array(strip)
-                weeklyForecast = daily
-                hourlyForecastFull = allHourly
-            }
-        } catch {
-            print("[HourlyForecast] Open-Meteo error: \(error.localizedDescription)")
+        let stripArray = Array(strip)
+        Task { @MainActor in
+            hourlyForecast = stripArray
+            weeklyForecast = daily
+            hourlyForecastFull = allHourly
+            print("[HourlyForecast] Loaded \(stripArray.count) hours, \(daily.count) days")
         }
     }
 
@@ -1523,7 +1570,14 @@ struct AQIHomeView: View {
                         withAnimation(.none) { selectedForecastTab = .daily }
                     }
                 }
-                .background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.06)))
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(.white.opacity(0.08), lineWidth: 1)
+                        )
+                )
             }
             .padding(.horizontal, 16)
 
@@ -1532,7 +1586,11 @@ struct AQIHomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
                         if hourlyForecast.isEmpty {
-                            HourlyInlineItem(hour: "Now", aqi: airQualityData.aqi, temp: Int(airQualityData.temperature), icon: "cloud.fill", isNow: true)
+                            // Fallback: 24 horas sintéticas con datos actuales mientras carga / si Open-Meteo falla
+                            ForEach(placeholderHourly(), id: \.id) { p in
+                                HourlyInlineItem(hour: p.label, aqi: p.aqi, temp: p.temp, icon: p.icon, isNow: p.isNow)
+                                    .redacted(reason: .placeholder)
+                            }
                         } else {
                             ForEach(hourlyForecast) { p in
                                 HourlyInlineItem(hour: p.label, aqi: p.aqi, temp: p.temp, icon: p.icon, isNow: p.isNow)
@@ -1813,6 +1871,8 @@ struct AnimatedWeatherStat: View {
                         endPoint: .bottom
                     )
                 )
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
 
             Text(kind.label)
                 .font(.system(size: 8, weight: .medium))
@@ -3531,6 +3591,7 @@ struct HourlyCard: View {
 // MARK: - Forecast Pill
 
 struct ForecastPill: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -3539,12 +3600,16 @@ struct ForecastPill: View {
         Button(action: action) {
             Text(title)
                 .font(.caption.bold())
-                .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                .foregroundColor(isSelected ? theme.textTint : theme.textTint.opacity(0.55))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? .white.opacity(0.15) : .clear)
+                        .fill(isSelected ? theme.textTint.opacity(0.18) : .clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(isSelected ? theme.textTint.opacity(0.25) : .clear, lineWidth: 1)
+                        )
                 )
         }
     }
@@ -3573,7 +3638,7 @@ struct HourlyInlineItem: View {
         VStack(spacing: 6) {
             Text(hour)
                 .font(.system(size: 10, weight: isNow ? .bold : .regular))
-                .foregroundColor(isNow ? .white : .white.opacity(0.4))
+                .foregroundColor(isNow ? theme.textTint : theme.textTint.opacity(0.55))
 
             Image(systemName: icon)
                 .font(.system(size: 16))
@@ -3592,7 +3657,7 @@ struct HourlyInlineItem: View {
         .padding(.vertical, 4)
         .background(
             isNow ?
-                RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)) :
+                RoundedRectangle(cornerRadius: 12).fill(theme.textTint.opacity(0.08)) :
                 RoundedRectangle(cornerRadius: 12).fill(.clear)
         )
     }
@@ -4806,7 +4871,7 @@ struct WeatherConditionsDetailView: View {
                 ForEach(hoursForSelectedDay) { p in
                     Image(systemName: p.icon)
                         .font(.system(size: 18))
-                        .foregroundColor(p.isNow ? .white : .white.opacity(0.5))
+                        .foregroundColor(p.isNow ? theme.textTint : theme.textTint.opacity(0.5))
                         .symbolRenderingMode(.multicolor)
                         .frame(width: 30)
                 }

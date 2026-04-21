@@ -133,11 +133,14 @@ struct EnhancedMapView: View {
     @State private var showRouteToast = false
     @State private var routeToastMessage = ""
 
-    // MARK: - Route Arrows State
-    @State private var routeArrows: [RouteArrowAnnotation] = []
-
     // MARK: - Route Animation State (Optimizado)
     @State private var dashPhase: CGFloat = 0  // Marching ants
+
+    /// Señal que dice: "cuando terminen de calcularse las rutas, inicia
+    /// navegación automáticamente sin mostrar cards de selección".
+    /// Se activa al presionar "Ir ahora" en el briefing (el usuario ya
+    /// eligió ruta ahí, no queremos re-preguntarle con otro selector).
+    @State private var autoStartNavigationPending: Bool = false
 
     // MARK: - Air Quality Overlay State
     @StateObject private var airQualityGridManager = AirQualityGridManager()
@@ -149,6 +152,11 @@ struct EnhancedMapView: View {
 
     // MARK: - App Settings (Performance Controls)
     @StateObject private var appSettings = AppSettings.shared
+
+    // MARK: - Telemetry (live stats + recording state)
+    /// Singleton observable — permite al body reaccionar cuando `isRecording`
+    /// cambia (botón flotante cambia icono/color) y mostrar stats en vivo.
+    @ObservedObject private var telemetryService: DrivingTelemetryService = .shared
 
     // Enhanced tab bar height - usando constante global
     private let tabBarHeight: CGFloat = AppConstants.enhancedTabBarTotalHeight
@@ -271,23 +279,6 @@ struct EnhancedMapView: View {
         )
     }
 
-    /// Route arrows dentro del rango de visibilidad (2km). Sin side-effects.
-    private var visibleRouteArrows: [RouteArrowAnnotation] {
-        guard let userLocation = locationManager.userLocation else {
-            return routeArrows
-        }
-
-        guard appSettings.enableProximityFiltering else {
-            return routeArrows
-        }
-
-        return ProximityFilter.filterRouteArrows(
-            routeArrows,
-            from: userLocation,
-            maxRadius: appSettings.proximityRadiusMeters
-        )
-    }
-
     var body: some View {
         ZStack(alignment: .bottom) {
             // Mapa principal mejorado
@@ -339,6 +330,23 @@ struct EnhancedMapView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
+            // Manual recording badge — solo visible cuando el user grabó
+            // manualmente sin ruta. Durante navegación ya hay indicator en el panel.
+            if telemetryService.isRecording && !isInNavigationMode && !isSearchFocused {
+                VStack {
+                    HStack {
+                        Spacer()
+                        manualRecordingBadge
+                            .padding(.trailing, 16)
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .padding(.top, AppConstants.safeAreaTop + 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .allowsHitTesting(false)
+            }
+
             // Speed Indicator (top left) - ocultar cuando hay ruta activa
             if !hasActiveRoute {
                 VStack {
@@ -356,16 +364,25 @@ struct EnhancedMapView: View {
                 .transition(.opacity)
             }
 
-            // ML Prediction Banner — solo cuando el mapa está "limpio" (sin cards, zonas, rutas)
+            // Air Quality Banner — solo cuando el mapa está "limpio"
+            // (sin cards, zonas, rutas). Centrado horizontalmente y elevado
+            // por encima de los floating buttons de la izquierda para no
+            // competir por el mismo espacio vertical.
+            //
+            // Cálculo del offset inferior:
+            //   tabBarHeight + 20pt margen base de los botones
+            //   + 3 botones × 50pt + 2 × 15pt spacing = 180pt columna botones
+            //   + 14pt de gap visual entre banner y botones
             if !hasActiveRoute && !isSearchFocused && !showLocationInfo && !showAirQualityLayer && !showZoneDetail && selectedZone == nil {
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
                         AQIPredictionBanner()
+                            .frame(maxWidth: 280)
                         Spacer()
                     }
-                    .padding(.bottom, tabBarHeight + 20)
+                    .padding(.bottom, tabBarHeight + 20 + 180 + 14)
                 }
                 .transition(.opacity)
                 .allowsHitTesting(false)
@@ -410,8 +427,10 @@ struct EnhancedMapView: View {
                 .transition(.scale.combined(with: .opacity))
             }
 
-            // Controles superiores: barra de búsqueda (ocultar cuando hay ruta activa)
-            if !hasActiveRoute {
+            // Controles superiores: barra de búsqueda.
+            // Se oculta cuando hay ruta activa O cuando hay un pin/briefing
+            // activo (el briefing ocupa el mismo espacio visual).
+            if !hasActiveRoute && !showLocationInfo {
                 VStack(alignment: .leading, spacing: 0) {
                     SearchBarView(
                         searchText: $searchManager.searchQuery,
@@ -479,100 +498,7 @@ struct EnhancedMapView: View {
             // Location Info Card (cuando se hace long press)
             if !isSearchFocused && showLocationInfo, let locationInfo = selectedLocationInfo {
                 if appSettings.useTripBriefing, let userLocation = locationManager.userLocation {
-                    // NUEVO: Trip Briefing como panel deplegable arriba,
-                    // debajo del search bar. Compacto por default;
-                    // se expande con el chevron. No tapa el mapa.
-                    VStack(spacing: 0) {
-                        // Espaciador para dejar paso al search bar.
-                        Color.clear
-                            .frame(height: AppConstants.safeAreaTop + 78)
-                            .allowsHitTesting(false)
-
-                        TripBriefingContainer(
-                            origin: userLocation,
-                            destination: locationInfo.coordinate,
-                            destinationTitle: locationInfo.title,
-                            zones: airQualityGridManager.zones,
-                            vehicle: VehicleProfileService.shared.activeProfile,
-                            gridManager: airQualityGridManager,
-                            onDismiss: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                                    showLocationInfo = false
-                                    selectedLocationInfo = nil
-                                    destination = nil
-                                    briefingPreviewRoute = nil
-                                }
-                            },
-                            onStartRoute: { context in
-                                // Capturar la polyline del preview ANTES de que el
-                                // sheet desaparezca (onDisappear la pone a nil).
-                                let previewPolyline = briefingPreviewRoute?.polyline
-
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    showLocationInfo = false
-                                }
-                                // CRÍTICO: setear destination para que aparezca el pin
-                                // en el mapa y el flujo de ruta dispare todos sus triggers.
-                                destination = DestinationPoint(
-                                    coordinate: context.destination,
-                                    title: context.destinationTitle
-                                )
-                                routeManager.clearRoute()
-                                routeManager.updateActiveIncidents(annotations)
-                                routeManager.updateAirQualityZones(airQualityGridManager.zones)
-                                // Preferencia elegida en el briefing (reemplaza applyRoutePreferences).
-                                routeManager.setPreference(context.preference)
-                                routeManager.calculateRoute(
-                                    from: userLocation,
-                                    to: context.destination,
-                                    destinationName: context.destinationTitle,
-                                    transportType: context.transportType
-                                )
-
-                                // Disparar círculos AQI INMEDIATAMENTE con la
-                                // polyline del preview (sin esperar MKDirections
-                                // oficial, que tarda 1-3s). Cuando llegue la ruta
-                                // oficial, se refinará con las 3 variantes.
-                                if let polyline = previewPolyline {
-                                    airQualityGridManager.updateZonesAlongRoutes(polylines: [polyline])
-                                }
-
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                    zoomToRoute()
-                                    recomputeVisibleAirQualityZones()
-                                }
-                                showRouteToast(to: context.destinationTitle)
-                            },
-                            onOpenStations: {
-                                // El sheet guía al usuario al tab Fuel → estaciones cercanas.
-                                HapticFeedback.light()
-                            },
-                            onOpenDeparture: {
-                                HapticFeedback.light()
-                            },
-                            onAddVehicle: {
-                                HapticFeedback.light()
-                            },
-                            onPreviewRouteChanged: { route, mode in
-                                briefingPreviewRoute = route
-                                briefingPreviewMode = mode
-                                if let r = route {
-                                    zoomToBriefingPreview(r)
-                                    // Generar círculos AQI a lo largo
-                                    // del preview para que el usuario
-                                    // vea la contaminación de la ruta
-                                    // propuesta ANTES de aceptarla.
-                                    airQualityGridManager.updateZonesAlongRoutes(polylines: [r.polyline])
-                                }
-                                recomputeVisibleAirQualityZones()
-                            }
-                        )
-                        .id("\(locationInfo.coordinate.latitude)_\(locationInfo.coordinate.longitude)")
-                        .padding(.horizontal, 12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-
-                        Spacer()
-                    }
+                    briefingOverlay(userLocation: userLocation, locationInfo: locationInfo)
                 } else {
                     // LEGACY: LocationInfoCard clásica.
                     VStack {
@@ -619,15 +545,19 @@ struct EnhancedMapView: View {
                 }
             }
 
-            // Route Info Card o Calculating Indicator
-            if !isSearchFocused && !showLocationInfo {
+            // Route Info Card o Calculating Indicator.
+            // Si `autoStartNavigationPending` está activo → el usuario ya
+            // eligió ruta en el briefing y esperamos a que se calcule para
+            // saltar directo a navegación. No mostramos selector/cards/loader
+            // durante ese intervalo (~1-2s) para no re-preguntarle nada.
+            if !isSearchFocused && !showLocationInfo && !autoStartNavigationPending {
                 VStack {
                     Spacer()
 
                     // Contenido de ruta
                     VStack(spacing: 12) {
                         // Selector de rutas múltiples
-                        if !routeManager.allScoredRoutes.isEmpty {
+                        if !routeManager.allScoredRoutes.isEmpty && !isInNavigationMode {
                             RouteCardsSelector(
                                 routes: routeManager.allScoredRoutes,
                                 selectedIndex: $selectedRouteIndex,
@@ -700,7 +630,7 @@ struct EnhancedMapView: View {
                         .frame(maxWidth: 320)
                         .padding(.trailing)
                     }
-                    .padding(.top, AppConstants.safeAreaTop + 80)
+                    .padding(.top, AppConstants.safeAreaTop + 130)
 
                     Spacer()
                 }
@@ -759,11 +689,21 @@ struct EnhancedMapView: View {
         .onChange(of: showAirQualityLayer) { _, newValue in
             if newValue {
                 // Activar capa de calidad del aire.
-                // Si las zones están vacías o contienen restos de una
-                // ruta anterior (currentCenter=nil tras updateZonesAlongRoutes),
-                // forzamos clearGrid + updateGrid para asegurar grid fresco
-                // centrado en el usuario.
-                if let userLocation = locationManager.userLocation {
+                // Si hay ruta activa o preview, poblar zones a lo largo del
+                // trayecto en lugar de grid centrado en el usuario — así
+                // evitamos sobrescribir los círculos de la ruta.
+                if hasActiveRoute || briefingPreviewRoute != nil {
+                    let routePolylines = routeManager.allScoredRoutes
+                        .map { $0.routeInfo.route.polyline }
+                    let previewPolyline = briefingPreviewRoute?.polyline
+                    let polylines: [MKPolyline] = !routePolylines.isEmpty
+                        ? routePolylines
+                        : (previewPolyline.map { [$0] } ?? [])
+                    if !polylines.isEmpty {
+                        airQualityGridManager.updateZonesAlongRoutes(polylines: polylines)
+                    }
+                } else if let userLocation = locationManager.userLocation {
+                    // Sin ruta: grid clásico centrado en el usuario.
                     if airQualityGridManager.zones.isEmpty
                         || airQualityGridManager.currentCenter == nil {
                         airQualityGridManager.clearGrid()
@@ -802,18 +742,22 @@ struct EnhancedMapView: View {
                     }
                 }
 
-                // Actualizar grid de calidad del aire si está activo
-                if showAirQualityLayer && !isInNavigationMode {
-                    // Solo actualizar grid si NO está navegando (en navegación los círculos son fijos)
-                    // Determinar centro del grid según punto de referencia
+                // Actualizar grid de calidad del aire si está activo.
+                // IMPORTANTE: si hay ruta activa o preview del briefing, las zones
+                // viven a lo largo del trayecto (updateZonesAlongRoutes). Llamar
+                // updateGrid aquí las sobrescribiría con un grid centrado en el
+                // usuario — los círculos "desaparecerían" en cuanto el usuario
+                // se moviera > minimumDistanceForUpdate.
+                if showAirQualityLayer
+                    && !isInNavigationMode
+                    && !hasActiveRoute
+                    && briefingPreviewRoute == nil {
                     let gridCenter: CLLocationCoordinate2D
 
                     switch airQualityReferencePoint {
                     case .userLocation:
-                        // Centrar en ubicación del usuario
                         gridCenter = location
                     case .destination(let destinationCoord):
-                        // Center on destination (Point B)
                         gridCenter = destinationCoord
                         print("📍 Grid centered on Point B: (\(String(format: "%.4f", destinationCoord.latitude)), \(String(format: "%.4f", destinationCoord.longitude)))")
                     }
@@ -851,9 +795,6 @@ struct EnhancedMapView: View {
         }
         .onReceive(routeManager.$currentRoute) { newRoute in
             if let newRoute {
-                // Calcular flechas direccionales
-                routeArrows = routeManager.calculateDirectionalArrows()
-
                 // Marching ants solo si NO hay capa AQI activa — la animación
                 // .repeatForever dispara re-render del body constantemente y
                 // recomputa los 40+ círculos AQI en cada frame interpolado.
@@ -863,12 +804,8 @@ struct EnhancedMapView: View {
                 // contaminación sobre la ruta elegida.
                 airQualityGridManager.updateZonesAlongRoutes(polylines: [newRoute.polyline])
 
-                print("✅ Animación de ruta iniciada!")
-                print("   - Flechas direccionales: \(routeArrows.count)")
-
+                print("✅ Ruta activa (sin flechas direccionales)")
             } else {
-                // Limpiar ruta
-                routeArrows = []
                 dashPhase = 0
             }
         }
@@ -916,6 +853,19 @@ struct EnhancedMapView: View {
         }
         .onReceive(routeManager.$isCalculating) { _ in
             recomputeVisibleAirQualityZones()
+        }
+        // Auto-start de navegación tras "Ir ahora" del briefing.
+        // Cuando routeManager termina el cálculo y tenemos una ruta
+        // scored activa, saltamos directo al modo navegación sin mostrar
+        // el selector de cards (el usuario ya eligió en el briefing).
+        .onReceive(routeManager.$currentScoredRoute) { scored in
+            guard autoStartNavigationPending, scored != nil, !isInNavigationMode else { return }
+            autoStartNavigationPending = false
+            // Pequeño delay para que MultiRouteOverlay pinte la polyline
+            // antes de hacer el zoom de navegación (evita un frame vacío).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                startNavigation()
+            }
         }
         // Cuando cambia el preview del briefing, hacer zoom
         // y actualizar grid AQI a lo largo del trayecto. Si el preview
@@ -1075,18 +1025,6 @@ struct EnhancedMapView: View {
                         )
                 }
 
-                // Directional arrows along route (filtradas por proximidad)
-                ForEach(Array(visibleRouteArrows.enumerated()), id: \.element.id) { index, arrow in
-                    Annotation("", coordinate: arrow.coordinate) {
-                        DirectionalArrowView(
-                            heading: arrow.heading,
-                            isNext: false, // Sin animación - todas las flechas estáticas
-                            size: 30
-                        )
-                    }
-                    .annotationTitles(.hidden)
-                }
-
                 // Temporary tap marker
                 if let coordinate = tappedCoordinate, !routingMode {
                     Annotation("New Report", coordinate: coordinate) {
@@ -1182,6 +1120,19 @@ struct EnhancedMapView: View {
                     isPrimary: showAirQualityLayer
                 ) {
                     toggleAirQualityLayer()
+                }
+
+                // Manual trip recording button (solo si no hay navegación activa).
+                // En navegación la grabación es automática y se muestra en NavigationPanel.
+                if !isInNavigationMode {
+                    FloatingActionButton(
+                        icon: telemetryService.isRecording ? "stop.circle.fill" : "record.circle",
+                        color: telemetryService.isRecording ? .red : .gray,
+                        size: 50,
+                        isPrimary: telemetryService.isRecording
+                    ) {
+                        toggleManualTelemetry()
+                    }
                 }
 
                 // Route Preferences button (solo si hay ruta activa)
@@ -1436,6 +1387,8 @@ struct EnhancedMapView: View {
             destination = nil
             routeManager.clearRoute()
             selectedRouteIndex = nil
+            // Abortar auto-start si el usuario canceló antes del arranque.
+            autoStartNavigationPending = false
 
             // Volver a grid centrado en ubicación del usuario
             if showAirQualityLayer, let userLocation = locationManager.userLocation {
@@ -1468,6 +1421,15 @@ struct EnhancedMapView: View {
 
         print("🧭 Iniciando navegación con ruta seleccionada...")
 
+        // Auto-start de telemetría — si el usuario navega, es un viaje real y se graba
+        // transparentemente (CoreMotion + GPS + driving style update al terminar).
+        // Solo arranca si no hay grabación manual ya en curso (no sobreescribir).
+        let telemetry = DrivingTelemetryService.shared
+        if !telemetry.isRecording {
+            telemetry.startTrip(vehicleId: VehicleProfileService.shared.activeProfile?.id)
+            print("🎙️ Telemetría auto-iniciada con navegación")
+        }
+
         // Iniciar navegación con NavigationManager
         navigationManager.startNavigation(route: scoredRoute, gridManager: airQualityGridManager)
 
@@ -1486,29 +1448,52 @@ struct EnhancedMapView: View {
             showAirQualityLayer = true
         }
 
-        // Configurar cámara en modo 2D centrada en usuario con heading
+        // Configurar cámara en modo navigation estilo Waze/Google Maps:
+        // - Seguimiento continuo de la ubicación del usuario
+        // - Heading rota con el movimiento (la ruta apunta hacia arriba)
+        // - Perspectiva 3D (pitch 55°) para efecto turn-by-turn
+        // - Distance cercana (350m) para detalle de la ruta
         if let userLocation = locationManager.userLocation {
             withAnimation(.easeInOut(duration: 1.0)) {
                 camera = .camera(
                     MapCamera(
                         centerCoordinate: userLocation,
-                        distance: 1000,
+                        distance: 350,
                         heading: locationManager.heading,
-                        pitch: 0  // Modo 2D sin inclinación
+                        pitch: 55
                     )
                 )
             }
+            // Tras el tween inicial, delegamos el follow+rotate al sistema nativo.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) { [self] in
+                guard isInNavigationMode else { return }
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    camera = .userLocation(followsHeading: true, fallback: .automatic)
+                }
+            }
+        } else {
+            // Sin userLocation todavía, ir directo al modo follow.
+            camera = .userLocation(followsHeading: true, fallback: .automatic)
         }
 
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
 
-        print("✅ Navegación iniciada - Modo 2D activado con heading del dispositivo")
+        print("✅ Navegación iniciada - cámara sigue al usuario con heading (modo turn-by-turn)")
     }
 
     private func stopNavigation() {
         print("🛑 Deteniendo navegación...")
+
+        // Finalizar telemetría si la arrancamos con la navegación. endTrip()
+        // guarda el trip en pastTrips y aplica EMA al driving_style del vehicle.
+        let telemetry = DrivingTelemetryService.shared
+        if telemetry.isRecording {
+            if let trip = telemetry.endTrip() {
+                print("🎙️ Telemetría guardada: \(String(format: "%.1f", trip.totalDistanceKm))km · \(Int(trip.durationMinutes))min")
+            }
+        }
 
         navigationManager.stopNavigation()
 
@@ -1583,6 +1568,96 @@ struct EnhancedMapView: View {
         withAnimation(.easeInOut(duration: 1.0)) {
             camera = .region(region)
         }
+    }
+
+    // MARK: - Trip Briefing overlay (2 pasos)
+
+    /// Renderiza el briefing de 2 pasos debajo del search bar.
+    /// Se llama desde el body con condicionales simples, lo cual
+    /// evita que SwiftUI colapse el type-check por tamaño.
+    @ViewBuilder
+    private func briefingOverlay(
+        userLocation: CLLocationCoordinate2D,
+        locationInfo: LocationInfo
+    ) -> some View {
+        VStack(spacing: 0) {
+            // Sólo espaciador para safe area — el search bar se oculta
+            // mientras el briefing está activo, así que el panel sube
+            // hasta justo debajo de la Dynamic Island / status bar.
+            Color.clear
+                .frame(height: AppConstants.safeAreaTop + 12)
+                .allowsHitTesting(false)
+
+            TripBriefingContainer(
+                origin: userLocation,
+                destination: locationInfo.coordinate,
+                destinationTitle: locationInfo.title,
+                zones: airQualityGridManager.zones,
+                vehicle: VehicleProfileService.shared.activeProfile,
+                gridManager: airQualityGridManager,
+                onDismiss: { briefingDidDismiss() },
+                onStartRoute: { ctx in briefingDidStart(context: ctx, userLocation: userLocation) },
+                onPreviewRouteChanged: { route, mode in
+                    briefingPreviewChanged(route: route, mode: mode)
+                }
+            )
+            .id("\(locationInfo.coordinate.latitude)_\(locationInfo.coordinate.longitude)")
+            .padding(.horizontal, 12)
+            .transition(.move(edge: .top).combined(with: .opacity))
+
+            Spacer()
+        }
+    }
+
+    private func briefingDidDismiss() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            showLocationInfo = false
+            selectedLocationInfo = nil
+            destination = nil
+            briefingPreviewRoute = nil
+        }
+    }
+
+    private func briefingDidStart(context: TripStartContext, userLocation: CLLocationCoordinate2D) {
+        let previewPolyline = briefingPreviewRoute?.polyline
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            showLocationInfo = false
+        }
+        destination = DestinationPoint(
+            coordinate: context.destination,
+            title: context.destinationTitle
+        )
+        routeManager.clearRoute()
+        routeManager.updateActiveIncidents(annotations)
+        routeManager.updateAirQualityZones(airQualityGridManager.zones)
+        routeManager.setPreference(context.preference)
+        routeManager.calculateRoute(
+            from: userLocation,
+            to: context.destination,
+            destinationName: context.destinationTitle,
+            transportType: context.transportType
+        )
+
+        if let polyline = previewPolyline {
+            airQualityGridManager.updateZonesAlongRoutes(polylines: [polyline])
+        }
+
+        // El usuario ya eligió su ruta en el briefing. No le mostramos
+        // selector adicional — cuando terminen de calcularse las rutas
+        // (onReceive de currentScoredRoute), saltamos directo a navegación.
+        autoStartNavigationPending = true
+        showRouteToast(to: context.destinationTitle)
+    }
+
+    private func briefingPreviewChanged(route: PreviewRoute?, mode: BriefingMode) {
+        briefingPreviewRoute = route
+        briefingPreviewMode = mode
+        if let r = route {
+            zoomToBriefingPreview(r)
+            airQualityGridManager.updateZonesAlongRoutes(polylines: [r.polyline])
+        }
+        recomputeVisibleAirQualityZones()
     }
 
     // MARK: - Search Methods
@@ -1764,6 +1839,59 @@ struct EnhancedMapView: View {
         }
     }
 
+    /// Badge discreto que indica grabación manual activa (sin ruta).
+    /// Muestra REC + km/h + km + min en pill compacto, similar al row del panel.
+    private var manualRecordingBadge: some View {
+        HStack(spacing: 8) {
+            // REC dot
+            Circle()
+                .fill(Color(hex: "#EF4444"))
+                .frame(width: 7, height: 7)
+                .shadow(color: Color(hex: "#EF4444").opacity(0.7), radius: 4)
+            Text("REC")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(0.8)
+                .foregroundColor(Color(hex: "#EF4444"))
+
+            Rectangle().fill(.white.opacity(0.15)).frame(width: 1, height: 12)
+
+            Text(String(format: "%.0f km/h · %.1f km · %.0f min",
+                        telemetryService.liveStats.speedKmh,
+                        telemetryService.liveStats.distanceKm,
+                        telemetryService.liveStats.durationMin))
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(.black.opacity(0.72))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(Capsule().stroke(Color(hex: "#EF4444").opacity(0.35), lineWidth: 1))
+        .clipShape(Capsule())
+        .shadow(color: Color(hex: "#EF4444").opacity(0.3), radius: 10, y: 3)
+    }
+
+    /// Toggle manual de grabación de telemetría (para viajes sin ruta calculada).
+    /// Durante navegación la grabación es automática y este botón se oculta.
+    private func toggleManualTelemetry() {
+        let telemetry = DrivingTelemetryService.shared
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+
+        if telemetry.isRecording {
+            if let trip = telemetry.endTrip() {
+                print("🎙️ Trip manual guardado: \(String(format: "%.1f", trip.totalDistanceKm))km · \(Int(trip.durationMinutes))min")
+            }
+        } else {
+            telemetry.startTrip(vehicleId: VehicleProfileService.shared.activeProfile?.id)
+            print("🎙️ Trip manual iniciado")
+        }
+    }
+
     private func toggleAirQualityLayer() {
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -1781,11 +1909,9 @@ struct EnhancedMapView: View {
                 }
             }
         }
-
-        // Si se activa, inicializar grid
-        if showAirQualityLayer, let userLocation = locationManager.userLocation {
-            airQualityGridManager.startAutoUpdate(center: userLocation)
-        }
+        // La inicialización del grid (user-centered o route-aware) la maneja
+        // centralmente `.onChange(of: showAirQualityLayer)` arriba — no
+        // duplicar aquí para evitar disparos dobles.
     }
 
     private func handleZoneTap(_ zone: AirQualityZone) {
