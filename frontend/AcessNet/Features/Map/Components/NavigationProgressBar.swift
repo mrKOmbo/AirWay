@@ -10,6 +10,7 @@ import SwiftUI
 // MARK: - Navigation Progress Bar
 
 struct NavigationProgressBar: View {
+    @Environment(\.weatherTheme) private var theme
     let progress: Double                 // 0.0 - 1.0
     let distanceRemaining: Double        // Metros
     let eta: TimeInterval                // Segundos
@@ -40,7 +41,7 @@ struct NavigationProgressBar: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.08))
+                        .fill(theme.textTint.opacity(0.08))
                         .frame(height: 8)
                     Capsule()
                         .fill(
@@ -72,7 +73,7 @@ struct NavigationProgressBar: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
@@ -87,10 +88,10 @@ struct NavigationProgressBar: View {
                 Text(label.uppercased())
                     .font(.system(size: 7, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Text(value)
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
             }
         }
@@ -98,7 +99,7 @@ struct NavigationProgressBar: View {
 
     private var statDivider: some View {
         Rectangle()
-            .fill(.white.opacity(0.1))
+            .fill(theme.textTint.opacity(0.1))
             .frame(width: 1, height: 24)
     }
 
@@ -106,7 +107,7 @@ struct NavigationProgressBar: View {
         Text("\(Int(progress * 100))%")
             .font(.system(size: 12, weight: .heavy, design: .rounded))
             .monospacedDigit()
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
@@ -170,6 +171,7 @@ struct NavigationProgressBar: View {
 // MARK: - Compact Progress Bar (vista reducida)
 
 struct CompactProgressBar: View {
+    @Environment(\.weatherTheme) private var theme
     let progress: Double
     let distanceRemaining: Double
     let eta: TimeInterval
@@ -178,7 +180,7 @@ struct CompactProgressBar: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(.white.opacity(0.1), lineWidth: 3)
+                    .stroke(theme.textTint.opacity(0.1), lineWidth: 3)
                     .frame(width: 34, height: 34)
                 Circle()
                     .trim(from: 0, to: CGFloat(progress))
@@ -195,7 +197,7 @@ struct CompactProgressBar: View {
 
                 Text("\(Int(progress * 100))")
                     .font(.system(size: 10, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
             }
 
@@ -206,7 +208,7 @@ struct CompactProgressBar: View {
                         .foregroundColor(Color(hex: "#60A5FA"))
                     Text(distanceRemainingFormatted)
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
                 }
                 HStack(spacing: 3) {
@@ -215,7 +217,7 @@ struct CompactProgressBar: View {
                         .foregroundColor(Color(hex: "#34D399"))
                     Text(etaFormatted)
                         .font(.system(size: 9, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(theme.textTint.opacity(0.7))
                 }
             }
             Spacer(minLength: 2)
@@ -227,7 +229,7 @@ struct CompactProgressBar: View {
                 .fill(.black.opacity(0.7))
                 .background(Capsule().fill(.ultraThinMaterial))
         )
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
     }
@@ -257,6 +259,7 @@ struct CompactProgressBar: View {
 // MARK: - Detailed Progress Info (con estadísticas adicionales)
 
 struct DetailedProgressInfo: View {
+    @Environment(\.weatherTheme) private var theme
     let progress: Double
     let distanceRemaining: Double
     let distanceTraveled: Double
@@ -324,6 +327,7 @@ struct DetailedProgressInfo: View {
 // MARK: - Stat Card Helper
 
 struct StatCard: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let label: String
     let value: String

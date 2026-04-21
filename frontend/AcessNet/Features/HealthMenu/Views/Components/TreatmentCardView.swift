@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct TreatmentCardView: View {
+    @Environment(\.weatherTheme) private var theme
 
     let treatment: Treatment
     var onTap: () -> Void
@@ -22,18 +23,18 @@ struct TreatmentCardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(treatment.title)
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                     Text(treatment.subtitle)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(theme.textTint.opacity(0.35))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -42,7 +43,7 @@ struct TreatmentCardView: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(.white.opacity(0.08), lineWidth: 1)
+                            .stroke(theme.textTint.opacity(0.08), lineWidth: 1)
                     )
             )
         }

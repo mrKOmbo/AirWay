@@ -10,30 +10,21 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appSettings: AppSettings
-    @State private var selectedAQI: AQIStandard = .european
-    @State private var selectedTemperature: TemperatureUnit = .celsius
-    @State private var selectedWindSpeed: WindSpeedUnit = .kmh
-
-    enum AQIStandard {
-        case european
-        case us
-    }
-
-    enum TemperatureUnit {
-        case celsius
-        case fahrenheit
-    }
-
-    enum WindSpeedUnit {
-        case kmh
-        case mph
-    }
 
     var body: some View {
-        let theme = WeatherTheme(condition: WeatherCondition(rawValue: appSettings.weatherOverrideRaw) ?? .overcast)
+        NavigationStack {
+            content
+        }
+    }
 
-        ZStack {
-            // Background — dynamic
+    private var content: some View {
+        // Si AirWay está activo, el init auto-detecta y entrega paleta clara (navy sobre blanco).
+        // Si no, usa la condición climática almacenada (temas oscuros).
+        let theme = WeatherTheme(
+            condition: WeatherCondition(rawValue: appSettings.weatherOverrideRaw) ?? .overcast
+        )
+
+        return ZStack {
             theme.pageBackground
                 .ignoresSafeArea()
 
@@ -47,35 +38,84 @@ struct SettingsView: View {
 
                         Text("SETTINGS")
                             .font(.title3.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .tracking(2)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 60)
 
+                    // MARK: - Personalización (nuevas propuestas)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PERSONALIZACIÓN")
+                            .font(.subheadline)
+                            .foregroundColor(theme.textTint.opacity(0.7))
+                            .tracking(1)
+
+                        VStack(spacing: 10) {
+                            NavigationLink {
+                                BreathingProfileView()
+                            } label: {
+                                SettingsNavRow(
+                                    icon: "lungs.fill",
+                                    tint: Color(hex: "#FF6B6B"),
+                                    title: "Breathing Profile",
+                                    subtitle: appSettings.hasActiveBreathingProfile
+                                        ? "Activo · sensibilidad \(Int((1 - appSettings.sensitivityMultiplier) * 100))% más alta"
+                                        : "Personaliza umbrales según tu salud"
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            NavigationLink {
+                                AICopilotSettingsView()
+                            } label: {
+                                SettingsNavRow(
+                                    icon: "sparkles",
+                                    tint: Color(hex: "#4ECDC4"),
+                                    title: "AI Copilot",
+                                    subtitle: "Tono, memoria y modelo del asistente"
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            NavigationLink {
+                                DataSourcesView()
+                            } label: {
+                                SettingsNavRow(
+                                    icon: "point.3.filled.connected.trianglepath.dotted",
+                                    tint: Color(hex: "#4A90E2"),
+                                    title: "Fuentes de datos",
+                                    subtitle: "NASA TEMPO · OpenAQ · WAQI · RAMA"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+
                     // Air Quality Index Section
                     VStack(alignment: .leading, spacing: 16) {
                         Text("AIR QUALITY INDEX")
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                             .tracking(1)
 
                         HStack(spacing: 0) {
                             SegmentButton(
                                 title: "European AQI",
-                                isSelected: selectedAQI == .european
+                                isSelected: appSettings.aqiStandardRaw == "european"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedAQI = .european
+                                    appSettings.aqiStandardRaw = "european"
                                 }
                             }
 
                             SegmentButton(
                                 title: "US AQI",
-                                isSelected: selectedAQI == .us
+                                isSelected: appSettings.aqiStandardRaw == "us"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedAQI = .us
+                                    appSettings.aqiStandardRaw = "us"
                                 }
                             }
                         }
@@ -90,25 +130,25 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("TEMPERATURE")
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                             .tracking(1)
 
                         HStack(spacing: 0) {
                             SegmentButton(
                                 title: "°C",
-                                isSelected: selectedTemperature == .celsius
+                                isSelected: appSettings.temperatureUnitRaw == "celsius"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedTemperature = .celsius
+                                    appSettings.temperatureUnitRaw = "celsius"
                                 }
                             }
 
                             SegmentButton(
                                 title: "°F",
-                                isSelected: selectedTemperature == .fahrenheit
+                                isSelected: appSettings.temperatureUnitRaw == "fahrenheit"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedTemperature = .fahrenheit
+                                    appSettings.temperatureUnitRaw = "fahrenheit"
                                 }
                             }
                         }
@@ -123,25 +163,25 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("WIND SPEED")
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                             .tracking(1)
 
                         HStack(spacing: 0) {
                             SegmentButton(
                                 title: "Km/h",
-                                isSelected: selectedWindSpeed == .kmh
+                                isSelected: appSettings.windSpeedUnitRaw == "kmh"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedWindSpeed = .kmh
+                                    appSettings.windSpeedUnitRaw = "kmh"
                                 }
                             }
 
                             SegmentButton(
                                 title: "Mph",
-                                isSelected: selectedWindSpeed == .mph
+                                isSelected: appSettings.windSpeedUnitRaw == "mph"
                             ) {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedWindSpeed = .mph
+                                    appSettings.windSpeedUnitRaw = "mph"
                                 }
                             }
                         }
@@ -156,12 +196,12 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("WEATHER SIMULATION")
                             .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                             .tracking(1)
 
                         Text("Changes the app's visual theme")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
 
                         let conditions: [(WeatherCondition, String, String)] = [
                             (.sunny, "sun.max.fill", "#FFB830"),
@@ -178,23 +218,24 @@ struct SettingsView: View {
                                     appSettings.weatherOverride = nil
                                 }
                             } label: {
+                                let isAuto = appSettings.weatherOverrideRaw.isEmpty
                                 VStack(spacing: 6) {
                                     Image(systemName: "a.circle.fill")
                                         .font(.title2)
-                                        .foregroundColor(appSettings.weatherOverrideRaw.isEmpty ? .white : .white.opacity(0.4))
+                                        .foregroundColor(isAuto ? theme.textTint : theme.textTint.opacity(0.4))
 
                                     Text("Auto")
                                         .font(.system(size: 9, weight: .semibold))
-                                        .foregroundColor(appSettings.weatherOverrideRaw.isEmpty ? .white : .white.opacity(0.4))
+                                        .foregroundColor(isAuto ? theme.textTint : theme.textTint.opacity(0.4))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(appSettings.weatherOverrideRaw.isEmpty ? .white.opacity(0.15) : .white.opacity(0.05))
+                                        .fill(isAuto ? theme.textTint.opacity(0.15) : theme.textTint.opacity(0.05))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .stroke(appSettings.weatherOverrideRaw.isEmpty ? .white.opacity(0.3) : .clear, lineWidth: 1)
+                                                .stroke(isAuto ? theme.textTint.opacity(0.3) : .clear, lineWidth: 1)
                                         )
                                 )
                             }
@@ -209,18 +250,18 @@ struct SettingsView: View {
                                     VStack(spacing: 6) {
                                         Image(systemName: icon)
                                             .font(.title2)
-                                            .foregroundColor(isSelected ? Color(hex: color) : .white.opacity(0.4))
+                                            .foregroundColor(isSelected ? Color(hex: color) : theme.textTint.opacity(0.4))
                                             .symbolRenderingMode(.multicolor)
 
                                         Text(condition.rawValue)
                                             .font(.system(size: 9, weight: .semibold))
-                                            .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                                            .foregroundColor(isSelected ? theme.textTint : theme.textTint.opacity(0.4))
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(isSelected ? Color(hex: color).opacity(0.15) : .white.opacity(0.05))
+                                            .fill(isSelected ? Color(hex: color).opacity(0.15) : theme.textTint.opacity(0.05))
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(isSelected ? Color(hex: color).opacity(0.4) : .clear, lineWidth: 1)
@@ -259,11 +300,11 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("AirWay")
                                         .font(.subheadline.bold())
-                                        .foregroundColor(.white)
+                                        .foregroundColor(theme.textTint)
 
                                     Text("Brand palette · same as the website")
                                         .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.55))
+                                        .foregroundColor(theme.textTint.opacity(0.55))
                                 }
 
                                 Spacer()
@@ -277,10 +318,10 @@ struct SettingsView: View {
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .fill(appSettings.isAirWayTheme ? Color(hex: "#0099FF").opacity(0.12) : .white.opacity(0.05))
+                                    .fill(appSettings.isAirWayTheme ? Color(hex: "#0099FF").opacity(0.12) : theme.textTint.opacity(0.05))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .stroke(appSettings.isAirWayTheme ? Color(hex: "#0099FF").opacity(0.5) : .white.opacity(0.08), lineWidth: 1)
+                                            .stroke(appSettings.isAirWayTheme ? Color(hex: "#0099FF").opacity(0.5) : theme.textTint.opacity(0.08), lineWidth: 1)
                                     )
                             )
                         }
@@ -289,7 +330,7 @@ struct SettingsView: View {
                     .padding(.horizontal)
 
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(theme.textTint.opacity(0.1))
                         .padding(.vertical, 24)
 
                     // Performance Section
@@ -305,7 +346,7 @@ struct SettingsView: View {
                         )
 
                         Divider()
-                            .background(Color.white.opacity(0.1))
+                            .background(theme.textTint.opacity(0.1))
                             .padding(.leading, 16)
 
                         // Proximity Radius Slider
@@ -314,7 +355,7 @@ struct SettingsView: View {
                                 HStack {
                                     Text("Visibility Radius")
                                         .font(.body)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(theme.textTint)
 
                                     Spacer()
 
@@ -333,20 +374,20 @@ struct SettingsView: View {
                                 HStack {
                                     Text("1 km")
                                         .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.5))
+                                        .foregroundColor(theme.textTint.opacity(0.5))
 
                                     Spacer()
 
                                     Text("5 km")
                                         .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.5))
+                                        .foregroundColor(theme.textTint.opacity(0.5))
                                 }
                             }
                             .padding(.vertical, 16)
                             .transition(.opacity.combined(with: .move(edge: .top)))
 
                             Divider()
-                                .background(Color.white.opacity(0.1))
+                                .background(theme.textTint.opacity(0.1))
                                 .padding(.leading, 16)
                         }
 
@@ -359,22 +400,22 @@ struct SettingsView: View {
 
                                 Text(appSettings.enableProximityFiltering ? "Performance Optimized" : "Showing All Elements")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(theme.textTint.opacity(0.9))
                             }
 
                             Text("Grid: \(appSettings.totalAirQualityZones) zones • Static rendering")
                                 .font(.caption2)
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(theme.textTint.opacity(0.6))
 
                             if appSettings.enableProximityFiltering {
                                 Text("Elements beyond \(Int(appSettings.proximityRadiusKm))km are hidden for better performance.")
                                     .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                                     .padding(.top, 4)
                             } else {
                                 Text("All elements are visible. Performance may vary with many elements.")
                                     .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                                     .padding(.top, 4)
                             }
                         }
@@ -384,11 +425,52 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal)
 
+                    // MARK: - Map Experience (Trip Briefing toggle)
+                    VStack(alignment: .leading, spacing: 0) {
+                        SectionHeader(title: "MAPA · EXPERIENCIA")
+                            .padding(.bottom, 16)
+
+                        SettingsToggleRow(
+                            title: "Trip Briefing",
+                            subtitle: appSettings.useTripBriefing
+                                ? "Pin muestra cigarros + gasolinera + huella"
+                                : "Pin muestra la tarjeta clásica",
+                            isOn: $appSettings.useTripBriefing
+                        )
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Image(systemName: appSettings.useTripBriefing ? "sparkles" : "info.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(appSettings.useTripBriefing ? Color(hex: "#7ED957") : .blue)
+                                Text(appSettings.useTripBriefing ? "Briefing activo" : "Modo clásico")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(theme.textTint.opacity(0.9))
+                            }
+                            Text(appSettings.useTripBriefing
+                                ? "Al poner un pin verás el modo A pie / En coche, con cigarros equivalentes, costo de gasolina, estaciones en ruta y mejor hora de salida."
+                                : "Al poner un pin verás la tarjeta con AQI del destino y botón de calcular ruta.")
+                                .font(.caption2)
+                                .foregroundColor(theme.textTint.opacity(0.55))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding()
+                        .background(
+                            appSettings.useTripBriefing
+                                ? Color(hex: "#7ED957").opacity(0.10)
+                                : Color.blue.opacity(0.10)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.top, 12)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 24)
+
                     // Support us Section
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Support us")
                             .font(.system(size: 44, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .padding(.horizontal)
 
                         VStack(spacing: 0) {
@@ -398,7 +480,7 @@ struct SettingsView: View {
                             )
 
                             Divider()
-                                .background(Color.white.opacity(0.1))
+                                .background(theme.textTint.opacity(0.1))
 
                             SupportButton(
                                 icon: "paperplane.fill",
@@ -406,7 +488,7 @@ struct SettingsView: View {
                             )
 
                             Divider()
-                                .background(Color.white.opacity(0.1))
+                                .background(theme.textTint.opacity(0.1))
 
                             SupportButton(
                                 icon: "square.grid.2x2.fill",
@@ -420,11 +502,14 @@ struct SettingsView: View {
                         .padding(.horizontal)
                     }
                     .padding(.top, 20)
-
-                    Spacer(minLength: 100)
                 }
+                .avoidTabBar(extraPadding: 20)
             }
         }
+        // Propagamos el theme para que los structs internos (SegmentButton, SupportButton, etc.)
+        // lo lean vía @Environment. Importante: el env de MainTabView no lleva isAirWay en el
+        // init explícito, así que reinyectamos aquí el theme construido con el detector automático.
+        .environment(\.weatherTheme, theme)
         .navigationBarHidden(true)
     }
 }
@@ -441,18 +526,19 @@ struct SegmentButton: View {
         Button(action: action) {
             Text(title)
                 .font(.body.bold())
-                .foregroundColor(isSelected ? .black : .white.opacity(0.7))
+                .foregroundColor(isSelected ? (theme.isAirWay ? .white : .black) : theme.textTint.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(isSelected ? .white : .clear)
+                        .fill(isSelected ? (theme.isAirWay ? theme.textTint : Color.white) : Color.clear)
                 )
         }
     }
 }
 
 struct SupportButton: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let title: String
 
@@ -461,12 +547,12 @@ struct SupportButton: View {
             HStack(spacing: 20) {
                 Image(systemName: icon)
                     .font(.title2)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(theme.textTint.opacity(0.8))
                     .frame(width: 30)
 
                 Text(title)
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Spacer()
             }
@@ -477,18 +563,62 @@ struct SupportButton: View {
 }
 
 struct SectionHeader: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
 
     var body: some View {
         Text(title)
             .font(.subheadline)
-            .foregroundColor(.white.opacity(0.7))
+            .foregroundColor(theme.textTint.opacity(0.7))
             .tracking(1)
             .padding(.horizontal)
     }
 }
 
+struct SettingsNavRow: View {
+    @Environment(\.weatherTheme) private var theme
+    let icon: String
+    let tint: Color
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(tint.opacity(0.18))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(theme.textTint)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(theme.textTint.opacity(0.55))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(theme.textTint.opacity(0.35))
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(theme.textTint.opacity(0.05))
+        )
+    }
+}
+
 struct SettingsToggleRow: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let subtitle: String
     @Binding var isOn: Bool
@@ -498,11 +628,11 @@ struct SettingsToggleRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text(subtitle)
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(theme.textTint.opacity(0.6))
             }
         }
         .tint(Color("AccentColor"))

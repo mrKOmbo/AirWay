@@ -11,6 +11,7 @@ import CoreLocation
 // MARK: - Search Results View
 
 struct SearchResultsView: View {
+    @Environment(\.weatherTheme) private var theme
     let results: [SearchResult]
     let isSearching: Bool
     let userLocation: CLLocationCoordinate2D?
@@ -36,7 +37,7 @@ struct SearchResultsView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
@@ -46,10 +47,10 @@ struct SearchResultsView: View {
 
     private var searchingView: some View {
         HStack(spacing: 10) {
-            ProgressView().tint(.white).scaleEffect(0.8)
+            ProgressView().tint(theme.textTint).scaleEffect(0.8)
             Text("Buscando…")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundColor(.white.opacity(0.75))
+                .foregroundColor(theme.textTint.opacity(0.75))
         }
         .frame(height: 60)
         .frame(maxWidth: .infinity)
@@ -59,11 +60,11 @@ struct SearchResultsView: View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .heavy))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
 
             Text("Sin resultados")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
         }
         .frame(height: 60)
         .frame(maxWidth: .infinity)
@@ -80,7 +81,7 @@ struct SearchResultsView: View {
                     )
 
                     if result.id != results.last?.id {
-                        Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                        Rectangle().fill(theme.textTint.opacity(0.06)).frame(height: 1)
                             .padding(.leading, 60)
                     }
                 }
@@ -93,6 +94,7 @@ struct SearchResultsView: View {
 // MARK: - Search Result Row
 
 struct SearchResultRow: View {
+    @Environment(\.weatherTheme) private var theme
     let result: SearchResult
     let userLocation: CLLocationCoordinate2D?
     let onSelect: () -> Void
@@ -126,13 +128,13 @@ struct SearchResultRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(result.title)
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
 
                     if !result.subtitle.isEmpty {
                         Text(result.subtitle)
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(theme.textTint.opacity(0.55))
                             .lineLimit(1)
                     }
                 }
@@ -147,7 +149,7 @@ struct SearchResultRow: View {
                             .monospacedDigit()
                         Image(systemName: "arrow.right")
                             .font(.system(size: 9, weight: .heavy))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                     }
                     .padding(.horizontal, 7).padding(.vertical, 3)
                     .background(Capsule().fill(Color(hex: "#60A5FA").opacity(0.12)))
@@ -156,7 +158,7 @@ struct SearchResultRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(
-                isPressed ? Color.white.opacity(0.08) : Color.clear
+                isPressed ? theme.textTint.opacity(0.08) : Color.clear
             )
         }
         .buttonStyle(.plain)
@@ -198,6 +200,7 @@ struct SearchResultRow: View {
 // MARK: - Recent Searches View (opcional, futuro)
 
 struct RecentSearchesView: View {
+    @Environment(\.weatherTheme) private var theme
     let recentSearches: [SearchHistoryItem]
     let onSelect: (SearchHistoryItem) -> Void
     let onClear: () -> Void
@@ -208,7 +211,7 @@ struct RecentSearchesView: View {
                 Text("RECIENTES")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.0)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
 
                 Spacer()
 
@@ -225,7 +228,7 @@ struct RecentSearchesView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
 
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -237,24 +240,24 @@ struct RecentSearchesView: View {
                             HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
-                                        .fill(.white.opacity(0.08))
+                                        .fill(theme.textTint.opacity(0.08))
                                         .frame(width: 32, height: 32)
                                     Image(systemName: "clock.arrow.circlepath")
                                         .font(.system(size: 13, weight: .heavy))
-                                        .foregroundColor(.white.opacity(0.6))
+                                        .foregroundColor(theme.textTint.opacity(0.6))
                                 }
                                 .frame(width: 40)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(search.title)
                                         .font(.system(size: 13, weight: .heavy))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(theme.textTint)
                                         .lineLimit(1)
 
                                     if !search.subtitle.isEmpty {
                                         Text(search.subtitle)
                                             .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(.white.opacity(0.55))
+                                            .foregroundColor(theme.textTint.opacity(0.55))
                                             .lineLimit(1)
                                     }
                                 }
@@ -263,7 +266,7 @@ struct RecentSearchesView: View {
 
                                 Image(systemName: "arrow.up.backward")
                                     .font(.system(size: 10, weight: .heavy))
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
@@ -271,7 +274,7 @@ struct RecentSearchesView: View {
                         .buttonStyle(.plain)
 
                         if search.id != recentSearches.last?.id {
-                            Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                            Rectangle().fill(theme.textTint.opacity(0.06)).frame(height: 1)
                                 .padding(.leading, 60)
                         }
                     }
@@ -289,7 +292,7 @@ struct RecentSearchesView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.45), radius: 16, y: 6)

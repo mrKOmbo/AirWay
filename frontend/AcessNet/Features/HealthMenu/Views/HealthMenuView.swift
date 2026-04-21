@@ -12,6 +12,7 @@
 import SwiftUI
 
 struct HealthMenuView: View {
+    @Environment(\.weatherTheme) private var theme
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -85,13 +86,13 @@ struct HealthMenuView: View {
                     Text(String(localized: "Volver"))
                         .font(.system(size: 13, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
                         .fill(.ultraThinMaterial)
-                        .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
+                        .overlay(Capsule().stroke(theme.textTint.opacity(0.1), lineWidth: 1))
                 )
             }
             .accessibilityLabel(String(localized: "Volver"))
@@ -110,7 +111,7 @@ struct HealthMenuView: View {
                     )
                 Text(String(localized: "Diagnóstico ambiental"))
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.2)
                     .textCase(.uppercase)
             }
@@ -131,7 +132,7 @@ struct HealthMenuView: View {
                 .fill(Color.black.opacity(0.35))
                 .overlay(
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .stroke(.white.opacity(0.08), lineWidth: 1)
+                        .stroke(theme.textTint.opacity(0.08), lineWidth: 1)
                 )
 
             if let error = viewModel.loadError, viewModel.isModelReady == false {
@@ -195,10 +196,10 @@ struct HealthMenuView: View {
         if !viewModel.isModelReady && viewModel.loadError == nil {
             VStack(spacing: 10) {
                 ProgressView()
-                    .tint(.white)
+                    .tint(theme.textTint)
                 Text(String(localized: "Cargando modelo anatómico…"))
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
             }
             .padding(20)
             .background(
@@ -233,7 +234,7 @@ struct HealthMenuView: View {
         .background(
             Capsule()
                 .fill(.black.opacity(0.45))
-                .overlay(Capsule().stroke(.white.opacity(0.08), lineWidth: 1))
+                .overlay(Capsule().stroke(theme.textTint.opacity(0.08), lineWidth: 1))
         )
     }
 
@@ -242,7 +243,7 @@ struct HealthMenuView: View {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white.opacity(0.75))
+                .foregroundColor(theme.textTint.opacity(0.75))
         }
     }
 
@@ -255,10 +256,10 @@ struct HealthMenuView: View {
                 .foregroundColor(.orange)
             Text(String(localized: "No se pudo cargar el modelo"))
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text(message)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(theme.textTint.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
             Button(action: {
@@ -267,7 +268,7 @@ struct HealthMenuView: View {
             }) {
                 Text(String(localized: "Reintentar"))
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 10)
                     .background(
@@ -286,18 +287,18 @@ struct HealthMenuView: View {
             HStack {
                 Text(String(localized: "Recomendaciones"))
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                     .tracking(1.2)
                     .textCase(.uppercase)
                 Spacer()
                 Text("\(viewModel.treatments.count)")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
-                        Capsule().fill(.white.opacity(0.08))
+                        Capsule().fill(theme.textTint.opacity(0.08))
                     )
             }
             .padding(.horizontal, 20)

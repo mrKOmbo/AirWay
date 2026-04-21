@@ -8,13 +8,10 @@
 import SwiftUI
 
 struct OBD2ConnectionView: View {
+    @Environment(\.weatherTheme) private var theme
     @StateObject private var obd = OBD2Service.shared
     @EnvironmentObject private var appSettings: AppSettings
     @Environment(\.dismiss) private var dismiss
-
-    private var theme: WeatherTheme {
-        WeatherTheme(condition: appSettings.weatherOverride ?? .overcast)
-    }
 
     var body: some View {
         NavigationStack {
@@ -52,9 +49,9 @@ struct OBD2ConnectionView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white.opacity(0.1)))
+                            .background(Circle().fill(theme.textTint.opacity(0.1)))
                     }
                 }
             }
@@ -85,10 +82,10 @@ struct OBD2ConnectionView: View {
             VStack(spacing: 2) {
                 Text("OBD-II Hardware Premium")
                     .font(.system(size: 18, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("ELM327 BLE · Vgate · OBDLink · Kiwi 3 · vLinker MC+")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                     .multilineTextAlignment(.center)
             }
         }
@@ -104,7 +101,7 @@ struct OBD2ConnectionView: View {
 
             Text(obd.state.label)
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .lineLimit(1)
 
             Spacer(minLength: 4)
@@ -164,7 +161,7 @@ struct OBD2ConnectionView: View {
             if let kmL = obd.liveData.instantKmPerL {
                 Text(String(format: "%.1f", kmL))
                     .font(.system(size: 72, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .shadow(color: Color(hex: "#22D3EE").opacity(0.5), radius: 12)
                 HStack(spacing: 4) {
@@ -173,11 +170,11 @@ struct OBD2ConnectionView: View {
                     Text("km/L instantáneo")
                         .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
             } else {
                 Text(String(format: "%.2f", obd.liveData.computedFuelRateLh))
                     .font(.system(size: 72, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .shadow(color: Color(hex: "#FBBF24").opacity(0.5), radius: 12)
                 HStack(spacing: 4) {
@@ -186,7 +183,7 @@ struct OBD2ConnectionView: View {
                     Text("L/hr consumo actual")
                         .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity)
@@ -222,14 +219,14 @@ struct OBD2ConnectionView: View {
                 Text("TELEMETRÍA LIVE")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 HStack(spacing: 3) {
                     Circle().fill(.green).frame(width: 4, height: 4)
                     Text("1 Hz")
                         .font(.system(size: 9, weight: .heavy))
                 }
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
             }
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8),
@@ -297,23 +294,23 @@ struct OBD2ConnectionView: View {
                 Text(label.uppercased())
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                 Spacer()
             }
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 Text(unit)
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.08))
+                    Capsule().fill(theme.textTint.opacity(0.08))
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -350,7 +347,7 @@ struct OBD2ConnectionView: View {
                 Text("CÓMO CONECTAR")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             VStack(spacing: 8) {
@@ -410,14 +407,14 @@ struct OBD2ConnectionView: View {
                 HStack(spacing: 5) {
                     Image(systemName: icon)
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(theme.textTint.opacity(0.65))
                     Text(title)
                         .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 Text(subtitle)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
         }
@@ -435,7 +432,7 @@ struct OBD2ConnectionView: View {
                             .foregroundColor(Color(hex: "#22D3EE"))
                         Text(r)
                             .font(.system(size: 9, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(theme.textTint.opacity(0.75))
                             .lineLimit(1)
                     }
                 }
@@ -449,11 +446,11 @@ struct OBD2ConnectionView: View {
                     .foregroundColor(Color(hex: "#22D3EE"))
                 Text("Log BLE")
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Spacer()
                 Text("\(obd.recentResponses.suffix(10).count)")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
         }
         .tint(.white.opacity(0.6))
@@ -483,7 +480,7 @@ struct OBD2ConnectionView: View {
                         Text("Desconectar dongle")
                             .font(.system(size: 14, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(
@@ -510,7 +507,7 @@ struct OBD2ConnectionView: View {
                         Image(systemName: "arrow.right")
                             .font(.system(size: 11, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 14).padding(.vertical, 14)
                     .background(
                         LinearGradient(
@@ -530,6 +527,7 @@ struct OBD2ConnectionView: View {
 // MARK: - Bluetooth Pulse Dot
 
 private struct BluetoothPulseDot: View {
+    @Environment(\.weatherTheme) private var theme
     let color: Color
     @State private var pulse = false
 

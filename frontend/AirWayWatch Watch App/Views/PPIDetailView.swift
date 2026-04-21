@@ -144,12 +144,7 @@ struct PPIDetailView: View {
             }
             .padding()
         }
-        .background(
-            LinearGradient(
-                colors: [Color(hex: "#0A1D4D"), Color(hex: "#4AA1B3")],
-                startPoint: .top, endPoint: .bottom
-            ).ignoresSafeArea()
-        )
+        .airWayBackground()
     }
 
     // MARK: - Helpers

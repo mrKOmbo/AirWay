@@ -425,14 +425,14 @@ struct FuelStationsMapView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(vm.stations.count) estaciones")
                     .font(.system(size: 20, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("Promedio CDMX · $\(String(format: "%.2f", vm.averagePrice)) MXN/L")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
             if vm.loading {
-                ProgressView().tint(.white).scaleEffect(0.8)
+                ProgressView().tint(theme.textTint).scaleEffect(0.8)
             }
         }
         .padding(.horizontal, 16)
@@ -449,10 +449,10 @@ struct FuelStationsMapView: View {
                 } label: {
                     Text("\(Int(km)) km")
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(vm.radiusKm == km ? .black : .white.opacity(0.7))
+                        .foregroundColor(vm.radiusKm == km ? .black : theme.textTint.opacity(0.7))
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .background(
-                            Capsule().fill(vm.radiusKm == km ? Color.white : Color.white.opacity(0.08))
+                            Capsule().fill(vm.radiusKm == km ? Color.white : theme.textTint.opacity(0.08))
                         )
                 }
                 .buttonStyle(.plain)
@@ -480,7 +480,7 @@ struct FuelStationsMapView: View {
                     HStack(spacing: 6) {
                         Text(s.brand)
                             .font(.system(size: 16, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                         if s.id == vm.cheapest()?.id {
                             Text("⭐ MÁS BARATA")
                                 .font(.system(size: 8, weight: .heavy))
@@ -492,7 +492,7 @@ struct FuelStationsMapView: View {
                     }
                     Text(s.address)
                         .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(theme.textTint.opacity(0.65))
                         .lineLimit(2)
                 }
 
@@ -506,9 +506,9 @@ struct FuelStationsMapView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(theme.textTint.opacity(0.7))
                         .frame(width: 26, height: 26)
-                        .background(Circle().fill(.white.opacity(0.1)))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
                 }
             }
 
@@ -524,7 +524,7 @@ struct FuelStationsMapView: View {
                     icon: "ruler.fill",
                     value: s.distanceKmFormatted,
                     label: "distancia",
-                    color: .white
+                    color: theme.textTint
                 )
                 if let eta = vm.routeETA {
                     detailStat(
@@ -556,7 +556,7 @@ struct FuelStationsMapView: View {
                         Text("Navegar en Apple Maps")
                             .font(.system(size: 13, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(
@@ -575,15 +575,15 @@ struct FuelStationsMapView: View {
                 } label: {
                     Image(systemName: "scope")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(width: 46, height: 46)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(.white.opacity(0.12))
+                                .fill(theme.textTint.opacity(0.12))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                .stroke(theme.textTint.opacity(0.2), lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -601,7 +601,7 @@ struct FuelStationsMapView: View {
                 Text(label.uppercased())
                     .font(.system(size: 8, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             Text(value)
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
@@ -614,7 +614,7 @@ struct FuelStationsMapView: View {
         .padding(.horizontal, 10).padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.white.opacity(0.06))
+                .fill(theme.textTint.opacity(0.06))
         )
     }
 
@@ -683,6 +683,7 @@ struct FuelStationsMapView: View {
 // MARK: - Price Marker (pin with price)
 
 struct StationPriceMarker: View {
+    @Environment(\.weatherTheme) private var theme
     let station: FuelStation
     let isCheapest: Bool
     let isSelected: Bool
@@ -770,6 +771,7 @@ private struct MarkerTailTriangle: Shape {
 // MARK: - List Row
 
 struct StationListRow: View {
+    @Environment(\.weatherTheme) private var theme
     let station: FuelStation
     let isCheapest: Bool
     let isSelected: Bool
@@ -798,16 +800,16 @@ struct StationListRow: View {
                 HStack(spacing: 5) {
                     Text(station.brand)
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("·")
-                        .foregroundColor(.white.opacity(0.3))
+                        .foregroundColor(theme.textTint.opacity(0.3))
                     Text(station.distanceKmFormatted)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
                 Text(station.address)
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .lineLimit(1)
             }
 
@@ -828,14 +830,14 @@ struct StationListRow: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(isSelected ? Color.white.opacity(0.14) : Color.white.opacity(0.05))
+                .fill(isSelected ? theme.textTint.opacity(0.14) : theme.textTint.opacity(0.05))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
                     isCheapest
                         ? Color(hex: "#FBBF24").opacity(0.6)
-                        : (isSelected ? .white.opacity(0.3) : .white.opacity(0.08)),
+                        : (isSelected ? .white.opacity(0.3) : theme.textTint.opacity(0.08)),
                     lineWidth: isCheapest ? 1.5 : 1
                 )
         )

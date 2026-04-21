@@ -46,7 +46,8 @@ struct EnhancedTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
     @Environment(\.weatherTheme) private var theme
     @Namespace private var namespace
-    @State private var showLabel = false
+    @State private var labeledTabs: Set<MainTabView.Tab> = []
+    @State private var labelTokens: [MainTabView.Tab: UUID] = [:]
 
     let tabs: [MainTabView.Tab] = [.home, .map, .fuel, .health, .body, .settings]
 
@@ -83,19 +84,25 @@ struct EnhancedTabBar: View {
                     guard selectedTab != tab else { return }
                     HapticFeedback.light()
 
-                    // 1. Cambiar tab + mostrar label
+                    // 1. Cambiar tab + mostrar label de ESTE tab
+                    let token = UUID()
+                    labelTokens[tab] = token
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                         selectedTab = tab
-                        showLabel = true
+                        labeledTabs.insert(tab)
                     }
 
-                    // 2. Después de 0.8s, ocultar label y volver a icono
+                    // 2. Después de 0.8s, ocultar SOLO si el token sigue vigente.
+                    //    Si el usuario toca otra tab antes, ese tap emite un token
+                    //    nuevo y este callback queda obsoleto sin apagar nada ajeno.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        guard labelTokens[tab] == token else { return }
                         withAnimation(.easeOut(duration: 0.25)) {
-                            showLabel = false
+                            labeledTabs.remove(tab)
                         }
                     }
                 } label: {
+                    let showLabel = labeledTabs.contains(tab)
                     ZStack {
                         if isSelected && showLabel {
                             // Mostrar solo el nombre

@@ -8,15 +8,12 @@
 import SwiftUI
 
 struct TripRecorderView: View {
+    @Environment(\.weatherTheme) private var theme
     @StateObject private var service = DrivingTelemetryService.shared
     @StateObject private var vehicleService = VehicleProfileService.shared
     @EnvironmentObject private var appSettings: AppSettings
     @State private var showingSummary: TripTelemetry?
     @Environment(\.dismiss) private var dismiss
-
-    private var theme: WeatherTheme {
-        WeatherTheme(condition: appSettings.weatherOverride ?? .overcast)
-    }
 
     var body: some View {
         ZStack {
@@ -42,9 +39,9 @@ struct TripRecorderView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(.white.opacity(0.1)))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
                 }
             }
         }
@@ -91,10 +88,10 @@ struct TripRecorderView: View {
             VStack(spacing: 2) {
                 Text("Telemetría de viaje")
                     .font(.system(size: 20, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("CoreMotion + GPS · sin hardware")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
         }
         .frame(maxWidth: .infinity)
@@ -114,7 +111,7 @@ struct TripRecorderView: View {
                         .frame(width: 42, height: 42)
                     Image(systemName: "car.fill")
                         .font(.system(size: 16, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("VEHÍCULO ACTIVO")
@@ -123,7 +120,7 @@ struct TripRecorderView: View {
                         .foregroundColor(.green)
                     Text(v.displayName)
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -131,7 +128,7 @@ struct TripRecorderView: View {
                     Text("ESTILO")
                         .font(.system(size: 8, weight: .heavy))
                         .tracking(0.8)
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(theme.textTint.opacity(0.4))
                     Text(v.drivingStyleLabel)
                         .font(.system(size: 11, weight: .heavy))
                         .foregroundColor(styleColor(v.drivingStyle))
@@ -154,10 +151,10 @@ struct TripRecorderView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Sin vehículo configurado")
                         .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("Configura uno en Mi vehículo primero")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
                 Spacer()
             }
@@ -184,7 +181,7 @@ struct TripRecorderView: View {
                 Text("Iniciar viaje")
                     .font(.system(size: 15, weight: .heavy))
             }
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .background(
@@ -211,11 +208,11 @@ struct TripRecorderView: View {
                 Text("HISTORIAL")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 Text("\(service.pastTrips.count) viajes")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
 
             VStack(spacing: 6) {
@@ -248,14 +245,14 @@ struct TripRecorderView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(trip.startedAt, style: .date)
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 HStack(spacing: 4) {
                     Text(String(format: "%.1f km", trip.totalDistanceKm))
                     Text("·")
                     Text("\(Int(trip.durationMinutes)) min")
                 }
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer(minLength: 4)
             Text(String(format: "×%.2f", trip.computedStyleMultiplier))
@@ -268,7 +265,7 @@ struct TripRecorderView: View {
         .padding(.horizontal, 8).padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
@@ -289,7 +286,7 @@ struct TripRecorderView: View {
             Text("VIAJE EN CURSO")
                 .font(.system(size: 11, weight: .heavy))
                 .tracking(1.5)
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
         }
         .padding(.horizontal, 12).padding(.vertical, 7)
         .background(Capsule().fill(Color(hex: "#EF4444")))
@@ -302,7 +299,7 @@ struct TripRecorderView: View {
         return ZStack {
             // Ring fondo
             Circle()
-                .stroke(.white.opacity(0.08), lineWidth: 14)
+                .stroke(theme.textTint.opacity(0.08), lineWidth: 14)
                 .frame(width: 250, height: 250)
 
             // Ring progreso
@@ -330,13 +327,13 @@ struct TripRecorderView: View {
             VStack(spacing: 0) {
                 Text("\(Int(service.liveStats.speedKmh))")
                     .font(.system(size: 82, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .shadow(color: speedColor.opacity(0.45), radius: 10)
                 Text("km/h")
                     .font(.system(size: 13, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
         }
         .padding(.vertical, 10)
@@ -387,18 +384,18 @@ struct TripRecorderView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 if !unit.isEmpty {
                     Text(unit)
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
             }
             Text(label.uppercased())
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(0.8)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -426,7 +423,7 @@ struct TripRecorderView: View {
                     Text("Terminar viaje")
                         .font(.system(size: 15, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
@@ -446,7 +443,7 @@ struct TripRecorderView: View {
             } label: {
                 Text("Cancelar sin guardar")
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                     .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
@@ -468,6 +465,7 @@ struct TripRecorderView: View {
 // MARK: - Recording Dot (pulsante)
 
 private struct RecordingDot: View {
+    @Environment(\.weatherTheme) private var theme
     @State private var pulse = false
     var body: some View {
         ZStack {
@@ -524,7 +522,7 @@ struct TripSummaryView: View {
                     } label: {
                         Text("Listo")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                     }
                 }
             }
@@ -543,17 +541,17 @@ struct TripSummaryView: View {
                     .frame(width: 52, height: 52)
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 22, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: Color.green.opacity(0.5), radius: 8)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Viaje guardado")
                     .font(.system(size: 17, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("Tu perfil de conducción se actualizó")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
         }
@@ -581,7 +579,7 @@ struct TripSummaryView: View {
                 Text("MÉTRICAS")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
             }
 
@@ -633,24 +631,24 @@ struct TripSummaryView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(unit)
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             Text(label.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.5)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
         )
     }
 
@@ -661,7 +659,7 @@ struct TripSummaryView: View {
                 Text("ESTILO DE CONDUCCIÓN")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
             }
 
@@ -684,7 +682,7 @@ struct TripSummaryView: View {
                             .monospacedDigit()
                     }
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                 }
                 Spacer()
             }
@@ -715,7 +713,7 @@ struct TripSummaryView: View {
                     .foregroundColor(Color(hex: "#FBBF24"))
                 Text(styleAdvice)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(theme.textTint.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(10)
@@ -746,7 +744,7 @@ struct TripSummaryView: View {
                 let progress = CGFloat((styleMultiplier - 0.85) / (1.30 - 0.85))
                 let clamped = max(0.0, min(1.0, progress))
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.08))
+                    Capsule().fill(theme.textTint.opacity(0.08))
                     LinearGradient(
                         colors: [Color(hex: "#34D399"),
                                  Color(hex: "#FBBF24"),
@@ -773,7 +771,7 @@ struct TripSummaryView: View {
             }
             .font(.system(size: 8, weight: .heavy))
             .tracking(0.4)
-            .foregroundColor(.white.opacity(0.4))
+            .foregroundColor(theme.textTint.opacity(0.4))
         }
     }
 
@@ -784,11 +782,11 @@ struct TripSummaryView: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
             Text(label)
                 .font(.system(size: 9, weight: .heavy))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
@@ -796,7 +794,7 @@ struct TripSummaryView: View {
         .padding(.vertical, 10).padding(.horizontal, 4)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 

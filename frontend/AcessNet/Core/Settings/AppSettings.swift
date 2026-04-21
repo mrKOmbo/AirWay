@@ -101,6 +101,111 @@ class AppSettings: ObservableObject {
     @AppStorage("enableSmartNotifications")
     var enableSmartNotifications: Bool = false
 
+    // MARK: - Measurement Units (Propuesta #1 · fix persistencia)
+
+    /// Estándar AQI — "european" | "us"
+    @AppStorage("aqiStandard")
+    var aqiStandardRaw: String = "european" {
+        willSet { objectWillChange.send() }
+    }
+
+    /// Unidad de temperatura — "celsius" | "fahrenheit"
+    @AppStorage("temperatureUnit")
+    var temperatureUnitRaw: String = "celsius" {
+        willSet { objectWillChange.send() }
+    }
+
+    /// Unidad de velocidad del viento — "kmh" | "mph"
+    @AppStorage("windSpeedUnit")
+    var windSpeedUnitRaw: String = "kmh" {
+        willSet { objectWillChange.send() }
+    }
+
+    // MARK: - Breathing Profile (Propuesta #3)
+    // Perfil de sensibilidad respiratoria. Modifica umbrales PPI y AQI.
+
+    @AppStorage("bp_asthma") var hasAsthma: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_copd") var hasCOPD: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_heart") var hasHeartCondition: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_pregnant") var isPregnant: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_childAtHome") var hasChildAtHome: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_outdoorAthlete") var isOutdoorAthlete: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_smoker") var isSmoker: Bool = false { willSet { objectWillChange.send() } }
+    @AppStorage("bp_elderly") var isElderly: Bool = false { willSet { objectWillChange.send() } }
+
+    /// Multiplicador global sobre umbrales (ej. 0.7 = más sensible, usuario nota cambios antes)
+    /// Se deriva del perfil respiratorio. 1.0 = población general.
+    var sensitivityMultiplier: Double {
+        var m = 1.0
+        if hasAsthma { m -= 0.20 }
+        if hasCOPD { m -= 0.25 }
+        if hasHeartCondition { m -= 0.15 }
+        if isPregnant { m -= 0.15 }
+        if hasChildAtHome { m -= 0.10 }
+        if isOutdoorAthlete { m -= 0.10 }
+        if isElderly { m -= 0.15 }
+        // fumador no reduce sensibilidad; el daño ya está, pero no cambia umbral
+        return max(0.4, m) // piso de 0.4 para evitar alertas permanentes
+    }
+
+    /// ¿El usuario marcó al menos un flag del breathing profile?
+    var hasActiveBreathingProfile: Bool {
+        hasAsthma || hasCOPD || hasHeartCondition || isPregnant ||
+        hasChildAtHome || isOutdoorAthlete || isSmoker || isElderly
+    }
+
+    // MARK: - AI Copilot (Propuesta #2)
+
+    /// Tono del asistente — "technical" | "friendly" | "concise" | "motivational"
+    @AppStorage("ai_tone")
+    var aiToneRaw: String = "friendly" { willSet { objectWillChange.send() } }
+
+    /// Idioma del asistente — "auto" | "es" | "en"
+    @AppStorage("ai_language")
+    var aiLanguageRaw: String = "auto" { willSet { objectWillChange.send() } }
+
+    /// Modelo Gemini — "flash" (rápido) | "pro" (profundo)
+    @AppStorage("ai_model")
+    var aiModelRaw: String = "flash" { willSet { objectWillChange.send() } }
+
+    /// Habilita la memoria del asistente
+    @AppStorage("ai_memory_enabled")
+    var aiMemoryEnabled: Bool = true { willSet { objectWillChange.send() } }
+
+    /// Entradas de memoria del usuario (JSON array de strings, editables)
+    @AppStorage("ai_memory_entries")
+    var aiMemoryEntriesRaw: String = "[]" { willSet { objectWillChange.send() } }
+
+    var aiMemoryEntries: [String] {
+        get {
+            guard let data = aiMemoryEntriesRaw.data(using: .utf8),
+                  let list = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+            return list
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue),
+               let str = String(data: data, encoding: .utf8) {
+                aiMemoryEntriesRaw = str
+            }
+        }
+    }
+
+    // MARK: - Data Sources (Propuesta #4)
+    // Toggle on/off por fuente. Permite al usuario deshabilitar fuentes individualmente.
+
+    @AppStorage("ds_tempo") var useTEMPO: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage("ds_openaq") var useOpenAQ: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage("ds_waqi") var useWAQI: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage("ds_openmeteo") var useOpenMeteo: Bool = true { willSet { objectWillChange.send() } }
+    @AppStorage("ds_rama") var useRAMA: Bool = true { willSet { objectWillChange.send() } }
+
+    // MARK: - Trip Briefing (pin en mapa)
+
+    /// Si está ON, el pin abre el nuevo "Trip Briefing" (walking/driving)
+    /// en lugar de la `LocationInfoCard` clásica.
+    @AppStorage("useTripBriefing")
+    var useTripBriefing: Bool = true { willSet { objectWillChange.send() } }
+
     // MARK: - Private Init
 
     private init() {
@@ -118,6 +223,19 @@ class AppSettings: ObservableObject {
         proximityRadiusKm = 2.0
         useMetricUnits = true
         enableSmartNotifications = false
+        aqiStandardRaw = "european"
+        temperatureUnitRaw = "celsius"
+        windSpeedUnitRaw = "kmh"
+        aiToneRaw = "friendly"
+        aiLanguageRaw = "auto"
+        aiModelRaw = "flash"
+        aiMemoryEnabled = true
+        aiMemoryEntriesRaw = "[]"
+        useTEMPO = true
+        useOpenAQ = true
+        useWAQI = true
+        useOpenMeteo = true
+        useRAMA = true
 
         print("⚙️ Configuraciones reseteadas a valores por defecto")
     }

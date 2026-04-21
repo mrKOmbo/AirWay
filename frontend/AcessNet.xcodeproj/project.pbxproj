@@ -68,8 +68,8 @@
 		262196AE2E80F9DB007E3787 /* Exceptions for "AcessNet" folder in "AirWay" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
 				Features/HealthMenu/Resources/README.md,
+				Info.plist,
 			);
 			target = 2621969B2E80F60C007E3787 /* AirWay */;
 		};
@@ -482,7 +482,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QYUV8U45UV;
+				DEVELOPMENT_TEAM = QF2R75VM2Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AcessNet/Info.plist;
@@ -518,7 +518,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QYUV8U45UV;
+				DEVELOPMENT_TEAM = QF2R75VM2Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AcessNet/Info.plist;
@@ -555,7 +555,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = QYUV8U45UV;
+				DEVELOPMENT_TEAM = QF2R75VM2Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "AirWay reads your health data to measure how air pollution affects your body.";
@@ -590,7 +590,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = QYUV8U45UV;
+				DEVELOPMENT_TEAM = QF2R75VM2Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "AirWay reads your health data to measure how air pollution affects your body.";

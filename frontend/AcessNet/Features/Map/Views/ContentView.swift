@@ -119,6 +119,14 @@ struct EnhancedMapView: View {
     @State private var showLocationInfo: Bool = false
     @State private var selectedLocationInfo: LocationInfo?
 
+    // MARK: - Trip Briefing State
+    /// Ruta tentativa (walking o driving) que el briefing calcula con
+    /// MKDirections. Se dibuja en el mapa detrás del sheet como preview.
+    /// El container la provee vía `onPreviewRouteChanged`.
+    @State private var briefingPreviewRoute: PreviewRoute?
+    /// Modo activo del briefing — gobierna el color del preview.
+    @State private var briefingPreviewMode: BriefingMode = .walking
+
     // MARK: - Search State
     @StateObject private var searchManager = LocationSearchManager()
     @FocusState private var isSearchFocused: Bool
@@ -145,9 +153,25 @@ struct EnhancedMapView: View {
     // Enhanced tab bar height - usando constante global
     private let tabBarHeight: CGFloat = AppConstants.enhancedTabBarTotalHeight
 
-    // Computed property para verificar si hay ruta activa
+    // Computed property para verificar si hay ruta activa.
+    // Incluye `allScoredRoutes` (las 3 variantes Cleanest/Balanced/Fastest)
+    // — sin esto, el ProximityFilter de 2 km oculta los círculos AQI en
+    // el RouteCardsSelector. También considera `currentScoredRoute` que
+    // vive independiente de `currentRoute` cuando viene del Trip Briefing.
     private var hasActiveRoute: Bool {
-        routeManager.currentRoute != nil || routeManager.isCalculating || isInNavigationMode
+        routeManager.currentRoute != nil
+            || routeManager.currentScoredRoute != nil
+            || routeManager.isCalculating
+            || isInNavigationMode
+            || !routeManager.allScoredRoutes.isEmpty
+    }
+
+    /// Color del preview del Trip Briefing según modo activo.
+    private var briefingPreviewColor: Color {
+        switch briefingPreviewMode {
+        case .walking: return Color(hex: "#7ED957")
+        case .driving: return Color(hex: "#3AA3FF")
+        }
     }
 
     // Computed property para verificar si hay ruta activa para navegación
@@ -157,43 +181,80 @@ struct EnhancedMapView: View {
 
     // MARK: - Proximity Filtering (2km Radius)
 
-    /// Zonas de calidad del aire dentro del rango de visibilidad (2km)
-    /// NOTA: Cuando hay rutas activas, deshabilita el filtro para mostrar TODAS las zonas de las rutas
-    private var visibleAirQualityZones: [AirQualityZone] {
+    /// Snapshot cacheado de zonas visibles — actualizado por eventos, no por render.
+    /// Leer desde el body es O(1) sin recomputar Haversine cada frame.
+    @State private var visibleAirQualityZones: [AirQualityZone] = []
+
+    /// Hard cap del número de círculos AQI visibles simultáneamente.
+    /// Cada círculo = 1 MapCircle + 1 Annotation → costo lineal con MapKit.
+    /// 20 es el punto donde FPS ≥ 50 en iPhone 13+ según pruebas empíricas.
+    private static let maxVisibleZones = 20
+
+    /// Recalcula el snapshot de zonas visibles. Debe llamarse desde handlers de evento
+    /// (onChange/onReceive), no desde el body, para mantener el costo fuera del hot path.
+    private func recomputeVisibleAirQualityZones() {
+        let all = airQualityGridManager.zones
+
+        // Sin ubicación del usuario → top N por AQI peor primero.
         guard let userLocation = locationManager.userLocation else {
-            return airQualityGridManager.zones
+            visibleAirQualityZones = Self.prioritize(zones: all, userLocation: nil)
+            return
         }
 
-        // Si hay rutas activas, deshabilitar filtro para mostrar TODAS las zonas de las rutas
-        if hasActiveRoute {
-            print("🛣️ Proximity Filtering DISABLED (active route) - Showing all \(airQualityGridManager.zones.count) zones")
-            return airQualityGridManager.zones
+        // Con ruta activa o preview del briefing → mostrar top N
+        // priorizando cercanía al usuario + AQI peor. NO aplicar
+        // ProximityFilter: las zones están distribuidas a lo largo de
+        // la ruta y la mayoría caería fuera del radio.
+        if hasActiveRoute || briefingPreviewRoute != nil {
+            visibleAirQualityZones = Self.prioritize(zones: all, userLocation: userLocation)
+            return
         }
 
-        // Filtro normal cuando NO hay rutas
+        // Filtro desactivado en settings → top N sin límite de radio.
         guard appSettings.enableProximityFiltering else {
-            print("📍 Proximity Filtering DISABLED - Showing all \(airQualityGridManager.zones.count) zones")
-            return airQualityGridManager.zones
+            visibleAirQualityZones = Self.prioritize(zones: all, userLocation: userLocation)
+            return
         }
 
         let filtered = ProximityFilter.filterZones(
-            airQualityGridManager.zones,
+            all,
             from: userLocation,
             maxRadius: appSettings.proximityRadiusMeters
         )
-
-        // Debug logging
-        let stats = ProximityFilter.calculateStatistics(
-            total: airQualityGridManager.zones,
-            visible: filtered,
-            radius: appSettings.proximityRadiusMeters
-        )
-        ProximityFilter.logFilterStatistics(stats, elementType: "Air Quality Zones")
-
-        return filtered
+        visibleAirQualityZones = Self.prioritize(zones: filtered, userLocation: userLocation)
     }
 
-    /// Alerts dentro del rango de visibilidad (2km)
+    /// Ordena zonas por relevancia y corta al cap máximo.
+    /// Prioridad: 60% cercanía al usuario + 40% severidad AQI.
+    private static func prioritize(zones: [AirQualityZone],
+                                    userLocation: CLLocationCoordinate2D?) -> [AirQualityZone] {
+        guard zones.count > maxVisibleZones else { return zones }
+
+        let scored = zones.map { zone -> (AirQualityZone, Double) in
+            // Score inverso: menor = mejor prioridad.
+            var score: Double = 0
+
+            if let user = userLocation {
+                let distMeters = user.distance(to: zone.coordinate)
+                // Normalizar distancia (10km ≈ 1.0). Peso 60%.
+                score += (distMeters / 10_000) * 0.6
+            }
+
+            // AQI más bajo = menos prioritario (multiplicar por -1 para que "peor AQI"
+            // sea menor score = más prioritario). Peso 40%. AQI normalizado a 500 max.
+            let aqiInverse = 1.0 - (zone.airQuality.aqi / 500.0)
+            score += aqiInverse * 0.4
+
+            return (zone, score)
+        }
+
+        return scored
+            .sorted { $0.1 < $1.1 }
+            .prefix(maxVisibleZones)
+            .map { $0.0 }
+    }
+
+    /// Alerts dentro del rango de visibilidad (2km). Sin side-effects.
     private var visibleAnnotations: [CustomAnnotation] {
         guard let userLocation = locationManager.userLocation else {
             return annotations
@@ -203,26 +264,14 @@ struct EnhancedMapView: View {
             return annotations
         }
 
-        let filtered = ProximityFilter.filterAnnotations(
+        return ProximityFilter.filterAnnotations(
             annotations,
             from: userLocation,
             maxRadius: appSettings.proximityRadiusMeters
         )
-
-        // Debug logging
-        if !annotations.isEmpty {
-            let stats = ProximityFilter.calculateStatistics(
-                total: annotations,
-                visible: filtered,
-                radius: appSettings.proximityRadiusMeters
-            )
-            ProximityFilter.logFilterStatistics(stats, elementType: "Alert Annotations")
-        }
-
-        return filtered
     }
 
-    /// Route arrows dentro del rango de visibilidad (2km)
+    /// Route arrows dentro del rango de visibilidad (2km). Sin side-effects.
     private var visibleRouteArrows: [RouteArrowAnnotation] {
         guard let userLocation = locationManager.userLocation else {
             return routeArrows
@@ -232,23 +281,11 @@ struct EnhancedMapView: View {
             return routeArrows
         }
 
-        let filtered = ProximityFilter.filterRouteArrows(
+        return ProximityFilter.filterRouteArrows(
             routeArrows,
             from: userLocation,
             maxRadius: appSettings.proximityRadiusMeters
         )
-
-        // Debug logging
-        if !routeArrows.isEmpty {
-            let stats = ProximityFilter.calculateStatistics(
-                total: routeArrows,
-                visible: filtered,
-                radius: appSettings.proximityRadiusMeters
-            )
-            ProximityFilter.logFilterStatistics(stats, elementType: "Route Arrows")
-        }
-
-        return filtered
     }
 
     var body: some View {
@@ -409,8 +446,10 @@ struct EnhancedMapView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            // Route Preference Selector (sheet modal)
-            if showRoutePreferences {
+            // Route Preference Selector (sheet modal, legacy).
+            // Se oculta cuando el Trip Briefing está activo: el briefing
+            // absorbió la elección de preferencia vía RoutePriorityPicker.
+            if showRoutePreferences && !appSettings.useTripBriefing {
                 RoutePreferenceSelector(
                     isPresented: $showRoutePreferences,
                     preferences: routePreferences,
@@ -439,69 +478,144 @@ struct EnhancedMapView: View {
 
             // Location Info Card (cuando se hace long press)
             if !isSearchFocused && showLocationInfo, let locationInfo = selectedLocationInfo {
-                VStack {
-                    Spacer()
+                if appSettings.useTripBriefing, let userLocation = locationManager.userLocation {
+                    // NUEVO: Trip Briefing como panel deplegable arriba,
+                    // debajo del search bar. Compacto por default;
+                    // se expande con el chevron. No tapa el mapa.
+                    VStack(spacing: 0) {
+                        // Espaciador para dejar paso al search bar.
+                        Color.clear
+                            .frame(height: AppConstants.safeAreaTop + 78)
+                            .allowsHitTesting(false)
 
-                    LocationInfoCard(
-                        locationInfo: locationInfo,
-                        onCalculateRoute: {
-                            // Calcular ruta desde ubicación actual al punto seleccionado
-                            guard let userLocation = locationManager.userLocation else { return }
+                        TripBriefingContainer(
+                            origin: userLocation,
+                            destination: locationInfo.coordinate,
+                            destinationTitle: locationInfo.title,
+                            zones: airQualityGridManager.zones,
+                            vehicle: VehicleProfileService.shared.activeProfile,
+                            gridManager: airQualityGridManager,
+                            onDismiss: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                    showLocationInfo = false
+                                    selectedLocationInfo = nil
+                                    destination = nil
+                                    briefingPreviewRoute = nil
+                                }
+                            },
+                            onStartRoute: { context in
+                                // Capturar la polyline del preview ANTES de que el
+                                // sheet desaparezca (onDisappear la pone a nil).
+                                let previewPolyline = briefingPreviewRoute?.polyline
 
-                            // Ocultar location info card
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                showLocationInfo = false
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    showLocationInfo = false
+                                }
+                                // CRÍTICO: setear destination para que aparezca el pin
+                                // en el mapa y el flujo de ruta dispare todos sus triggers.
+                                destination = DestinationPoint(
+                                    coordinate: context.destination,
+                                    title: context.destinationTitle
+                                )
+                                routeManager.clearRoute()
+                                routeManager.updateActiveIncidents(annotations)
+                                routeManager.updateAirQualityZones(airQualityGridManager.zones)
+                                // Preferencia elegida en el briefing (reemplaza applyRoutePreferences).
+                                routeManager.setPreference(context.preference)
+                                routeManager.calculateRoute(
+                                    from: userLocation,
+                                    to: context.destination,
+                                    destinationName: context.destinationTitle,
+                                    transportType: context.transportType
+                                )
+
+                                // Disparar círculos AQI INMEDIATAMENTE con la
+                                // polyline del preview (sin esperar MKDirections
+                                // oficial, que tarda 1-3s). Cuando llegue la ruta
+                                // oficial, se refinará con las 3 variantes.
+                                if let polyline = previewPolyline {
+                                    airQualityGridManager.updateZonesAlongRoutes(polylines: [polyline])
+                                }
+
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                    zoomToRoute()
+                                    recomputeVisibleAirQualityZones()
+                                }
+                                showRouteToast(to: context.destinationTitle)
+                            },
+                            onOpenStations: {
+                                // El sheet guía al usuario al tab Fuel → estaciones cercanas.
+                                HapticFeedback.light()
+                            },
+                            onOpenDeparture: {
+                                HapticFeedback.light()
+                            },
+                            onAddVehicle: {
+                                HapticFeedback.light()
+                            },
+                            onPreviewRouteChanged: { route, mode in
+                                briefingPreviewRoute = route
+                                briefingPreviewMode = mode
+                                if let r = route {
+                                    zoomToBriefingPreview(r)
+                                    // Generar círculos AQI a lo largo
+                                    // del preview para que el usuario
+                                    // vea la contaminación de la ruta
+                                    // propuesta ANTES de aceptarla.
+                                    airQualityGridManager.updateZonesAlongRoutes(polylines: [r.polyline])
+                                }
+                                recomputeVisibleAirQualityZones()
                             }
+                        )
+                        .id("\(locationInfo.coordinate.latitude)_\(locationInfo.coordinate.longitude)")
+                        .padding(.horizontal, 12)
+                        .transition(.move(edge: .top).combined(with: .opacity))
 
-                            // Limpiar rutas anteriores ANTES de calcular nuevas
-                            routeManager.clearRoute()
+                        Spacer()
+                    }
+                } else {
+                    // LEGACY: LocationInfoCard clásica.
+                    VStack {
+                        Spacer()
 
-                            // Actualizar datos en el RouteManager
-                            routeManager.updateActiveIncidents(annotations)
-                            routeManager.updateAirQualityZones(airQualityGridManager.zones)
-
-                            // Aplicar preferencias
-                            applyRoutePreferences()
-
-                            // Calcular ruta considerando todos los factores
-                            routeManager.calculateRoute(from: userLocation, to: locationInfo.coordinate, destinationName: locationInfo.title)
-
-                            // Hacer zoom para mostrar toda la ruta después de calcularla
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                zoomToRoute()
+                        LocationInfoCard(
+                            locationInfo: locationInfo,
+                            onCalculateRoute: {
+                                guard let userLocation = locationManager.userLocation else { return }
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    showLocationInfo = false
+                                }
+                                routeManager.clearRoute()
+                                routeManager.updateActiveIncidents(annotations)
+                                routeManager.updateAirQualityZones(airQualityGridManager.zones)
+                                applyRoutePreferences()
+                                routeManager.calculateRoute(from: userLocation, to: locationInfo.coordinate, destinationName: locationInfo.title)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                    zoomToRoute()
+                                }
+                                showRouteToast(to: locationInfo.title)
+                            },
+                            onViewAirQuality: {
+                                let impact = UIImpactFeedbackGenerator(style: .medium)
+                                impact.impactOccurred()
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    showAirQualityLayer = true
+                                    showLocationInfo = false
+                                }
+                                centerCamera(on: locationInfo.coordinate, distance: 3500)
+                            },
+                            onCancel: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    showLocationInfo = false
+                                    selectedLocationInfo = nil
+                                    destination = nil
+                                }
                             }
-
-                            // Mostrar toast
-                            showRouteToast(to: locationInfo.title)
-                        },
-                        onViewAirQuality: {
-                            // Activar capa de calidad del aire centrada en el destino
-                            let impact = UIImpactFeedbackGenerator(style: .medium)
-                            impact.impactOccurred()
-
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                showAirQualityLayer = true
-                                showLocationInfo = false  // Cerrar card para mejor visualización
-                            }
-
-                            // Centrar cámara en el destino con zoom apropiado para ver grid de calidad del aire
-                            // Grid 3x3 con 800m spacing = ~2.4km diámetro, usar 3500m para ver todo
-                            centerCamera(on: locationInfo.coordinate, distance: 3500)
-
-                            print("🌫️ Capa de calidad del aire activada y centrada en destino")
-                        },
-                        onCancel: {
-                            // Limpiar destino y ocultar card
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                showLocationInfo = false
-                                selectedLocationInfo = nil
-                                destination = nil
-                            }
-                        }
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.horizontal)
-                    .padding(.bottom, tabBarHeight + 12)
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.horizontal)
+                        .padding(.bottom, tabBarHeight + 12)
+                    }
                 }
             }
 
@@ -512,12 +626,6 @@ struct EnhancedMapView: View {
 
                     // Contenido de ruta
                     VStack(spacing: 12) {
-                        // DEBUG: Logging de estado
-                        let _ = print("🐛 DEBUG - allScoredRoutes count: \(routeManager.allScoredRoutes.count)")
-                        let _ = print("🐛 DEBUG - currentRoute exists: \(routeManager.currentRoute != nil)")
-                        let _ = print("🐛 DEBUG - isInNavigationMode: \(isInNavigationMode)")
-                        let _ = print("🐛 DEBUG - isCalculating: \(routeManager.isCalculating)")
-
                         // Selector de rutas múltiples
                         if !routeManager.allScoredRoutes.isEmpty {
                             RouteCardsSelector(
@@ -645,19 +753,34 @@ struct EnhancedMapView: View {
             if let location = locationManager.userLocation {
                 searchManager.updateSearchRegion(center: location)
             }
+            // Inicializar cache de zonas visibles.
+            recomputeVisibleAirQualityZones()
         }
         .onChange(of: showAirQualityLayer) { _, newValue in
             if newValue {
-                // Activar capa de calidad del aire
+                // Activar capa de calidad del aire.
+                // Si las zones están vacías o contienen restos de una
+                // ruta anterior (currentCenter=nil tras updateZonesAlongRoutes),
+                // forzamos clearGrid + updateGrid para asegurar grid fresco
+                // centrado en el usuario.
                 if let userLocation = locationManager.userLocation {
+                    if airQualityGridManager.zones.isEmpty
+                        || airQualityGridManager.currentCenter == nil {
+                        airQualityGridManager.clearGrid()
+                        airQualityGridManager.updateGrid(center: userLocation)
+                    }
                     airQualityGridManager.startAutoUpdate(center: userLocation)
                 }
             } else {
                 // Desactivar capa
                 airQualityGridManager.stopAutoUpdate()
             }
+            recomputeVisibleAirQualityZones()
         }
         .onReceive(locationManager.$userLocation) { newLocation in
+            // Recompute cache de zonas visibles (user movement changes distance filtering).
+            recomputeVisibleAirQualityZones()
+
             // Actualizar región de búsqueda cuando cambie ubicación del usuario
             if let location = newLocation {
                 searchManager.updateSearchRegion(center: location)
@@ -727,14 +850,18 @@ struct EnhancedMapView: View {
             }
         }
         .onReceive(routeManager.$currentRoute) { newRoute in
-            if newRoute != nil {
+            if let newRoute {
                 // Calcular flechas direccionales
                 routeArrows = routeManager.calculateDirectionalArrows()
 
-                // Inicializar animación de marching ants (simplificada)
-                withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
-                    dashPhase = 22
-                }
+                // Marching ants solo si NO hay capa AQI activa — la animación
+                // .repeatForever dispara re-render del body constantemente y
+                // recomputa los 40+ círculos AQI en cada frame interpolado.
+                startOrStopMarchingAnts()
+
+                // Generar zones a lo largo del trayecto para ver
+                // contaminación sobre la ruta elegida.
+                airQualityGridManager.updateZonesAlongRoutes(polylines: [newRoute.polyline])
 
                 print("✅ Animación de ruta iniciada!")
                 print("   - Flechas direccionales: \(routeArrows.count)")
@@ -745,24 +872,80 @@ struct EnhancedMapView: View {
                 dashPhase = 0
             }
         }
+        // Al togglear la capa AQI, encender/apagar marching ants según contexto.
+        .onChange(of: showAirQualityLayer) { _, _ in
+            startOrStopMarchingAnts()
+        }
         .onReceive(routeManager.$allScoredRoutes) { routes in
-            // Cuando se calculan rutas nuevas, generar círculos grandes que cubran el área de TODAS las rutas
-            guard !routes.isEmpty, showAirQualityLayer else { return }
+            // Recomputa visibles (hasActiveRoute ahora depende de esta prop).
+            recomputeVisibleAirQualityZones()
 
-            // Obtener todos los polylines de todas las rutas
+            // Cuando se calculan rutas nuevas, generar círculos a lo largo
+            // de TODAS las rutas. No requerimos `showAirQualityLayer` porque
+            // el overlay ya se muestra cuando hay ruta activa.
+            guard !routes.isEmpty else { return }
+
+            // Obtener todos los polylines de todas las rutas.
             let allPolylines = routes.map { $0.routeInfo.route.polyline }
 
-            // Generar círculos de calidad del aire SOLO a lo largo de las rutas con espaciado dinámico
+            // Generar círculos de calidad del aire SOLO a lo largo de las rutas
+            // con espaciado dinámico.
             airQualityGridManager.updateZonesAlongRoutes(polylines: allPolylines)
 
             print("🗺️ Rutas calculadas: generando círculos de calidad del aire a lo largo de \(routes.count) rutas")
         }
         .onReceive(airQualityGridManager.$zones) { zones in
-            // Cuando las zonas se actualizan, re-analizar rutas si es necesario
+            // Cache del snapshot visible — evita recomputar Haversine en cada render.
+            recomputeVisibleAirQualityZones()
+
+            // Cuando las zonas se actualizan, re-analizar rutas si es necesario.
             guard !zones.isEmpty, routeManager.needsAirQualityReanalysis else { return }
 
             print("🔄 Zonas de aire actualizadas (\(zones.count)) - Re-analizando rutas...")
             routeManager.reanalyzeWithAirQuality(zones: zones)
+        }
+        // Recompute cache cuando cambian los otros inputs del filtro de proximidad.
+        .onChange(of: appSettings.enableProximityFiltering) { _, _ in
+            recomputeVisibleAirQualityZones()
+        }
+        .onChange(of: appSettings.proximityRadiusMeters) { _, _ in
+            recomputeVisibleAirQualityZones()
+        }
+        .onReceive(routeManager.$currentRoute) { _ in
+            recomputeVisibleAirQualityZones()
+        }
+        .onReceive(routeManager.$isCalculating) { _ in
+            recomputeVisibleAirQualityZones()
+        }
+        // Cuando cambia el preview del briefing, hacer zoom
+        // y actualizar grid AQI a lo largo del trayecto. Si el preview
+        // se pone a nil (sheet cerrado sin iniciar ruta) y NO hay ruta
+        // oficial, regenerar grid centrado en el usuario para no dejar
+        // el overlay vacío en modo AQI explícito.
+        .onChange(of: briefingPreviewRoute?.distance) { _, _ in
+            if let r = briefingPreviewRoute {
+                zoomToBriefingPreview(r)
+                airQualityGridManager.updateZonesAlongRoutes(polylines: [r.polyline])
+            } else if !hasActiveRoute,
+                      showAirQualityLayer,
+                      let userLoc = locationManager.userLocation {
+                airQualityGridManager.updateGrid(center: userLoc)
+            }
+            recomputeVisibleAirQualityZones()
+        }
+        // Cuando se cancela / limpia una ruta, restaurar grid centrado
+        // en el usuario si el modo AQI sigue activo.
+        .onChange(of: routeManager.currentRoute == nil && routeManager.allScoredRoutes.isEmpty) { _, noRoute in
+            if noRoute,
+               briefingPreviewRoute == nil,
+               showAirQualityLayer,
+               let userLoc = locationManager.userLocation {
+                airQualityGridManager.updateGrid(center: userLoc)
+            }
+            recomputeVisibleAirQualityZones()
+        }
+        .onChange(of: isInNavigationMode) { _, _ in
+            recomputeVisibleAirQualityZones()
         }
     }
 
@@ -866,6 +1049,32 @@ struct EnhancedMapView: View {
                         )
                 }
 
+                // Trip Briefing preview: ruta tentativa mientras el
+                // usuario decide en el sheet. Se oculta en cuanto hay
+                // currentRoute "oficial" (ya se presionó "Ir").
+                if showLocationInfo,
+                   routeManager.currentRoute == nil,
+                   let preview = briefingPreviewRoute {
+                    // Halo suave detrás
+                    MapPolyline(preview.polyline)
+                        .stroke(
+                            briefingPreviewColor.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round)
+                        )
+                    // Dash central
+                    MapPolyline(preview.polyline)
+                        .stroke(
+                            briefingPreviewColor.opacity(0.95),
+                            style: StrokeStyle(
+                                lineWidth: 4,
+                                lineCap: .round,
+                                lineJoin: .round,
+                                dash: [12, 8],
+                                dashPhase: dashPhase
+                            )
+                        )
+                }
+
                 // Directional arrows along route (filtradas por proximidad)
                 ForEach(Array(visibleRouteArrows.enumerated()), id: \.element.id) { index, arrow in
                     Annotation("", coordinate: arrow.coordinate) {
@@ -886,23 +1095,30 @@ struct EnhancedMapView: View {
                     }
                 }
 
-                // 🌍 AIR QUALITY ZONES OVERLAY - Optimized (Proximity Filtered + Static)
-                if showAirQualityLayer {
-                    ForEach(Array(visibleAirQualityZones.enumerated()), id: \.element.id) { index, zone in
-                        // MapCircle estático para mostrar área de cobertura (500m radius)
+                // 🌍 AIR QUALITY ZONES OVERLAY — MapCircle + Annotation.
+                // Mantiene los fixes de performance (#1-#9):
+                // - Cache @State de visibleZones (Fix #2)
+                // - Sin .id() ni @EnvironmentObject (Fix #3)
+                // - Sin .ultraThinMaterial (Fix #4)
+                // - Overlay condicional por AQI level (Fix #5)
+                // - Hard cap 20 zonas (Fix #9)
+                //
+                // También visible cuando hay ruta activa o preview del
+                // briefing: el usuario debe ver la contaminación a lo
+                // largo del trayecto propuesto.
+                if showAirQualityLayer || hasActiveRoute || briefingPreviewRoute != nil {
+                    ForEach(visibleAirQualityZones) { zone in
+                        // Halo geográfico que colorea el área (radio 500m real).
                         MapCircle(center: zone.coordinate, radius: zone.radius)
                             .foregroundStyle(zone.fillColor)
                             .stroke(zone.strokeColor, lineWidth: 0.5)
 
-                        // Annotation estático con icono central (sin animaciones)
+                        // Icono identificador encima (solo visible en zonas contaminadas).
                         Annotation("", coordinate: zone.coordinate) {
                             EnhancedAirQualityOverlay(
                                 zone: zone,
-                                isVisible: showAirQualityLayer,
-                                index: index,
-                                settingsKey: "\(appSettings.enableAirQualityRotation)"
+                                enableRotation: appSettings.enableAirQualityRotation
                             )
-                            .environmentObject(appSettings)
                             .onTapGesture {
                                 handleZoneTap(zone)
                             }
@@ -911,7 +1127,7 @@ struct EnhancedMapView: View {
                     }
                 }
             }
-            .mapStyle(mapStyle.style)
+            .mapStyle(mapStyle.style(performanceMode: showAirQualityLayer))
             .mapControls {
                 MapCompass()
                 MapScaleView()
@@ -1352,6 +1568,23 @@ struct EnhancedMapView: View {
         }
     }
 
+    /// Zoom al preview del Trip Briefing — ajusta la cámara para que
+    /// se vea toda la ruta tentativa en la mitad superior de la pantalla
+    /// (la mitad inferior la ocupa el sheet).
+    private func zoomToBriefingPreview(_ route: PreviewRoute) {
+        var region = MKCoordinateRegion(route.polyline.boundingMapRect)
+        // Un poco de padding horizontal y bastante vertical hacia abajo
+        // para que quepa el sheet por abajo.
+        region.span.latitudeDelta *= 3.0
+        region.span.longitudeDelta *= 1.6
+        // Empuja centro hacia arriba para dejar espacio al sheet.
+        region.center.latitude -= region.span.latitudeDelta * 0.18
+
+        withAnimation(.easeInOut(duration: 1.0)) {
+            camera = .region(region)
+        }
+    }
+
     // MARK: - Search Methods
 
     private func handleSearchResultSelection(_ result: SearchResult) {
@@ -1510,6 +1743,27 @@ struct EnhancedMapView: View {
 
     // MARK: - Air Quality Methods
 
+    /// Controla la animación marching ants de la ruta según contexto.
+    /// Apaga la animación cuando la capa AQI está activa para evitar re-render
+    /// del body a ~60 fps (la animación dispara recomposición del Map content).
+    private func startOrStopMarchingAnts() {
+        // Sin ruta activa → nada que animar.
+        guard routeManager.currentRoute != nil else {
+            dashPhase = 0
+            return
+        }
+
+        if showAirQualityLayer {
+            // Congelar animación para liberar el body.
+            dashPhase = 0
+        } else {
+            // Reanudar animación solo si la ruta existe y no hay AQI.
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                dashPhase = 22
+            }
+        }
+    }
+
     private func toggleAirQualityLayer() {
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -1555,14 +1809,24 @@ enum MapStyleType {
     case hybrid
     case imagery
 
+    /// Estilo default (rica en detalle) para uso normal.
     var style: MapStyle {
+        style(performanceMode: false)
+    }
+
+    /// Estilo parametrizado — cuando `performanceMode == true` degrada elevation a `.flat`
+    /// y apaga traffic para liberar GPU ante overlays pesados (ej. capa AQI activa).
+    func style(performanceMode: Bool) -> MapStyle {
+        let elevation: MapStyle.Elevation = performanceMode ? .flat : .realistic
+        let showTraffic = !performanceMode
+
         switch self {
         case .standard:
-            return .standard(elevation: .realistic, pointsOfInterest: .all, showsTraffic: true)
+            return .standard(elevation: elevation, pointsOfInterest: .all, showsTraffic: showTraffic)
         case .hybrid:
-            return .hybrid(elevation: .realistic, pointsOfInterest: .all, showsTraffic: true)
+            return .hybrid(elevation: elevation, pointsOfInterest: .all, showsTraffic: showTraffic)
         case .imagery:
-            return .imagery(elevation: .realistic)
+            return .imagery(elevation: elevation)
         }
     }
 

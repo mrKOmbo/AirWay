@@ -12,6 +12,7 @@ import CoreLocation
 import os
 
 struct OptimalDepartureView: View {
+    @Environment(\.weatherTheme) private var theme
     let origin: CLLocationCoordinate2D
     let destination: CLLocationCoordinate2D
     let vehicle: VehicleProfile
@@ -25,10 +26,6 @@ struct OptimalDepartureView: View {
     @State private var loading = true
     @State private var errorMsg: String?
     @State private var pulseBest: Bool = false
-
-    private var theme: WeatherTheme {
-        WeatherTheme(condition: appSettings.weatherOverride ?? .overcast)
-    }
 
     var body: some View {
         NavigationStack {
@@ -61,9 +58,9 @@ struct OptimalDepartureView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white.opacity(0.1)))
+                            .background(Circle().fill(theme.textTint.opacity(0.1)))
                     }
                 }
             }
@@ -108,7 +105,7 @@ struct OptimalDepartureView: View {
                         .frame(width: 42, height: 42)
                     Image(systemName: "star.fill")
                         .font(.system(size: 18, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 .shadow(color: Color(hex: "#FBBF24").opacity(0.55), radius: 8)
 
@@ -119,13 +116,13 @@ struct OptimalDepartureView: View {
                         .foregroundColor(Color(hex: "#FBBF24"))
                     Text(vehicle.displayName)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                         .lineLimit(1)
                 }
                 Spacer()
                 Text("Rank #\(best.rank)")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 7).padding(.vertical, 3)
                     .background(Capsule().fill(Color(hex: "#FBBF24").opacity(0.6)))
             }
@@ -134,7 +131,7 @@ struct OptimalDepartureView: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(best.departTimeLabel)
                     .font(.system(size: 58, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .shadow(color: Color(hex: "#FBBF24").opacity(0.5), radius: 10)
                 Spacer()
@@ -207,15 +204,15 @@ struct OptimalDepartureView: View {
             Text("SCORE")
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("\(score)")
                     .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text("/100")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
         }
     }
@@ -228,11 +225,11 @@ struct OptimalDepartureView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text(unit)
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
             Text(label)
                 .font(.system(size: 9, weight: .heavy))
@@ -244,7 +241,7 @@ struct OptimalDepartureView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -285,12 +282,12 @@ struct OptimalDepartureView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
     private var savingDivider: some View {
-        Rectangle().fill(.white.opacity(0.08)).frame(width: 1, height: 24)
+        Rectangle().fill(theme.textTint.opacity(0.08)).frame(width: 1, height: 24)
     }
 
     private func savingTile(icon: String, value: String, label: String, color: Color) -> some View {
@@ -300,12 +297,12 @@ struct OptimalDepartureView: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 13, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
             Text(label.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.5)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
     }
@@ -322,7 +319,7 @@ struct OptimalDepartureView: View {
                     .foregroundColor(Color(hex: "#A78BFA"))
                 Text(rec)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(theme.textTint.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -346,11 +343,11 @@ struct OptimalDepartureView: View {
                 Text("COMPARATIVA")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 Text("\(windows.count) ventanas")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
 
             customBarChart(windows)
@@ -434,7 +431,7 @@ struct OptimalDepartureView: View {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(label)
                 .font(.system(size: 9, weight: .heavy))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
         }
     }
 
@@ -447,10 +444,10 @@ struct OptimalDepartureView: View {
                     Text("SALIR A LAS")
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1.0)
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                     Text(w.departTimeLabel)
                         .font(.system(size: 28, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
                 }
                 Spacer()
@@ -458,7 +455,7 @@ struct OptimalDepartureView: View {
                     scorePill(w.score, large: true)
                     Text("Rank #\(w.rank)")
                         .font(.system(size: 9, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(theme.textTint.opacity(0.4))
                 }
             }
 
@@ -503,7 +500,7 @@ struct OptimalDepartureView: View {
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(1.0)
                     }
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
 
                     subScoreBar("Tiempo", sub.time, color: Color(hex: "#60A5FA"))
                     subScoreBar("Costo", sub.cost, color: Color(hex: "#34D399"))
@@ -530,20 +527,20 @@ struct OptimalDepartureView: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.5)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
@@ -551,13 +548,13 @@ struct OptimalDepartureView: View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
                 .frame(width: 74, alignment: .leading)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.06))
+                        .fill(theme.textTint.opacity(0.06))
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -586,7 +583,7 @@ struct OptimalDepartureView: View {
                 Text("TODAS LAS VENTANAS")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
             }
 
@@ -623,7 +620,7 @@ struct OptimalDepartureView: View {
                 // Hora
                 Text(w.departTimeLabel)
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    .foregroundColor(isBest ? Color(hex: "#FBBF24") : .white)
+                    .foregroundColor(isBest ? Color(hex: "#FBBF24") : theme.textTint)
                     .monospacedDigit()
                     .frame(width: 54, alignment: .leading)
 
@@ -651,7 +648,7 @@ struct OptimalDepartureView: View {
                     .fill(
                         isBest
                             ? Color(hex: "#FBBF24").opacity(0.08)
-                            : (isSelected ? .white.opacity(0.06) : .white.opacity(0.03))
+                            : (isSelected ? .white.opacity(0.06) : theme.textTint.opacity(0.03))
                     )
             )
             .overlay(
@@ -659,7 +656,7 @@ struct OptimalDepartureView: View {
                     .stroke(
                         isBest
                             ? Color(hex: "#FBBF24").opacity(0.4)
-                            : (isSelected ? .white.opacity(0.2) : .white.opacity(0.05)),
+                            : (isSelected ? .white.opacity(0.2) : theme.textTint.opacity(0.05)),
                         lineWidth: isBest ? 1 : 0.8
                     )
             )
@@ -674,7 +671,7 @@ struct OptimalDepartureView: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 10, weight: .heavy, design: .rounded))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
                 .monospacedDigit()
         }
     }
@@ -684,7 +681,7 @@ struct OptimalDepartureView: View {
         return Text("\(s)")
             .font(.system(size: large ? 18 : 11, weight: .heavy, design: .rounded))
             .monospacedDigit()
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .padding(.horizontal, large ? 12 : 7)
             .padding(.vertical, large ? 6 : 3)
             .background(
@@ -724,13 +721,13 @@ struct OptimalDepartureView: View {
 
     private var loadingCard: some View {
         VStack(spacing: 14) {
-            ProgressView().tint(.white)
+            ProgressView().tint(theme.textTint)
             Text("Analizando 6 horas…")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
             Text("Tráfico + tiempo + precio + aire")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
         .padding(40)
@@ -751,10 +748,10 @@ struct OptimalDepartureView: View {
                 .foregroundColor(.orange)
             Text("No pudimos analizar")
                 .font(.system(size: 15, weight: .heavy))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text(msg)
                 .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .multilineTextAlignment(.center)
             Button {
                 HapticFeedback.medium()
@@ -762,7 +759,7 @@ struct OptimalDepartureView: View {
             } label: {
                 Text("Reintentar")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 18).padding(.vertical, 9)
                     .background(Capsule().fill(Color(hex: "#3B82F6")))
             }

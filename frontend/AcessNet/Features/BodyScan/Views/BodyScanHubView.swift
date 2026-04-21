@@ -12,13 +12,24 @@ import SwiftUI
 
 struct BodyScanHubView: View {
     @EnvironmentObject var appSettings: AppSettings
+    @Environment(\.weatherTheme) private var theme
     @StateObject private var storage = BodyScanStorage.shared
     @State private var scanCoordinator = ObjectCaptureCoordinator()
     @State private var selectedMode: Mode = .live
     @State private var showHealthMenu: Bool = false
 
+    /// Los modos `.live` y `.scan` usan la cámara — se ven mejor sobre fondo oscuro.
+    /// Los modos `.saved` y `.anatomy` son renders 3D que pueden respetar el tema AirWay.
+    private var usesCameraBackground: Bool {
+        selectedMode == .live || selectedMode == .scan
+    }
+
+    private var backgroundColor: Color {
+        usesCameraBackground ? Color(hex: "#0A0A0F") : theme.pageBackground
+    }
+
     enum Mode: String, CaseIterable, Identifiable {
-        case live, scan, saved
+        case live, scan, saved, anatomy
         var id: String { rawValue }
 
         var title: String {
@@ -26,6 +37,7 @@ struct BodyScanHubView: View {
             case .live: return "Live"
             case .scan: return "Escanear"
             case .saved: return "Modelo"
+            case .anatomy: return "Anatomy"
             }
         }
 
@@ -34,6 +46,7 @@ struct BodyScanHubView: View {
             case .live: return "figure.walk.motion"
             case .scan: return "cube.transparent"
             case .saved: return "arkit"
+            case .anatomy: return "lungs.fill"
             }
         }
     }
@@ -46,7 +59,7 @@ struct BodyScanHubView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0A0A0F").ignoresSafeArea()
+            backgroundColor.ignoresSafeArea()
 
             Group {
                 switch selectedMode {
@@ -56,6 +69,8 @@ struct BodyScanHubView: View {
                     BodyMeshCaptureView(coordinator: scanCoordinator)
                 case .saved:
                     SavedScanViewerView(storage: storage)
+                case .anatomy:
+                    AnatomyModeView()
                 }
             }
             .transition(.opacity)
@@ -75,7 +90,7 @@ struct BodyScanHubView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                     modeSelector
-                        .padding(.bottom, 100)
+                        .padding(.bottom, AppConstants.enhancedTabBarTotalHeight + 8)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -109,14 +124,14 @@ struct BodyScanHubView: View {
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [.white, Color(hex: "#7DD3FC")],
+                            colors: [theme.textTint, Color(hex: "#7DD3FC")],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                Text("LiDAR · 34 joints · USDZ")
+                Text(selectedMode == .anatomy ? "Vision 3D · X-Ray AR" : "LiDAR · 34 joints · USDZ")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.2)
                     .textCase(.uppercase)
             }
@@ -125,7 +140,7 @@ struct BodyScanHubView: View {
             if storage.hasSavedScan {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 18))
-                    .foregroundStyle(.green, .white.opacity(0.2))
+                    .foregroundStyle(.green, theme.textTint.opacity(0.2))
             }
         }
         .padding(.horizontal, 22)
@@ -133,7 +148,7 @@ struct BodyScanHubView: View {
         .padding(.bottom, 8)
         .background(
             LinearGradient(
-                colors: [Color(hex: "#0A0A0F"), Color(hex: "#0A0A0F").opacity(0)],
+                colors: [backgroundColor, backgroundColor.opacity(0)],
                 startPoint: .top,
                 endPoint: .bottom
             )

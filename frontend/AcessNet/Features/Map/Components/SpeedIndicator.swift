@@ -10,6 +10,7 @@ import SwiftUI
 // MARK: - Speed Indicator
 
 struct SpeedIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let speed: Double // km/h
     let speedLimit: Double? // km/h (opcional)
 
@@ -105,6 +106,7 @@ struct SpeedIndicator: View {
 // MARK: - Compact Speed Indicator
 
 struct CompactSpeedIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let speed: Double
 
     private var speedColor: Color {
@@ -124,12 +126,12 @@ struct CompactSpeedIndicator: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("\(Int(speed))")
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text("km/h")
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(0.5)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
         }
         .padding(.horizontal, 12)
@@ -151,6 +153,7 @@ struct CompactSpeedIndicator: View {
 // MARK: - Navigation Info Panel
 
 struct NavigationInfoPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let speed: Double
     let eta: String
     let distance: String
@@ -221,6 +224,7 @@ struct NavigationInfoPanel: View {
 // MARK: - Mini Speed Badge
 
 struct MiniSpeedBadge: View {
+    @Environment(\.weatherTheme) private var theme
     let speed: Double
     let isMoving: Bool
 
@@ -246,6 +250,7 @@ struct MiniSpeedBadge: View {
 // MARK: - Speed Limit Sign
 
 struct SpeedLimitSign: View {
+    @Environment(\.weatherTheme) private var theme
     let limit: Int
     let isExceeded: Bool
 

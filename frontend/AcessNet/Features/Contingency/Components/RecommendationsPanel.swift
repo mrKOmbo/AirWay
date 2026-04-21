@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct RecommendationsPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let recommendations: [String]
     let probabilityLevel: ProbabilityLevel
 
@@ -46,10 +47,10 @@ struct RecommendationsPanel: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("¿Qué hacer?")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("Acciones sugeridas")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                         .textCase(.uppercase)
                         .tracking(1.0)
                 }
@@ -64,7 +65,7 @@ struct RecommendationsPanel: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(
@@ -98,7 +99,7 @@ struct RecommendationsPanel: View {
 
             Text(rec)
                 .font(.system(size: 12.5))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
 
@@ -107,7 +108,7 @@ struct RecommendationsPanel: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.03))
+                .fill(theme.textTint.opacity(0.03))
         )
         .opacity(animate ? 1 : 0)
         .offset(x: animate ? 0 : 12)

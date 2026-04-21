@@ -11,6 +11,7 @@ import MapKit
 // MARK: - Route Info Card
 
 struct RouteInfoCard: View {
+    @Environment(\.weatherTheme) private var theme
     let routeInfo: RouteInfo
     let scoredRoute: ScoredRoute?  // Opcional para mostrar datos avanzados
     let isCalculating: Bool
@@ -62,20 +63,20 @@ struct RouteInfoCard: View {
                         .frame(width: 40, height: 40)
                     Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                         .font(.system(size: 17, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 .shadow(color: Color(hex: "#3B82F6").opacity(0.5), radius: 6)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ruta activa")
                         .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     HStack(spacing: 4) {
                         Circle().fill(Color(hex: "#34D399")).frame(width: 5, height: 5)
                             .shadow(color: Color(hex: "#34D399"), radius: 3)
                         Text("Lista para navegar")
                             .font(.system(size: 10, weight: .heavy))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(theme.textTint.opacity(0.6))
                     }
                 }
 
@@ -87,10 +88,10 @@ struct RouteInfoCard: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.75))
+                        .foregroundColor(theme.textTint.opacity(0.75))
                         .frame(width: 30, height: 30)
-                        .background(Circle().fill(.white.opacity(0.1)))
-                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
+                        .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -104,7 +105,7 @@ struct RouteInfoCard: View {
                     color: Color(hex: "#60A5FA")
                 )
 
-                Rectangle().fill(.white.opacity(0.08))
+                Rectangle().fill(theme.textTint.opacity(0.08))
                     .frame(width: 1, height: 32)
 
                 EnhancedInfoBadge(
@@ -118,7 +119,7 @@ struct RouteInfoCard: View {
 
             // Air Quality prediction
             if let scored = scoredRoute, scored.averageAQI > 0 {
-                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 HStack(spacing: 12) {
                     EnhancedInfoBadge(
                         icon: "aqi.medium",
@@ -127,7 +128,7 @@ struct RouteInfoCard: View {
                         color: aqiColor(scored.averageAQI)
                     )
 
-                    Rectangle().fill(.white.opacity(0.08))
+                    Rectangle().fill(theme.textTint.opacity(0.08))
                         .frame(width: 1, height: 32)
 
                     EnhancedInfoBadge(
@@ -143,7 +144,7 @@ struct RouteInfoCard: View {
             // Información de seguridad
             if let scored = scoredRoute, let incidentAnalysis = scored.incidentAnalysis {
                 VStack(spacing: 10) {
-                    Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                    Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                     HStack(spacing: 12) {
                         EnhancedInfoBadge(
@@ -154,7 +155,7 @@ struct RouteInfoCard: View {
                         )
 
                         if incidentAnalysis.totalIncidents > 0 {
-                            Rectangle().fill(.white.opacity(0.08))
+                            Rectangle().fill(theme.textTint.opacity(0.08))
                                 .frame(width: 1, height: 32)
 
                             EnhancedInfoBadge(
@@ -199,7 +200,7 @@ struct RouteInfoCard: View {
                             Text("Navegar")
                                 .font(.system(size: 13, weight: .heavy))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
@@ -292,6 +293,7 @@ struct RouteInfoCard: View {
 
 /// Badge mejorado para mostrar información de la ruta
 struct EnhancedInfoBadge: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let value: String
     let label: String
@@ -314,7 +316,7 @@ struct EnhancedInfoBadge: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -322,7 +324,7 @@ struct EnhancedInfoBadge: View {
                 Text(label.uppercased())
                     .font(.system(size: 8, weight: .heavy))
                     .tracking(0.6)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -333,6 +335,7 @@ struct EnhancedInfoBadge: View {
 
 /// Badge para mostrar información de la ruta
 struct InfoBadge: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let value: String
     let color: Color
@@ -367,6 +370,7 @@ struct InfoBadge: View {
 
 /// Vista que se muestra mientras se calcula la ruta
 struct CalculatingRouteView: View {
+    @Environment(\.weatherTheme) private var theme
     @State private var rotation: Double = 0
 
     var body: some View {
@@ -404,6 +408,7 @@ struct CalculatingRouteView: View {
 
 /// Vista compacta de la ruta (para mostrar en la parte superior)
 struct CompactRouteInfo: View {
+    @Environment(\.weatherTheme) private var theme
     let routeInfo: RouteInfo
 
     var body: some View {
@@ -435,6 +440,7 @@ struct CompactRouteInfo: View {
 
 /// Vista para mostrar errores en el cálculo de ruta
 struct RouteErrorView: View {
+    @Environment(\.weatherTheme) private var theme
     let message: String
     let onDismiss: () -> Void
 
@@ -474,6 +480,7 @@ struct RouteErrorView: View {
 
 /// Card mejorado que muestra ruta con datos de calidad del aire
 struct EnhancedRouteInfoCard: View {
+    @Environment(\.weatherTheme) private var theme
     let scoredRoute: ScoredRoute
     let isCalculating: Bool
     let onClear: () -> Void

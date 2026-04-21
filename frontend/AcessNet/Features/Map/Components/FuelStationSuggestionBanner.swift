@@ -10,6 +10,7 @@ import SwiftUI
 import MapKit
 
 struct FuelStationSuggestionBanner: View {
+    @Environment(\.weatherTheme) private var theme
     let station: FuelStation
     let averagePrice: Double
     let onTap: () -> Void
@@ -23,12 +24,12 @@ struct FuelStationSuggestionBanner: View {
                 HStack(spacing: 5) {
                     Text(station.brand)
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("·")
-                        .foregroundColor(.white.opacity(0.3))
+                        .foregroundColor(theme.textTint.opacity(0.3))
                     Text("a \(station.distanceKmFormatted)")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
                 HStack(spacing: 6) {
                     Text(station.priceFormatted)
@@ -50,7 +51,7 @@ struct FuelStationSuggestionBanner: View {
                 }
                 Text(station.address)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .lineLimit(1)
             }
 
@@ -62,10 +63,10 @@ struct FuelStationSuggestionBanner: View {
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.75))
+                    .foregroundColor(theme.textTint.opacity(0.75))
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(.white.opacity(0.1)))
-                    .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                    .background(Circle().fill(theme.textTint.opacity(0.1)))
+                    .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
             }
             .buttonStyle(.plain)
         }

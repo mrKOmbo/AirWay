@@ -12,6 +12,7 @@ import Combine
 
 /// Vista principal del selector de preferencias
 struct RoutePreferenceSelector: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var isPresented: Bool
     @ObservedObject var preferences: RoutePreferencesModel
     let onApply: () -> Void
@@ -66,7 +67,7 @@ struct RoutePreferenceSelector: View {
     private var headerView: some View {
         VStack(spacing: 8) {
             Capsule()
-                .fill(.white.opacity(0.25))
+                .fill(theme.textTint.opacity(0.25))
                 .frame(width: 40, height: 5)
                 .padding(.top, 10)
 
@@ -80,17 +81,17 @@ struct RoutePreferenceSelector: View {
                         .frame(width: 38, height: 38)
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 .shadow(color: Color(hex: "#7C3AED").opacity(0.5), radius: 6)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Preferencias de ruta")
                         .font(.system(size: 17, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("Personaliza tu ruta óptima")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
 
                 Spacer()
@@ -101,10 +102,10 @@ struct RoutePreferenceSelector: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.75))
+                        .foregroundColor(theme.textTint.opacity(0.75))
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(.white.opacity(0.1)))
-                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
+                        .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -118,7 +119,7 @@ struct RoutePreferenceSelector: View {
             Text("PRESETS RÁPIDOS")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -186,7 +187,7 @@ struct RoutePreferenceSelector: View {
             Text("OPCIONES AVANZADAS")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             VStack(spacing: 8) {
                 ToggleOption(
@@ -219,7 +220,7 @@ struct RoutePreferenceSelector: View {
             Text("IMPACTO EN LA RUTA")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             HStack(spacing: 10) {
                 ImpactIndicator(
@@ -246,18 +247,18 @@ struct RoutePreferenceSelector: View {
 
             Text(preferences.impactSummary)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -274,7 +275,7 @@ struct RoutePreferenceSelector: View {
                 .overlay(Rectangle().fill(.ultraThinMaterial))
         )
         .overlay(alignment: .top) {
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
         }
     }
 
@@ -331,7 +332,7 @@ struct RoutePreferenceSelector: View {
                 Text("Aplicar")
                     .font(.system(size: 13, weight: .heavy))
             }
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .padding(.horizontal, 22).padding(.vertical, 10)
             .background(applyButtonBackground)
             .shadow(color: Color(hex: "#3B82F6").opacity(0.45), radius: 8, y: 3)
@@ -388,6 +389,7 @@ struct RoutePreferenceSelector: View {
 // MARK: - Preference Slider
 
 struct PreferenceSlider: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let icon: String
     @Binding var value: Double
@@ -410,7 +412,7 @@ struct PreferenceSlider: View {
 
                 Text(title)
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Spacer()
 
@@ -430,12 +432,12 @@ struct PreferenceSlider: View {
 
             Text(description)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(isEditing ? 0.75 : 0.55))
+                .foregroundColor(theme.textTint.opacity(isEditing ? 0.75 : 0.55))
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -447,6 +449,7 @@ struct PreferenceSlider: View {
 // MARK: - Custom Slider
 
 struct CustomSlider: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var value: Double
     let color: Color
     @Binding var isEditing: Bool
@@ -455,7 +458,7 @@ struct CustomSlider: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.white.opacity(0.08))
+                    .fill(theme.textTint.opacity(0.08))
                     .frame(height: 6)
 
                 Capsule()
@@ -502,6 +505,7 @@ struct CustomSlider: View {
 // MARK: - Toggle Option
 
 struct ToggleOption: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let icon: String
     @Binding var isOn: Bool
@@ -515,16 +519,16 @@ struct ToggleOption: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(isOn ? Color(hex: "#3B82F6") : .white.opacity(0.6))
+                    .foregroundColor(isOn ? Color(hex: "#3B82F6") : theme.textTint.opacity(0.6))
             }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text(description)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
                     .lineLimit(2)
             }
 
@@ -538,11 +542,11 @@ struct ToggleOption: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.08), lineWidth: 1)
         )
     }
 }
@@ -550,6 +554,7 @@ struct ToggleOption: View {
 // MARK: - Preset Button
 
 struct PresetButton: View {
+    @Environment(\.weatherTheme) private var theme
     let type: PresetType
     let isSelected: Bool
     let action: () -> Void
@@ -569,12 +574,12 @@ struct PresetButton: View {
                         )
                         .frame(width: 50, height: 50)
                     Circle()
-                        .stroke(isSelected ? .white.opacity(0.25) : .white.opacity(0.1), lineWidth: 1)
+                        .stroke(isSelected ? .white.opacity(0.25) : theme.textTint.opacity(0.1), lineWidth: 1)
                         .frame(width: 50, height: 50)
 
                     Image(systemName: type.icon)
                         .font(.system(size: 19, weight: .heavy))
-                        .foregroundColor(isSelected ? .white : .white.opacity(0.7))
+                        .foregroundColor(isSelected ? .white : theme.textTint.opacity(0.7))
                 }
                 .shadow(
                     color: isSelected ? type.colors.first?.opacity(0.5) ?? .clear : .clear,
@@ -583,7 +588,7 @@ struct PresetButton: View {
 
                 Text(type.label)
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(isSelected ? type.colors.first ?? .white : .white.opacity(0.55))
+                    .foregroundColor(isSelected ? type.colors.first ?? .white : theme.textTint.opacity(0.55))
             }
             .scaleEffect(isSelected ? 1.06 : 1.0)
         }
@@ -594,6 +599,7 @@ struct PresetButton: View {
 // MARK: - Impact Indicator
 
 struct ImpactIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let label: String
     let impact: ImpactLevel
     let icon: String
@@ -608,7 +614,7 @@ struct ImpactIndicator: View {
             Text(label.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.6)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             Text(impact.label)
                 .font(.system(size: 11, weight: .heavy))

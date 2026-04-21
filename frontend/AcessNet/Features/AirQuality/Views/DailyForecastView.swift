@@ -136,7 +136,7 @@ struct DailyForecastView: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(theme.cardColor).overlay(Circle().stroke(theme.borderColor, lineWidth: 1)))
             }
@@ -146,10 +146,10 @@ struct DailyForecastView: View {
             VStack(spacing: 2) {
                 Text("Air Quality")
                     .font(.subheadline.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("Detailed Forecast")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
 
             Spacer()
@@ -171,17 +171,17 @@ struct DailyForecastView: View {
                 }) {
                     Text(period.rawValue)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(
-                            Capsule().fill(selectedTab == period ? Color.white.opacity(0.18) : .clear)
+                            Capsule().fill(selectedTab == period ? theme.textTint.opacity(0.18) : .clear)
                         )
                 }
             }
         }
         .padding(4)
-        .background(Capsule().fill(Color.white.opacity(0.08)))
+        .background(Capsule().fill(theme.textTint.opacity(0.08)))
         .padding(.horizontal, 20)
     }
 
@@ -236,10 +236,10 @@ struct DailyForecastView: View {
             VStack(spacing: 4) {
                 Text(topLabel)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(isSelected ? .white : (isToday ? .white.opacity(0.85) : .white.opacity(0.45)))
+                    .foregroundColor(isSelected ? .white : (isToday ? .white.opacity(0.85) : theme.textTint.opacity(0.45)))
                 Text("\(day.dayNumber)")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(isSelected ? .white : .white.opacity(0.8))
+                    .foregroundColor(isSelected ? .white : theme.textTint.opacity(0.8))
                     .opacity(isFuture ? 0.7 : 1.0)
                 Circle()
                     .fill(Color(hex: day.qualityLevel.color))
@@ -249,7 +249,7 @@ struct DailyForecastView: View {
             .frame(width: 54, height: 68)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(isSelected ? Color.white.opacity(0.2) : theme.cardColor)
+                    .fill(isSelected ? theme.textTint.opacity(0.2) : theme.cardColor)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(
@@ -270,7 +270,7 @@ struct DailyForecastView: View {
                 // Date
                 Text(formatSelectedDate())
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .textCase(.uppercase)
 
                 // Horizontal: compact exposure (left) + AQI stack (right)
@@ -282,13 +282,13 @@ struct DailyForecastView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text("\(selectedDay.aqi)")
                                 .font(.system(size: 54, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                                 .shadow(color: Color(hex: selectedDay.qualityLevel.color).opacity(0.5), radius: 14)
                                 .minimumScaleFactor(0.6)
                                 .lineLimit(1)
                             Text("AQI")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(theme.textTint.opacity(0.5))
                         }
 
                         HStack(spacing: 6) {
@@ -307,7 +307,7 @@ struct DailyForecastView: View {
 
                         Text("Exposure History")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                             .padding(.top, 2)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -344,15 +344,15 @@ struct DailyForecastView: View {
             .frame(height: 10)
 
             HStack {
-                Text("0").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("0").font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
-                Text("50").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("50").font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
-                Text("100").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("100").font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
-                Text("150").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("150").font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
-                Text("200+").font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("200+").font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
             }
         }
     }
@@ -366,13 +366,13 @@ struct DailyForecastView: View {
 
                 HStack(alignment: .center, spacing: 8) {
                     comparisonCol(day: getPreviousDay(), label: "Yesterday", isMain: false)
-                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.white.opacity(0.25))
+                    Image(systemName: "chevron.right").font(.caption).foregroundColor(theme.textTint.opacity(0.25))
                     comparisonCol(day: selectedDay, label: "Selected", isMain: true)
-                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.white.opacity(0.25))
+                    Image(systemName: "chevron.right").font(.caption).foregroundColor(theme.textTint.opacity(0.25))
                     comparisonCol(day: getNextDay(), label: "Tomorrow", isMain: false)
                 }
 
-                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                 sectionHeader("Pollutants", subtitle: "Concentration levels")
 
@@ -399,10 +399,10 @@ struct DailyForecastView: View {
                 VStack(spacing: 6) {
                     Text(label.uppercased())
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                     Text("\(day.aqi)")
                         .font(.system(size: isMain ? 28 : 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Circle()
                         .fill(Color(hex: day.qualityLevel.color))
                         .frame(width: 6, height: 6)
@@ -417,8 +417,8 @@ struct DailyForecastView: View {
             }
         } else {
             VStack(spacing: 6) {
-                Text(label.uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(.white.opacity(0.3))
-                Text("—").font(.system(size: isMain ? 28 : 20, weight: .bold)).foregroundColor(.white.opacity(0.3))
+                Text(label.uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(theme.textTint.opacity(0.3))
+                Text("—").font(.system(size: isMain ? 28 : 20, weight: .bold)).foregroundColor(theme.textTint.opacity(0.3))
                 Color.clear.frame(width: 6, height: 6)
             }
             .frame(maxWidth: .infinity)
@@ -430,24 +430,24 @@ struct DailyForecastView: View {
     private func pollutantTile(_ name: String, value: Int, unit: String, max: Int, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(name).font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.6))
+                Text(name).font(.system(size: 11, weight: .bold)).foregroundColor(theme.textTint.opacity(0.6))
                 Spacer()
                 Circle().fill(color).frame(width: 6, height: 6)
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(value)").font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.white)
-                Text(unit).font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+                Text("\(value)").font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(theme.textTint)
+                Text(unit).font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.08)).frame(height: 4)
+                    Capsule().fill(theme.textTint.opacity(0.08)).frame(height: 4)
                     Capsule().fill(color).frame(width: min(CGFloat(value) / CGFloat(max), 1.0) * geo.size.width, height: 4)
                 }
             }
             .frame(height: 4)
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.04)).overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.06), lineWidth: 1)))
+        .background(RoundedRectangle(cornerRadius: 14).fill(theme.textTint.opacity(0.04)).overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.textTint.opacity(0.06), lineWidth: 1)))
     }
 
     // MARK: Weather + Yearly (unified)
@@ -467,7 +467,7 @@ struct DailyForecastView: View {
                     weatherMetric("humidity.fill", "\(selectedDay.humidity)%", "Humidity")
                 }
 
-                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                 sectionHeader("This Year", subtitle: "Reference values")
 
@@ -483,14 +483,14 @@ struct DailyForecastView: View {
     }
 
     private var divider: some View {
-        Rectangle().fill(.white.opacity(0.08)).frame(width: 1, height: 40)
+        Rectangle().fill(theme.textTint.opacity(0.08)).frame(width: 1, height: 40)
     }
 
     private func weatherMetric(_ icon: String, _ value: String, _ label: String) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 14)).foregroundColor(.white.opacity(0.5))
-            Text(value).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white)
-            Text(label).font(.system(size: 9)).foregroundColor(.white.opacity(0.4))
+            Image(systemName: icon).font(.system(size: 14)).foregroundColor(theme.textTint.opacity(0.5))
+            Text(value).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(theme.textTint)
+            Text(label).font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
     }
@@ -534,7 +534,7 @@ struct DailyForecastView: View {
             }
             Text(category.title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
         }
         .frame(width: 96, height: 110)
         .background(
@@ -545,15 +545,15 @@ struct DailyForecastView: View {
     }
 
     private var rowDivider: some View {
-        Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+        Rectangle().fill(theme.textTint.opacity(0.06)).frame(height: 1)
     }
 
     private func yearlyRow(icon: String, iconColor: Color, label: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon).font(.system(size: 14)).foregroundColor(iconColor).frame(width: 22)
-            Text(label).font(.subheadline).foregroundColor(.white.opacity(0.8))
+            Text(label).font(.subheadline).foregroundColor(theme.textTint.opacity(0.8))
             Spacer()
-            Text(value).font(.subheadline.bold()).foregroundColor(.white)
+            Text(value).font(.subheadline.bold()).foregroundColor(theme.textTint)
         }
         .padding(.vertical, 12)
     }
@@ -577,16 +577,16 @@ struct DailyForecastView: View {
                     }) {
                         Image(systemName: "chevron.left")
                             .font(.subheadline.bold())
-                            .foregroundColor(.white.opacity(availableMonths.first == selectedMonth ? 0.25 : 0.9))
+                            .foregroundColor(theme.textTint.opacity(availableMonths.first == selectedMonth ? 0.25 : 0.9))
                             .frame(width: 28, height: 28)
-                            .background(Circle().fill(.white.opacity(0.08)))
+                            .background(Circle().fill(theme.textTint.opacity(0.08)))
                     }
                     .disabled(availableMonths.first == selectedMonth)
 
                     Spacer()
                     Text("\(selectedMonth) 2025")
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Spacer()
 
                     Button(action: {
@@ -596,9 +596,9 @@ struct DailyForecastView: View {
                     }) {
                         Image(systemName: "chevron.right")
                             .font(.subheadline.bold())
-                            .foregroundColor(.white.opacity(availableMonths.last == selectedMonth ? 0.25 : 0.9))
+                            .foregroundColor(theme.textTint.opacity(availableMonths.last == selectedMonth ? 0.25 : 0.9))
                             .frame(width: 28, height: 28)
-                            .background(Circle().fill(.white.opacity(0.08)))
+                            .background(Circle().fill(theme.textTint.opacity(0.08)))
                     }
                     .disabled(availableMonths.last == selectedMonth)
                 }
@@ -616,12 +616,12 @@ struct DailyForecastView: View {
                         .foregroundColor(cmp.isBetter ? Color(hex: "#4CAF50") : Color(hex: "#E53935"))
                     Text("\(cmp.percentage)% \(cmp.isBetter ? "better" : "worse") than \(cmp.previousMonthName)")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(theme.textTint.opacity(0.85))
                     Spacer()
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.06)))
+                .background(RoundedRectangle(cornerRadius: 12).fill(theme.textTint.opacity(0.06)))
             }
         }
     }
@@ -629,15 +629,15 @@ struct DailyForecastView: View {
     private func statTile(title: String, value: String, subtitle: String, color: Color, icon: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon).font(.system(size: 14)).foregroundColor(color)
-            Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.white)
-            Text(title).font(.system(size: 10, weight: .medium)).foregroundColor(.white.opacity(0.5))
+            Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(theme.textTint)
+            Text(title).font(.system(size: 10, weight: .medium)).foregroundColor(theme.textTint.opacity(0.5))
             Text(subtitle).font(.system(size: 10, weight: .bold)).foregroundColor(color)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.3), lineWidth: 1))
         )
     }
@@ -654,7 +654,7 @@ struct DailyForecastView: View {
                     ForEach(0..<dows.count, id: \.self) { i in
                         Text(dows[i])
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -681,7 +681,7 @@ struct DailyForecastView: View {
                     legendDot(Color(hex: "#E53935"), "Unhealthy")
                 }
 
-                Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                 sectionHeader("Monthly Trend", subtitle: "AQI evolution through \(selectedMonth)")
 
@@ -726,10 +726,10 @@ struct DailyForecastView: View {
         return VStack(spacing: 2) {
             Text("\(dayNumber)")
                 .font(.system(size: 10, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text("\(aqi)")
                 .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(theme.textTint.opacity(0.7))
         }
         .frame(maxWidth: .infinity, minHeight: 38)
         .background(
@@ -742,7 +742,7 @@ struct DailyForecastView: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.white.opacity(0.5))
+            Text(label).font(.system(size: 9)).foregroundColor(theme.textTint.opacity(0.5))
         }
     }
 
@@ -755,13 +755,13 @@ struct DailyForecastView: View {
                     Image(systemName: "lightbulb.fill").foregroundColor(Color(hex: "#FDD835"))
                     Text("Insights")
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
 
                 insightRow("sun.max.fill", Color(hex: "#FDD835"), "Sundays have 30% better AQI on average")
-                Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.06)).frame(height: 1)
                 insightRow("figure.run", Color(hex: "#4CAF50"), "Best outdoor hours: 6 – 9 AM")
-                Rectangle().fill(.white.opacity(0.06)).frame(height: 1)
+                Rectangle().fill(theme.textTint.opacity(0.06)).frame(height: 1)
                 insightRow("calendar", Color(hex: "#4AB8FF"), "87% of days had moderate or good quality")
             }
         }
@@ -776,7 +776,7 @@ struct DailyForecastView: View {
                 .background(Circle().fill(color.opacity(0.15)))
             Text(text)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
             Spacer()
         }
         .padding(.vertical, 6)
@@ -788,11 +788,11 @@ struct DailyForecastView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             if let s = subtitle {
                 Text(s)
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
         }
     }
@@ -972,26 +972,26 @@ struct TipPopupView: View {
                             .foregroundColor(Color(hex: category.color))
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(category.title).font(.title3.bold()).foregroundColor(.white)
-                        Text("Tips & facts").font(.caption).foregroundColor(.white.opacity(0.5))
+                        Text(category.title).font(.title3.bold()).foregroundColor(theme.textTint)
+                        Text("Tips & facts").font(.caption).foregroundColor(theme.textTint.opacity(0.5))
                     }
                     Spacer()
                     Button(action: onDismiss) {
                         Image(systemName: "xmark")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(theme.textTint.opacity(0.85))
                             .frame(width: 28, height: 28)
-                            .background(Circle().fill(.white.opacity(0.15)))
+                            .background(Circle().fill(theme.textTint.opacity(0.15)))
                     }
                 }
 
                 Text(currentTip)
                     .font(.system(size: 15))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: 14).fill(theme.textTint.opacity(0.08)))
 
                 Button(action: onNext) {
                     HStack(spacing: 6) {
@@ -999,7 +999,7 @@ struct TipPopupView: View {
                         Text("Next tip")
                     }
                     .font(.subheadline.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(Capsule().fill(Color(hex: category.color).opacity(0.85)))
@@ -1009,7 +1009,7 @@ struct TipPopupView: View {
             .background(
                 RoundedRectangle(cornerRadius: 22)
                     .fill(theme.cardColor)
-                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.15), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                     .shadow(color: .black.opacity(0.4), radius: 24, y: 8)
             )
             .padding(.horizontal, 28)
@@ -1021,6 +1021,7 @@ struct TipPopupView: View {
 // MARK: - Daily Exposure Chart (preserved)
 
 struct DailyExposureCircularChart: View {
+    @Environment(\.weatherTheme) private var theme
     let selectedDay: DailyForecast
     @State private var selectedCategory = "All"
     let categories = ["All", "Home", "Work", "Outdoor"]
@@ -1079,13 +1080,13 @@ struct DailyExposureCircularChart: View {
                     }
                     VStack(spacing: 6) {
                         if selectedCategory == "All" {
-                            Image(systemName: "figure.stand").font(.system(size: 44)).foregroundColor(.white.opacity(0.35))
-                            Text("\(Int(totalHours))h").font(.title3.bold()).foregroundColor(.white.opacity(0.7))
-                            Text("Total").font(.caption).foregroundColor(.white.opacity(0.4))
+                            Image(systemName: "figure.stand").font(.system(size: 44)).foregroundColor(theme.textTint.opacity(0.35))
+                            Text("\(Int(totalHours))h").font(.title3.bold()).foregroundColor(theme.textTint.opacity(0.7))
+                            Text("Total").font(.caption).foregroundColor(theme.textTint.opacity(0.4))
                         } else {
                             let h = selectedCategory == "Home" ? data.home : selectedCategory == "Work" ? data.work : data.outdoor
-                            Text("\(Int(h))h").font(.system(size: 40, weight: .heavy)).foregroundColor(.white)
-                            Text(selectedCategory.uppercased()).font(.caption.bold()).foregroundColor(.white.opacity(0.7))
+                            Text("\(Int(h))h").font(.system(size: 40, weight: .heavy)).foregroundColor(theme.textTint)
+                            Text(selectedCategory.uppercased()).font(.caption.bold()).foregroundColor(theme.textTint.opacity(0.7))
                         }
                     }
                 }
@@ -1094,12 +1095,12 @@ struct DailyExposureCircularChart: View {
                 ZStack {
                     Circle()
                         .stroke(style: StrokeStyle(lineWidth: 28, dash: [6, 6]))
-                        .foregroundColor(.white.opacity(0.1))
+                        .foregroundColor(theme.textTint.opacity(0.1))
                         .frame(width: 160, height: 160)
                     VStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.clock").font(.system(size: 40)).foregroundColor(.white.opacity(0.3))
-                        Text("No data").font(.subheadline.bold()).foregroundColor(.white.opacity(0.6))
-                        Text("Not available yet").font(.caption).foregroundColor(.white.opacity(0.4))
+                        Image(systemName: "calendar.badge.clock").font(.system(size: 40)).foregroundColor(theme.textTint.opacity(0.3))
+                        Text("No data").font(.subheadline.bold()).foregroundColor(theme.textTint.opacity(0.6))
+                        Text("Not available yet").font(.caption).foregroundColor(theme.textTint.opacity(0.4))
                     }
                 }
                 .frame(height: 220)
@@ -1109,6 +1110,7 @@ struct DailyExposureCircularChart: View {
 }
 
 struct ExposureCategoryTab: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -1126,11 +1128,11 @@ struct ExposureCategoryTab: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 11, weight: .bold))
-                .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                .foregroundColor(isSelected ? .white : theme.textTint.opacity(0.6))
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(
                     Capsule()
-                        .fill(isSelected ? catColor.opacity(0.28) : .white.opacity(0.08))
+                        .fill(isSelected ? catColor.opacity(0.28) : theme.textTint.opacity(0.08))
                         .overlay(Capsule().stroke(isSelected ? catColor : .clear, lineWidth: 1.5))
                 )
         }
@@ -1138,19 +1140,20 @@ struct ExposureCategoryTab: View {
 }
 
 struct ExposureHourMarker: View {
+    @Environment(\.weatherTheme) private var theme
     let hour: Int
     let totalHours: CGFloat
 
     var body: some View {
         VStack {
             Rectangle()
-                .fill(.white.opacity(0.25))
+                .fill(theme.textTint.opacity(0.25))
                 .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 10 : 5)
             Spacer()
             if hour % 3 == 0 {
                 Text("\(hour)")
                     .font(.system(size: 8))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                     .offset(y: -8)
             }
         }
@@ -1160,6 +1163,7 @@ struct ExposureHourMarker: View {
 }
 
 struct ExposureSegmentArc: View {
+    @Environment(\.weatherTheme) private var theme
     let startHour: CGFloat
     let endHour: CGFloat
     let color: Color
@@ -1177,6 +1181,7 @@ struct ExposureSegmentArc: View {
 // MARK: - Compact Exposure Chart
 
 struct CompactExposureChart: View {
+    @Environment(\.weatherTheme) private var theme
     let selectedDay: DailyForecast
     @State private var selectedCategory = "All"
 
@@ -1213,7 +1218,7 @@ struct CompactExposureChart: View {
         VStack(spacing: 10) {
             ZStack {
                 if let data = exposureData {
-                    Circle().stroke(.white.opacity(0.08), lineWidth: 16)
+                    Circle().stroke(theme.textTint.opacity(0.08), lineWidth: 16)
                         .frame(width: 110, height: 110)
 
                     ZStack {
@@ -1240,10 +1245,10 @@ struct CompactExposureChart: View {
                         if selectedCategory == "All" {
                             Text("\(Int(totalHours))h")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                             Text("Total")
                                 .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(theme.textTint.opacity(0.5))
                         } else {
                             let h: CGFloat = {
                                 switch selectedCategory {
@@ -1255,24 +1260,24 @@ struct CompactExposureChart: View {
                             }()
                             Text("\(Int(h))h")
                                 .font(.system(size: 22, weight: .heavy, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                             Text(selectedCategory.uppercased())
                                 .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(theme.textTint.opacity(0.6))
                         }
                     }
                 } else {
                     Circle()
                         .stroke(style: StrokeStyle(lineWidth: 16, dash: [4, 4]))
-                        .foregroundColor(.white.opacity(0.12))
+                        .foregroundColor(theme.textTint.opacity(0.12))
                         .frame(width: 110, height: 110)
                     VStack(spacing: 3) {
                         Image(systemName: "calendar.badge.clock")
                             .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundColor(theme.textTint.opacity(0.3))
                         Text("No data")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(theme.textTint.opacity(0.45))
                     }
                 }
             }
@@ -1293,6 +1298,7 @@ struct CompactExposureChart: View {
 }
 
 struct CompactExposureTab: View {
+    @Environment(\.weatherTheme) private var theme
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -1310,12 +1316,12 @@ struct CompactExposureTab: View {
         Button(action: { withAnimation(.spring(response: 0.3)) { action() } }) {
             Text(title)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                .foregroundColor(isSelected ? .white : theme.textTint.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 5)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? tint.opacity(0.3) : .white.opacity(0.08))
+                        .fill(isSelected ? tint.opacity(0.3) : theme.textTint.opacity(0.08))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(isSelected ? tint : .clear, lineWidth: 1)

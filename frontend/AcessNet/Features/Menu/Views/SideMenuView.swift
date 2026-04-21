@@ -3,6 +3,7 @@ import SwiftUI
 import UserNotifications
 
 struct SideMenuView: View {
+    @Environment(\.weatherTheme) private var theme
     @State private var isBusinessModeActive = false
     @State private var showBusinessToast = false
     @State private var showingGasolinaMeter = false
@@ -119,7 +120,7 @@ struct SideMenuView: View {
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(Color.green)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(theme.textTint)
                                     .cornerRadius(4)
                             }
                             .padding(.vertical, 12)
@@ -158,7 +159,7 @@ struct SideMenuView: View {
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(Color.orange)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(theme.textTint)
                                     .cornerRadius(4)
                             }
                             .padding(.vertical, 12)

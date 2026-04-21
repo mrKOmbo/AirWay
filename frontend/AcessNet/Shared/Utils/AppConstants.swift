@@ -14,12 +14,14 @@ struct AppConstants {
 
     // MARK: - Tab Bar
 
-    /// Altura total del Enhanced Tab Bar incluyendo todos los paddings y safe area
-    /// Cálculo: 16 (top padding) + 56 (button height) + 16 (bottom padding) + 8 (bottom margin) + 34 (safe area aprox)
+    /// Altura total del Enhanced Tab Bar incluyendo todos los paddings y safe area.
+    /// Cálculo real (EnhancedTabBar.swift): 6 (top pad) + 36 (icon frame) + 6 (bottom pad)
+    /// + 28 (outer .padding(.bottom)) = 76pt + ~34pt safe area ≈ 110pt.
+    /// Se deja 130pt como margen de seguridad para no pegar el contenido al bar.
     static let enhancedTabBarHeight: CGFloat = 130
 
-    /// Altura del Enhanced Tab Bar sin safe area
-    /// Cálculo: 16 (top padding) + 56 (button height) + 16 (bottom padding) + 8 (bottom margin)
+    /// Altura del Enhanced Tab Bar sin safe area (con margen de seguridad).
+    /// Real = 76pt; se usa 96pt como buffer para contenido scrolleable.
     static let enhancedTabBarHeightWithoutSafeArea: CGFloat = 96
 
     /// Safe area top actual del dispositivo

@@ -65,7 +65,7 @@ struct PPIDashboardView: View {
                 disclaimerFooter
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 100)
+            .avoidTabBar(extraPadding: 16)
         }
         .background(theme.pageBackground.ignoresSafeArea())
         .onAppear {
@@ -90,12 +90,12 @@ struct PPIDashboardView: View {
         VStack(spacing: 2) {
             Text("PERSONAL POLLUTION IMPACT")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(theme.textTint.opacity(0.4))
                 .tracking(2)
 
             Text("Health Monitor")
                 .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
         }
         .padding(.top, 54)
     }
@@ -111,10 +111,10 @@ struct PPIDashboardView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Simulated Preview")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
                 Text("Connect Apple Watch for real-time data")
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
 
             Spacer()
@@ -146,7 +146,7 @@ struct PPIDashboardView: View {
                 // Background arc
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(Color.white.opacity(0.06), style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                    .stroke(theme.textTint.opacity(0.06), style: StrokeStyle(lineWidth: 20, lineCap: .round))
                     .rotationEffect(.degrees(135))
                     .frame(width: 190, height: 190)
 
@@ -180,7 +180,7 @@ struct PPIDashboardView: View {
 
                     Text("PPI")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(theme.textTint.opacity(0.35))
                         .tracking(4)
 
                     Text(zone.labelES)
@@ -197,7 +197,7 @@ struct PPIDashboardView: View {
                         .frame(width: 6, height: 6)
                     Text(ppi.baselineCalibrated ? "Calibrado" : "Calibrando...")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                 }
 
                 Spacer()
@@ -205,12 +205,12 @@ struct PPIDashboardView: View {
                 HStack(spacing: 4) {
                     ForEach(0..<4, id: \.self) { i in
                         Circle()
-                            .fill(i < ppi.availableMetrics ? color : Color.white.opacity(0.15))
+                            .fill(i < ppi.availableMetrics ? color : theme.textTint.opacity(0.15))
                             .frame(width: 5, height: 5)
                     }
                     Text("\(ppi.availableMetrics)/4")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                 }
             }
             .padding(.horizontal, 6)
@@ -240,7 +240,7 @@ struct PPIDashboardView: View {
                         .font(.system(size: 14))
                     Text("CIGARETTE EQUIVALENCE")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                         .tracking(1.2)
                 }
 
@@ -248,10 +248,10 @@ struct PPIDashboardView: View {
 
                 Text("Berkeley Earth")
                     .font(.system(size: 8, weight: .medium))
-                    .foregroundColor(.white.opacity(0.25))
+                    .foregroundColor(theme.textTint.opacity(0.25))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.06)))
+                    .background(Capsule().fill(theme.textTint.opacity(0.06)))
             }
 
             // Hero number
@@ -264,10 +264,10 @@ struct PPIDashboardView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("cigarrillos")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                     Text("equivalentes hoy")
                         .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(theme.textTint.opacity(0.35))
                 }
             }
 
@@ -286,7 +286,7 @@ struct PPIDashboardView: View {
                     icon: "scalemass.fill",
                     label: "Dosis depositada",
                     value: String(format: "%.1f \u{00B5}g", cig.cumulativeDoseUg),
-                    color: .white
+                    color: theme.textTint
                 )
             }
 
@@ -313,7 +313,7 @@ struct PPIDashboardView: View {
 
             Text("22 \u{00B5}g/m\u{00B3} PM2.5 en 24h = 1 cigarrillo (mortalidad). Ajustado por tu ventilaci\u{00F3}n real via Apple Watch.")
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.2))
+                .foregroundColor(theme.textTint.opacity(0.2))
         }
         .padding(18)
         .background(
@@ -334,11 +334,11 @@ struct PPIDashboardView: View {
                     .foregroundColor(color.opacity(0.6))
                 Text(label)
                     .font(.system(size: 9))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(theme.textTint.opacity(0.35))
             }
             Text(value)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(theme.textTint.opacity(0.9))
         }
     }
 
@@ -357,7 +357,7 @@ struct PPIDashboardView: View {
                 ZStack(alignment: .leading) {
                     // Track
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(theme.textTint.opacity(0.06))
                         .frame(height: 8)
 
                     // Fill to user level
@@ -400,7 +400,7 @@ struct PPIDashboardView: View {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
     }
 
@@ -410,7 +410,7 @@ struct PPIDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("BIOMETRICS")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
                 .tracking(1.5)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -451,32 +451,32 @@ struct PPIDashboardView: View {
                     .foregroundColor(color)
                 Text(label)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             if let v = value {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(v)
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text(unit)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(theme.textTint.opacity(0.35))
                 }
             } else {
                 Text("\u{2014}")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.15))
+                    .foregroundColor(theme.textTint.opacity(0.15))
             }
 
             Text(baseline)
                 .font(.system(size: 8))
-                .foregroundColor(.white.opacity(0.25))
+                .foregroundColor(theme.textTint.opacity(0.25))
 
             if let d = date {
                 Text(timeAgo(d))
                     .font(.system(size: 8))
-                    .foregroundColor(.white.opacity(0.2))
+                    .foregroundColor(theme.textTint.opacity(0.2))
             }
         }
         .padding(10)
@@ -493,7 +493,7 @@ struct PPIDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("COMPONENT SCORES")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
                 .tracking(1.5)
 
             compRow(label: "SpO2", score: ppi.components.spO2Score,
@@ -532,13 +532,13 @@ struct PPIDashboardView: View {
                 HStack(spacing: 4) {
                     Text(label)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text(String(format: "%.0f%%", weight * 100))
                         .font(.system(size: 8, weight: .medium))
-                        .foregroundColor(.white.opacity(0.25))
+                        .foregroundColor(theme.textTint.opacity(0.25))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
-                        .background(Capsule().fill(Color.white.opacity(0.06)))
+                        .background(Capsule().fill(theme.textTint.opacity(0.06)))
                 }
                 if let dev = deviation {
                     Text(String(format: devFmt, dev) + " from baseline")
@@ -571,7 +571,7 @@ struct PPIDashboardView: View {
             } else {
                 Text("\u{2014}")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white.opacity(0.15))
+                    .foregroundColor(theme.textTint.opacity(0.15))
             }
         }
         .padding(10)
@@ -588,7 +588,7 @@ struct PPIDashboardView: View {
             HStack {
                 Text("VULNERABILITY PROFILE")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
                     .tracking(1.5)
 
                 Spacer()
@@ -609,11 +609,11 @@ struct PPIDashboardView: View {
                 VStack(spacing: 4) {
                     Text(String(format: "%.1fx", profile.multiplier))
                         .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(profile.multiplier > 1.5 ? .orange : .white)
+                        .foregroundColor(profile.multiplier > 1.5 ? .orange : theme.textTint)
 
                     Text("Multiplicador")
                         .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(theme.textTint.opacity(0.4))
                 }
                 .frame(width: 80)
 
@@ -621,18 +621,18 @@ struct PPIDashboardView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Factores de riesgo")
                         .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(theme.textTint.opacity(0.4))
 
                     if profile.riskFactors.isEmpty {
                         Text("Ninguno configurado")
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.25))
+                            .foregroundColor(theme.textTint.opacity(0.25))
                     } else {
                         FlowLayout(spacing: 4) {
                             ForEach(profile.riskFactors, id: \.self) { factor in
                                 Text(factor)
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .foregroundColor(theme.textTint.opacity(0.8))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3)
                                     .background(
@@ -646,7 +646,7 @@ struct PPIDashboardView: View {
 
             Text("Las personas con condiciones respiratorias o cardiovasculares son m\u{00E1}s sensibles. El multiplicador ajusta tu PPI Score.")
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.25))
+                .foregroundColor(theme.textTint.opacity(0.25))
         }
         .padding(16)
         .background(
@@ -661,7 +661,7 @@ struct PPIDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("HOW PPI WORKS")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
                 .tracking(1.5)
 
             VStack(alignment: .leading, spacing: 10) {
@@ -697,7 +697,7 @@ struct PPIDashboardView: View {
 
             Text(text)
                 .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -708,12 +708,12 @@ struct PPIDashboardView: View {
         VStack(spacing: 6) {
             Text("Este score es solo informativo. No constituye consejo m\u{00E9}dico. Si experimentas dificultad respiratoria o dolor en el pecho, contacta a un profesional de salud.")
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.2))
+                .foregroundColor(theme.textTint.opacity(0.2))
                 .multilineTextAlignment(.center)
 
             Text("PPI Score: Pope et al. 2009 \u{2022} Cigarettes: Berkeley Earth 2015 \u{2022} Ventilation: EPA EFH Ch.6")
                 .font(.system(size: 7))
-                .foregroundColor(.white.opacity(0.12))
+                .foregroundColor(theme.textTint.opacity(0.12))
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 8)
@@ -731,7 +731,7 @@ struct PPIDashboardView: View {
     }
 
     private func scoreColor(_ score: Double?) -> Color {
-        guard let s = score else { return .white.opacity(0.15) }
+        guard let s = score else { return theme.textTint.opacity(0.15) }
         switch s {
         case 0..<25: return Color(hex: "#4CD964")
         case 25..<50: return Color(hex: "#FFD60A")

@@ -11,6 +11,7 @@ import SwiftUI
 
 /// Vista que muestra qué tan respirable está el aire con visualización de pulmones
 struct BreathabilityIndexView: View {
+    @Environment(\.weatherTheme) private var theme
     let averageAQI: Double
     let dominantLevel: AQILevel
 
@@ -25,7 +26,7 @@ struct BreathabilityIndexView: View {
                 Text("RESPIRABILIDAD")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.0)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
 
                 Text(breathabilityDescription)
                     .font(.system(size: 18, weight: .heavy))
@@ -33,7 +34,7 @@ struct BreathabilityIndexView: View {
 
                 Text(breathabilityDetail)
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -132,7 +133,7 @@ struct BreathabilityIndexView: View {
     private var scoreIndicator: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .stroke(theme.textTint.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
                 .frame(width: 52, height: 52)
 
             Circle()
@@ -150,7 +151,7 @@ struct BreathabilityIndexView: View {
 
             Text("\(Int(breathabilityScore))")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
         }
     }
@@ -235,6 +236,7 @@ struct BreathabilityIndexView: View {
 
 /// Versión compacta para mostrar en header o toolbar
 struct CompactBreathabilityIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let averageAQI: Double
     let dominantLevel: AQILevel
 
@@ -260,7 +262,7 @@ struct CompactBreathabilityIndicator: View {
                 Text("RESPIRABILIDAD")
                     .font(.system(size: 8, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
 
                 Text("\(Int(breathabilityScore))/100")
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
@@ -309,6 +311,7 @@ struct CompactBreathabilityIndicator: View {
 
 /// Indica cuánto tiempo es seguro estar al aire libre
 struct SafeOutdoorTimeView: View {
+    @Environment(\.weatherTheme) private var theme
     let level: AQILevel
 
     var body: some View {

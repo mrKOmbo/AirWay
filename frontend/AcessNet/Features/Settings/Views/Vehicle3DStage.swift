@@ -12,6 +12,7 @@ import RealityKit
 // MARK: - Vehicle 3D Stage
 
 struct Vehicle3DStage: View {
+    @Environment(\.weatherTheme) private var theme
     let asset: Vehicle3DAsset
     let title: String
     let subtitle: String
@@ -153,7 +154,7 @@ struct Vehicle3DStage: View {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.12), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.35), radius: 20, y: 8)
         .task(id: asset) {
@@ -218,11 +219,11 @@ struct Vehicle3DStage: View {
                     }
                     Text(title)
                         .font(.system(size: 18, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                         .lineLimit(1)
                 }
 
@@ -241,10 +242,10 @@ struct Vehicle3DStage: View {
                 } label: {
                     Image(systemName: autoRotate ? "pause.fill" : "play.fill")
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(width: 32, height: 32)
                         .background(Circle().fill(.black.opacity(0.5)))
-                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                        .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
             }
             .padding(14)
@@ -268,10 +269,10 @@ struct Vehicle3DStage: View {
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(0.4)
         }
-        .foregroundColor(.white.opacity(0.7))
+        .foregroundColor(theme.textTint.opacity(0.7))
         .padding(.horizontal, 9).padding(.vertical, 5)
         .background(Capsule().fill(.black.opacity(0.4)))
-        .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.1), lineWidth: 1))
     }
 
     private var assetChip: some View {
@@ -282,7 +283,7 @@ struct Vehicle3DStage: View {
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(0.6)
         }
-        .foregroundColor(.white)
+        .foregroundColor(theme.textTint)
         .padding(.horizontal, 9).padding(.vertical, 5)
         .background(
             Capsule().fill(
@@ -298,10 +299,10 @@ struct Vehicle3DStage: View {
 
     private var loadingView: some View {
         VStack(spacing: 10) {
-            ProgressView().tint(.white)
+            ProgressView().tint(theme.textTint)
             Text("Cargando modelo 3D…")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(theme.textTint.opacity(0.7))
         }
     }
 
@@ -309,13 +310,13 @@ struct Vehicle3DStage: View {
         VStack(spacing: 8) {
             Image(systemName: "cube.transparent")
                 .font(.system(size: 36, weight: .light))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(theme.textTint.opacity(0.4))
             Text("Modelo no disponible")
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
             Text(asset.assetName + "." + asset.fileExtension)
                 .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(theme.textTint.opacity(0.4))
         }
     }
 
@@ -342,6 +343,7 @@ struct Vehicle3DStage: View {
 // MARK: - Grid Floor (perspective lines)
 
 private struct GridFloor: View {
+    @Environment(\.weatherTheme) private var theme
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
@@ -354,7 +356,7 @@ private struct GridFloor: View {
                     let t = CGFloat(i) / 5.0
                     let y = horizonY + (h - horizonY) * t * t
                     Rectangle()
-                        .fill(.white.opacity(0.08 + Double(i) * 0.02))
+                        .fill(theme.textTint.opacity(0.08 + Double(i) * 0.02))
                         .frame(height: 1)
                         .offset(y: y - h / 2)
                 }
@@ -366,7 +368,7 @@ private struct GridFloor: View {
                         path.move(to: CGPoint(x: w / 2, y: horizonY))
                         path.addLine(to: CGPoint(x: startX, y: h))
                     }
-                    .stroke(.white.opacity(0.08), lineWidth: 0.8)
+                    .stroke(theme.textTint.opacity(0.08), lineWidth: 0.8)
                 }
             }
         }
@@ -385,7 +387,7 @@ struct VehicleSpecsCard: View {
                 Text("FICHA TÉCNICA")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 Text(profile.fuelType.displayName.uppercased())
                     .font(.system(size: 9, weight: .heavy))
@@ -492,22 +494,22 @@ struct VehicleSpecsCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text(unit)
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Text(label)
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(0.8)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
@@ -515,15 +517,15 @@ struct VehicleSpecsCard: View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
             Text(text)
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
         }
     }
 
     private var dividerDot: some View {
-        Circle().fill(.white.opacity(0.25)).frame(width: 3, height: 3)
+        Circle().fill(theme.textTint.opacity(0.25)).frame(width: 3, height: 3)
     }
 
     private func fuelColor(_ t: FuelType) -> Color {
@@ -556,7 +558,7 @@ struct VehicleSpecsCard: View {
         .padding(.leading, 0)
         .background(
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(Color.white)
+                .fill(theme.textTint)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -570,14 +572,14 @@ struct VehicleSpecsCard: View {
             Circle()
                 .fill(parseColor(colorName))
                 .frame(width: 14, height: 14)
-                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+                .overlay(Circle().stroke(theme.textTint.opacity(0.3), lineWidth: 1))
             Text(colorName)
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
         }
         .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(Capsule().fill(.white.opacity(0.06)))
-        .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
+        .background(Capsule().fill(theme.textTint.opacity(0.06)))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.1), lineWidth: 1))
     }
 
     private func parseColor(_ name: String) -> Color {
@@ -609,6 +611,7 @@ struct VehicleSpecsCard: View {
 // MARK: - Asset Switcher (opcional, carousel de modelos)
 
 struct Vehicle3DAssetSwitcher: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var selected: Vehicle3DAsset
 
     var body: some View {
@@ -626,14 +629,14 @@ struct Vehicle3DAssetSwitcher: View {
                         Text(asset.displayName)
                             .font(.system(size: 11, weight: .heavy))
                     }
-                    .foregroundColor(selected == asset ? .black : .white.opacity(0.75))
+                    .foregroundColor(selected == asset ? .black : theme.textTint.opacity(0.75))
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(
-                        Capsule().fill(selected == asset ? Color.white : Color.white.opacity(0.08))
+                        Capsule().fill(selected == asset ? Color.white : theme.textTint.opacity(0.08))
                     )
                     .overlay(
                         Capsule().stroke(
-                            selected == asset ? .clear : .white.opacity(0.12),
+                            selected == asset ? .clear : theme.textTint.opacity(0.12),
                             lineWidth: 1
                         )
                     )

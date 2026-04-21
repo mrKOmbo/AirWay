@@ -11,6 +11,7 @@ import CoreLocation
 // MARK: - Current Zone Card
 
 struct CurrentZoneCard: View {
+    @Environment(\.weatherTheme) private var theme
     let zone: AirQualityZone?
 
     var body: some View {
@@ -19,7 +20,7 @@ struct CurrentZoneCard: View {
                 .frame(width: 80)
 
             Rectangle()
-                .fill(.white.opacity(0.1))
+                .fill(theme.textTint.opacity(0.1))
                 .frame(width: 1, height: 60)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -30,16 +31,16 @@ struct CurrentZoneCard: View {
 
                     Text(zone?.level.rawValue ?? "Desconocido")
                         .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
 
                 HStack(spacing: 6) {
                     Image(systemName: "circle.hexagongrid.fill")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                     Text("PM2.5: \(Int(zone?.airQuality.pm25 ?? 0)) µg/m³")
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.75))
+                        .foregroundColor(theme.textTint.opacity(0.75))
                         .monospacedDigit()
                 }
 
@@ -93,7 +94,7 @@ struct CurrentZoneCard: View {
             Text("AQI")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
         }
     }
 
@@ -138,11 +139,12 @@ struct CurrentZoneCard: View {
 // MARK: - Empty State Card
 
 struct EmptyZoneCard: View {
+    @Environment(\.weatherTheme) private var theme
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(.white.opacity(0.08))
+                    .fill(theme.textTint.opacity(0.08))
                     .frame(width: 44, height: 44)
                 ProgressView().tint(Color(hex: "#22D3EE"))
             }
@@ -150,11 +152,11 @@ struct EmptyZoneCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Cargando calidad del aire…")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text("Obteniendo datos de la zona")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             Spacer()
@@ -170,7 +172,7 @@ struct EmptyZoneCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
@@ -180,6 +182,7 @@ struct EmptyZoneCard: View {
 // MARK: - Compact Zone Indicator (para vista pequeña)
 
 struct CompactZoneIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let zone: AirQualityZone?
 
     var body: some View {
@@ -196,7 +199,7 @@ struct CompactZoneIndicator: View {
 
             Text(zone?.level.rawValue ?? "Desconocido")
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(theme.textTint.opacity(0.7))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

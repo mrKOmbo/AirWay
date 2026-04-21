@@ -84,35 +84,47 @@ struct AnimatedAtmosphericBlob: View {
 
     var body: some View {
         ZStack {
-            // Círculo simple estático (sin animaciones)
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            zone.color.opacity(zone.fillOpacity * 0.8),
-                            zone.color.opacity(zone.fillOpacity * 0.5),
-                            zone.color.opacity(zone.fillOpacity * 0.2),
-                            .clear
-                        ],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 40
-                    )
-                )
-                .frame(width: 80, height: 80)
-
-            // Icono central (solo para zonas contaminadas)
+            // El RadialGradient "glow" se renderiza SOLO en zonas contaminadas.
+            // Para zonas good/moderate el MapCircle del mapa ya marca el área;
+            // añadir otro gradient aquí duplicaba pintado sin ganar claridad visual.
             if shouldShowIcon {
+                // Glow radial (visible solo con contaminación real).
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                zone.color.opacity(zone.fillOpacity * 0.8),
+                                zone.color.opacity(zone.fillOpacity * 0.5),
+                                zone.color.opacity(zone.fillOpacity * 0.2),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 10,
+                            endRadius: 40
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+
+                // Icono central con fill sólido (evita .ultraThinMaterial costoso en GPU).
                 ZStack {
                     Circle()
-                        .fill(.ultraThinMaterial)
+                        .fill(Color.black.opacity(0.75))
                         .frame(width: 36, height: 36)
+                        .overlay(
+                            Circle().stroke(zone.color.opacity(0.8), lineWidth: 1.5)
+                        )
 
                     Image(systemName: zone.icon)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(zone.color)
                 }
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            } else {
+                // Zona limpia: solo tap target invisible (mantiene interactividad
+                // sin coste de pintado).
+                Color.clear
+                    .frame(width: 60, height: 60)
+                    .contentShape(Rectangle())
             }
         }
         .frame(width: 80, height: 80)
@@ -127,22 +139,18 @@ struct AnimatedAtmosphericBlob: View {
 
 // MARK: - Enhanced Cloud Overlay (Reemplazo de MapCircle)
 
-/// Vista optimizada para overlay de zona en el mapa
-/// SIN animaciones para máximo rendimiento
+/// Vista optimizada para overlay de zona en el mapa.
+/// Recibe `enableRotation` como prop plana para evitar rebuilds por @EnvironmentObject.
+/// No usa `.id()` para que SwiftUI haga diff normal en vez de destruir/recrear.
 struct EnhancedAirQualityOverlay: View {
     let zone: AirQualityZone
-    let isVisible: Bool
-    let index: Int
-    let settingsKey: String
-
-    @EnvironmentObject var appSettings: AppSettings
+    let enableRotation: Bool
 
     var body: some View {
         AnimatedAtmosphericBlob(
             zone: zone,
-            enableRotation: appSettings.enableAirQualityRotation
+            enableRotation: enableRotation
         )
-        .id(settingsKey)
     }
 }
 

@@ -41,7 +41,7 @@ struct CompareModesPreviewCard: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: [Color(hex: "#A78BFA").opacity(0.4), Color.white.opacity(0.06)],
+                            colors: [Color(hex: "#A78BFA").opacity(0.4), theme.textTint.opacity(0.06)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ),
                         lineWidth: 1
@@ -64,17 +64,17 @@ struct CompareModesPreviewCard: View {
                     .frame(width: 28, height: 28)
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("Compara modos")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(1)
                 Text("4 opciones · IA")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .lineLimit(1)
             }
 
@@ -82,9 +82,9 @@ struct CompareModesPreviewCard: View {
 
             Text("3")
                 .font(.system(size: 9, weight: .heavy))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(Capsule().fill(.white.opacity(0.1)))
+                .background(Capsule().fill(theme.textTint.opacity(0.1)))
         }
     }
 
@@ -109,7 +109,7 @@ struct CompareModesPreviewCard: View {
                     }
                     Text(rec.displayName)
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
 
@@ -118,7 +118,7 @@ struct CompareModesPreviewCard: View {
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(rec.durationFormatted)
                         .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
                     Text(rec.costFormatted)
                         .font(.system(size: 9, weight: .heavy))
@@ -166,7 +166,7 @@ struct CompareModesPreviewCard: View {
                     .font(.system(size: 13))
                 Text(mode.mode.capitalized)
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(theme.textTint.opacity(0.85))
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if isRecommended {
@@ -179,11 +179,11 @@ struct CompareModesPreviewCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text("\(Int(mode.durationMin))")
                     .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text("min")
                     .font(.system(size: 7, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
             }
 
             HStack(spacing: 2) {
@@ -199,7 +199,7 @@ struct CompareModesPreviewCard: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.06))
+                        .fill(theme.textTint.opacity(0.06))
                     Capsule()
                         .fill(costColor(mode.totalCostMxn, max: maxCost))
                         .frame(width: max(2, geo.size.width * progress))
@@ -211,12 +211,12 @@ struct CompareModesPreviewCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isRecommended ? Color(hex: "#FBBF24").opacity(0.08) : .white.opacity(0.04))
+                .fill(isRecommended ? Color(hex: "#FBBF24").opacity(0.08) : theme.textTint.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(
-                    isRecommended ? Color(hex: "#FBBF24").opacity(0.5) : .white.opacity(0.08),
+                    isRecommended ? Color(hex: "#FBBF24").opacity(0.5) : theme.textTint.opacity(0.08),
                     lineWidth: isRecommended ? 1 : 0.8
                 )
         )
@@ -242,7 +242,7 @@ struct CompareModesPreviewCard: View {
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 9, weight: .heavy))
         }
-        .foregroundColor(.white)
+        .foregroundColor(theme.textTint)
         .padding(.horizontal, 9).padding(.vertical, 7)
         .background(
             LinearGradient(

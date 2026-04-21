@@ -11,6 +11,7 @@ import SwiftUI
 
 /// Leyenda flotante que muestra los niveles de calidad del aire
 struct AirQualityLegendView: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var isExpanded: Bool
     let statistics: AirQualityGridManager.GridStatistics?
 
@@ -40,18 +41,18 @@ struct AirQualityLegendView: View {
                             .frame(width: 28, height: 28)
                         Image(systemName: "aqi.medium")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                     }
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Calidad del aire")
                             .font(.system(size: 12, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
 
                         if let stats = statistics {
                             Text("AQI \(Int(stats.averageAQI))")
                                 .font(.system(size: 9, weight: .heavy))
-                                .foregroundColor(.white.opacity(0.55))
+                                .foregroundColor(theme.textTint.opacity(0.55))
                         }
                     }
 
@@ -59,7 +60,7 @@ struct AirQualityLegendView: View {
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -68,7 +69,7 @@ struct AirQualityLegendView: View {
 
             if isExpanded {
                 VStack(spacing: 10) {
-                    Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                    Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                     VStack(spacing: 6) {
                         ForEach(AQILevel.allCases, id: \.self) { level in
@@ -80,22 +81,22 @@ struct AirQualityLegendView: View {
                     }
 
                     if let stats = statistics {
-                        Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+                        Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
 
                         HStack(spacing: 12) {
                             VStack(spacing: 1) {
                                 Text("\(stats.totalZones)")
                                     .font(.system(size: 16, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(theme.textTint)
                                     .monospacedDigit()
                                 Text("ZONAS")
                                     .font(.system(size: 8, weight: .heavy))
                                     .tracking(0.8)
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                             }
                             .frame(maxWidth: .infinity)
 
-                            Rectangle().fill(.white.opacity(0.1)).frame(width: 1, height: 28)
+                            Rectangle().fill(theme.textTint.opacity(0.1)).frame(width: 1, height: 28)
 
                             VStack(spacing: 1) {
                                 Text("\(Int(stats.averageAQI))")
@@ -105,7 +106,7 @@ struct AirQualityLegendView: View {
                                 Text("AQI PROM")
                                     .font(.system(size: 8, weight: .heavy))
                                     .tracking(0.8)
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -127,7 +128,7 @@ struct AirQualityLegendView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: .black.opacity(0.35), radius: 12, y: 5)
@@ -177,6 +178,7 @@ struct AirQualityLegendView: View {
 
 /// Fila individual de la leyenda
 struct AirQualityLegendRow: View {
+    @Environment(\.weatherTheme) private var theme
     let level: AQILevel
     let count: Int
 
@@ -186,28 +188,28 @@ struct AirQualityLegendRow: View {
                 .fill(color)
                 .frame(width: 11, height: 11)
                 .overlay(
-                    Circle().stroke(.white.opacity(0.35), lineWidth: 1)
+                    Circle().stroke(theme.textTint.opacity(0.35), lineWidth: 1)
                 )
                 .shadow(color: color.opacity(0.4), radius: 3)
 
             Text(level.rawValue)
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if count > 0 {
                 Text("\(count)")
                     .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .monospacedDigit()
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Capsule().fill(color))
             } else {
                 Text("0")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(theme.textTint.opacity(0.35))
                     .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(Capsule().fill(.white.opacity(0.06)))
+                    .background(Capsule().fill(theme.textTint.opacity(0.06)))
             }
         }
         .padding(.horizontal, 8)
@@ -234,6 +236,7 @@ struct AirQualityLegendRow: View {
 
 /// Indicador compacto de calidad del aire (para cuando no hay espacio)
 struct CompactAirQualityIndicator: View {
+    @Environment(\.weatherTheme) private var theme
     let averageAQI: Double
     let isActive: Bool
 
@@ -246,7 +249,7 @@ struct CompactAirQualityIndicator: View {
 
             Text("AQI \(Int(averageAQI))")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(isActive ? 1.0 : 0.5))
+                .foregroundColor(theme.textTint.opacity(isActive ? 1.0 : 0.5))
                 .monospacedDigit()
         }
         .padding(.horizontal, 10)

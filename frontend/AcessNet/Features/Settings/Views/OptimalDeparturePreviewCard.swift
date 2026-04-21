@@ -48,7 +48,7 @@ struct OptimalDeparturePreviewCard: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: [Color(hex: "#818CF8").opacity(0.4), Color.white.opacity(0.06)],
+                            colors: [Color(hex: "#818CF8").opacity(0.4), theme.textTint.opacity(0.06)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ),
                         lineWidth: 1
@@ -76,17 +76,17 @@ struct OptimalDeparturePreviewCard: View {
                     .frame(width: 28, height: 28)
                 Image(systemName: "clock.badge.checkmark.fill")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("Mejor momento")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(1)
                 Text("\(windows.count) ventanas · 6h")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .lineLimit(1)
             }
 
@@ -94,9 +94,9 @@ struct OptimalDeparturePreviewCard: View {
 
             Text("4")
                 .font(.system(size: 9, weight: .heavy))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(Capsule().fill(.white.opacity(0.1)))
+                .background(Capsule().fill(theme.textTint.opacity(0.1)))
         }
     }
 
@@ -116,7 +116,7 @@ struct OptimalDeparturePreviewCard: View {
 
                 Text(best.hour)
                     .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                     .shadow(color: Color(hex: "#818CF8").opacity(0.45), radius: 6)
             }
@@ -155,10 +155,10 @@ struct OptimalDeparturePreviewCard: View {
             Text("\(score)")
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .monospacedDigit()
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text("/100")
                 .font(.system(size: 7, weight: .heavy))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
     }
 
@@ -206,7 +206,7 @@ struct OptimalDeparturePreviewCard: View {
                 Text(windows.last?.hour ?? "")
             }
             .font(.system(size: 7, weight: .heavy))
-            .foregroundColor(.white.opacity(0.4))
+            .foregroundColor(theme.textTint.opacity(0.4))
             .monospacedDigit()
         }
     }
@@ -241,12 +241,12 @@ struct OptimalDeparturePreviewCard: View {
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
     private var divider: some View {
-        Rectangle().fill(.white.opacity(0.08)).frame(width: 1, height: 22)
+        Rectangle().fill(theme.textTint.opacity(0.08)).frame(width: 1, height: 22)
     }
 
     private func savingTile(icon: String, value: String, label: String, color: Color) -> some View {
@@ -256,12 +256,12 @@ struct OptimalDeparturePreviewCard: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 12, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
             Text(label.uppercased())
                 .font(.system(size: 7, weight: .heavy))
                 .tracking(0.5)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
     }
@@ -278,7 +278,7 @@ struct OptimalDeparturePreviewCard: View {
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 9, weight: .heavy))
         }
-        .foregroundColor(.white)
+        .foregroundColor(theme.textTint)
         .padding(.horizontal, 9).padding(.vertical, 7)
         .background(
             LinearGradient(

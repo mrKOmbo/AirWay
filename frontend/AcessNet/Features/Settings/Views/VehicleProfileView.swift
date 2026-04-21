@@ -12,6 +12,7 @@
 import SwiftUI
 
 struct VehicleProfileView: View {
+    @Environment(\.weatherTheme) private var theme
     @EnvironmentObject private var appSettings: AppSettings
     @StateObject private var service = VehicleProfileService.shared
     @State private var showingEditor = false
@@ -20,10 +21,6 @@ struct VehicleProfileView: View {
 
     private var activeWeather: WeatherCondition {
         appSettings.weatherOverride ?? .overcast
-    }
-
-    private var theme: WeatherTheme {
-        WeatherTheme(condition: activeWeather)
     }
 
     private var resolvedAsset: Vehicle3DAsset {
@@ -128,7 +125,7 @@ struct VehicleProfileView: View {
                         showingEditor = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                     }
                 }
             }
@@ -152,11 +149,11 @@ struct VehicleProfileView: View {
                 Text("OTROS GUARDADOS")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
                 Text("\(otherProfiles.count)")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
             .padding(.horizontal, 16)
 
@@ -189,13 +186,13 @@ struct VehicleProfileView: View {
         VStack(spacing: 14) {
             Image(systemName: "car.side.fill")
                 .font(.system(size: 42, weight: .light))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(theme.textTint.opacity(0.3))
             Text("No tienes vehículos")
                 .font(.system(size: 15, weight: .heavy))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text("Agrega el tuyo o carga los dos autos demo con datos reales.")
                 .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
 
@@ -211,10 +208,10 @@ struct VehicleProfileView: View {
                         Text("Agregar")
                             .font(.system(size: 12, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Capsule().fill(.white.opacity(0.08)))
-                    .overlay(Capsule().stroke(.white.opacity(0.15), lineWidth: 1))
+                    .background(Capsule().fill(theme.textTint.opacity(0.08)))
+                    .overlay(Capsule().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
@@ -228,7 +225,7 @@ struct VehicleProfileView: View {
                         Text("Cargar demo")
                             .font(.system(size: 12, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(
                         Capsule().fill(
@@ -274,29 +271,29 @@ private struct VehicleHeroCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: asset.systemIcon)
                             .font(.system(size: 11, weight: .heavy))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(theme.textTint.opacity(0.6))
                         Text(asset.displayName.uppercased())
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(1.2)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                     }
                     Text(profile.displayName)
                         .font(.system(size: 22, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
                     Text(profile.fullDisplayName)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(theme.textTint.opacity(0.45))
                 }
                 Spacer()
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(width: 34, height: 34)
-                        .background(Circle().fill(.white.opacity(0.1)))
-                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
+                        .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -350,10 +347,10 @@ private struct VehicleHeroCard: View {
             VStack(spacing: 3) {
                 Image(systemName: "car.fill")
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("MX")
                     .font(.system(size: 7, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .frame(width: 26)
             .frame(maxHeight: .infinity)
@@ -409,15 +406,15 @@ private struct VehicleHeroCard: View {
             Circle()
                 .fill(parseColor(name))
                 .frame(width: 12, height: 12)
-                .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 1))
+                .overlay(Circle().stroke(theme.textTint.opacity(0.4), lineWidth: 1))
             Text(name)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
                 .lineLimit(1)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Capsule().fill(.white.opacity(0.07)))
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .background(Capsule().fill(theme.textTint.opacity(0.07)))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.12), lineWidth: 1))
     }
 
     private var drivingStyleIndicator: some View {
@@ -430,7 +427,7 @@ private struct VehicleHeroCard: View {
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1.0)
                 }
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(theme.textTint.opacity(0.45))
                 Spacer()
                 Text(profile.drivingStyleLabel)
                     .font(.system(size: 10, weight: .heavy))
@@ -440,7 +437,7 @@ private struct VehicleHeroCard: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.06))
+                        .fill(theme.textTint.opacity(0.06))
                     LinearGradient(
                         colors: [Color(hex: "#34D399"), Color(hex: "#FBBF24"), Color(hex: "#F87171")],
                         startPoint: .leading, endPoint: .trailing
@@ -530,14 +527,14 @@ private struct GlassProfileRow: View {
                         .frame(width: 46, height: 46)
                     Image(systemName: asset.systemIcon)
                         .font(.system(size: 16, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(profile.displayName)
                             .font(.system(size: 14, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .lineLimit(1)
                         if isActive {
                             Text("ACTIVO")
@@ -575,19 +572,19 @@ private struct GlassProfileRow: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(.white.opacity(0.06)))
+                        .background(Circle().fill(theme.textTint.opacity(0.06)))
                 }
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isActive ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+                    .fill(isActive ? theme.textTint.opacity(0.08) : theme.textTint.opacity(0.04))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isActive ? Color.green.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(isActive ? Color.green.opacity(0.3) : theme.textTint.opacity(0.08), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -601,9 +598,9 @@ private struct GlassProfileRow: View {
                 .font(.system(size: 10, weight: .heavy))
                 .lineLimit(1)
         }
-        .foregroundColor(.white.opacity(0.7))
+        .foregroundColor(theme.textTint.opacity(0.7))
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(Capsule().fill(.white.opacity(0.06)))
+        .background(Capsule().fill(theme.textTint.opacity(0.06)))
     }
 
     private func plateChip(_ plate: String) -> some View {
@@ -619,7 +616,7 @@ private struct GlassProfileRow: View {
         .padding(.horizontal, 7).padding(.vertical, 3)
         .background(
             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(Color.white)
+                .fill(theme.textTint)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -631,6 +628,7 @@ private struct GlassProfileRow: View {
 // MARK: - Editor (unchanged shell, styled form)
 
 struct VehicleEditorView: View {
+    @Environment(\.weatherTheme) private var theme
     let profile: VehicleProfile?
     let onSave: (VehicleProfile) -> Void
 

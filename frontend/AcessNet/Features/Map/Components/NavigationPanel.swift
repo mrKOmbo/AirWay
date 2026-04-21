@@ -11,6 +11,7 @@ import CoreLocation
 // MARK: - Navigation Panel
 
 struct NavigationPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let navigationState: NavigationState
     let currentZone: AirQualityZone?
     let distanceToManeuver: Double
@@ -39,7 +40,7 @@ struct NavigationPanel: View {
                         .foregroundColor(Color(hex: "#22D3EE"))
                     Text("AQI al llegar:")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                     Text("\(Int(avgAQI))")
                         .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .foregroundColor(
@@ -62,7 +63,7 @@ struct NavigationPanel: View {
                 .padding(.horizontal, 8).padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(.white.opacity(0.04))
+                        .fill(theme.textTint.opacity(0.04))
                 )
             }
 
@@ -84,7 +85,7 @@ struct NavigationPanel: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.55), radius: 20, y: -6)
@@ -96,6 +97,7 @@ struct NavigationPanel: View {
 // MARK: - Compact Navigation Panel (vista reducida)
 
 struct CompactNavigationPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let navigationState: NavigationState
     let distanceToManeuver: Double
     let onExpand: () -> Void
@@ -104,7 +106,7 @@ struct CompactNavigationPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             Capsule()
-                .fill(.white.opacity(0.25))
+                .fill(theme.textTint.opacity(0.25))
                 .frame(width: 36, height: 5)
                 .padding(.top, 8)
                 .padding(.bottom, 10)
@@ -133,7 +135,7 @@ struct CompactNavigationPanel: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.4), radius: 12, y: -4)
@@ -147,6 +149,7 @@ struct CompactNavigationPanel: View {
 // MARK: - Arrival Panel
 
 struct ArrivalPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let destination: String
     let onDismiss: () -> Void
 
@@ -174,7 +177,7 @@ struct ArrivalPanel: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 54, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .rotationEffect(.degrees(confettiAnimation ? 360 : 0))
             }
             .onAppear {
@@ -186,11 +189,11 @@ struct ArrivalPanel: View {
             VStack(spacing: 4) {
                 Text("¡Has llegado!")
                     .font(.system(size: 24, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text(destination)
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
@@ -205,7 +208,7 @@ struct ArrivalPanel: View {
                     Text("Finalizar")
                         .font(.system(size: 15, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
@@ -242,6 +245,7 @@ struct ArrivalPanel: View {
 // MARK: - Off Route Alert
 
 struct OffRouteAlert: View {
+    @Environment(\.weatherTheme) private var theme
     let onRecalculate: () -> Void
     let onDismiss: () -> Void
 
@@ -258,17 +262,17 @@ struct OffRouteAlert: View {
                     .frame(width: 42, height: 42)
                 Image(systemName: "location.slash.fill")
                     .font(.system(size: 16, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: Color(hex: "#FB923C").opacity(0.5), radius: 6)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Fuera de ruta")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text("¿Quieres recalcular?")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             Spacer(minLength: 4)
@@ -280,10 +284,10 @@ struct OffRouteAlert: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(theme.textTint.opacity(0.65))
                         .frame(width: 28, height: 28)
-                        .background(Circle().fill(.white.opacity(0.1)))
-                        .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                        .background(Circle().fill(theme.textTint.opacity(0.1)))
+                        .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
@@ -297,7 +301,7 @@ struct OffRouteAlert: View {
                         Text("Recalcular")
                             .font(.system(size: 11, weight: .heavy))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 10).padding(.vertical, 6)
                     .background(
                         Capsule().fill(

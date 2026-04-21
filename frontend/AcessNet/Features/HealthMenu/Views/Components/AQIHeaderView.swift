@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct AQIHeaderView: View {
+    @Environment(\.weatherTheme) private var theme
 
     let badge: HealthMenuViewModel.AQIBadge
 
@@ -18,16 +19,16 @@ struct AQIHeaderView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(badge.location) · \(badge.pollutant) \(badge.level)")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .tracking(0.4)
                 Text(String(localized: "Calidad del aire en tiempo real"))
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(theme.textTint.opacity(0.3))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -68,11 +69,11 @@ struct AQIHeaderView: View {
             VStack(spacing: -2) {
                 Text("\(badge.aqi)")
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .monospacedDigit()
                 Text("AQI")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .tracking(1.2)
             }
         }

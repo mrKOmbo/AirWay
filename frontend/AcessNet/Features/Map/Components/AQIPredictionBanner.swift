@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct AQIPredictionBanner: View {
+    @Environment(\.weatherTheme) private var theme
     @State private var prediction: MLPredictionResponse?
     @State private var bestTime: BestTimeResponse?
     @State private var isLoading = true
@@ -32,10 +33,10 @@ struct AQIPredictionBanner: View {
 
     private var loadingBanner: some View {
         HStack(spacing: 8) {
-            ProgressView().tint(.white).scaleEffect(0.6)
+            ProgressView().tint(theme.textTint).scaleEffect(0.6)
             Text("Cargando predicción…")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -44,7 +45,7 @@ struct AQIPredictionBanner: View {
                 .fill(.black.opacity(0.6))
                 .background(Capsule().fill(.ultraThinMaterial))
         )
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
     }
 
@@ -60,7 +61,7 @@ struct AQIPredictionBanner: View {
                         .foregroundColor(colorForAQI(current))
                     Text("\(current)")
                         .font(.system(size: 15, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
                 }
             }
@@ -85,7 +86,7 @@ struct AQIPredictionBanner: View {
                     Text("en 6h")
                         .font(.system(size: 8, weight: .heavy))
                         .tracking(0.5)
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
                 .foregroundColor(colorForAQI(pred6h.aqi))
             }
@@ -93,7 +94,7 @@ struct AQIPredictionBanner: View {
             // Separator
             if bestTime?.best_window != nil {
                 Rectangle()
-                    .fill(.white.opacity(0.15))
+                    .fill(theme.textTint.opacity(0.15))
                     .frame(width: 1, height: 14)
             }
 
@@ -105,7 +106,7 @@ struct AQIPredictionBanner: View {
                         .foregroundColor(Color(hex: "#FBBF24"))
                     Text("Óptimo: \(extractHour(best.start))")
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
             }
         }
@@ -116,7 +117,7 @@ struct AQIPredictionBanner: View {
                 .fill(.black.opacity(0.65))
                 .background(Capsule().fill(.ultraThinMaterial))
         )
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
     }

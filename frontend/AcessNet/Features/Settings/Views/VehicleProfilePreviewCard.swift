@@ -73,33 +73,33 @@ struct VehicleProfilePreviewCard: View {
                     .frame(width: 36, height: 36)
                 Image(systemName: "car.side.fill")
                     .font(.system(size: 15, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text("Mi vehículo")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     if !service.savedProfiles.isEmpty {
                         Text("\(service.savedProfiles.count)")
                             .font(.system(size: 9, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(Capsule().fill(.white.opacity(0.15)))
+                            .background(Capsule().fill(theme.textTint.opacity(0.15)))
                     }
                 }
                 Text(active != nil ? "Modelo 3D · consumo CONUEE" : "Sin vehículo configurado")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             Spacer()
             Text("1")
                 .font(.system(size: 11, weight: .heavy))
                 .monospacedDigit()
                 .padding(.horizontal, 7).padding(.vertical, 3)
-                .background(Color.white.opacity(0.1))
-                .foregroundColor(.white.opacity(0.7))
+                .background(theme.textTint.opacity(0.1))
+                .foregroundColor(theme.textTint.opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
@@ -127,10 +127,10 @@ struct VehicleProfilePreviewCard: View {
                     Text("Expandir")
                         .font(.system(size: 10, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 8).padding(.vertical, 5)
                 .background(Capsule().fill(.black.opacity(0.75)))
-                .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
+                .overlay(Capsule().stroke(theme.textTint.opacity(0.2), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .padding(10)
@@ -146,7 +146,7 @@ struct VehicleProfilePreviewCard: View {
                     HStack(spacing: 6) {
                         Text(p.displayName)
                             .font(.system(size: 15, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .lineLimit(1)
                         activeBadge
                     }
@@ -197,7 +197,7 @@ struct VehicleProfilePreviewCard: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
@@ -221,13 +221,13 @@ struct VehicleProfilePreviewCard: View {
             Circle()
                 .fill(parseColor(name))
                 .frame(width: 10, height: 10)
-                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 0.5))
+                .overlay(Circle().stroke(theme.textTint.opacity(0.3), lineWidth: 0.5))
             Text(name)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(theme.textTint.opacity(0.8))
         }
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(Capsule().fill(.white.opacity(0.07)))
+        .background(Capsule().fill(theme.textTint.opacity(0.07)))
     }
 
     private func parseColor(_ name: String) -> Color {
@@ -275,7 +275,7 @@ struct VehicleProfilePreviewCard: View {
             Text(unit.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.5)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
     }
 
@@ -311,7 +311,7 @@ struct VehicleProfilePreviewCard: View {
                     HStack(spacing: 5) {
                         Text("Hardware Premium")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 8, weight: .heavy))
@@ -326,7 +326,7 @@ struct VehicleProfilePreviewCard: View {
                     }
                     Text("OBD-II BLE · ELM327 · Vgate · OBDLink")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         hwChip(icon: "gauge.open.with.lines.needle.33percent", label: "Velocidad")
@@ -351,7 +351,7 @@ struct VehicleProfilePreviewCard: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(
                     LinearGradient(
@@ -396,10 +396,10 @@ struct VehicleProfilePreviewCard: View {
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(0.3)
         }
-        .foregroundColor(.white.opacity(0.75))
+        .foregroundColor(theme.textTint.opacity(0.75))
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(Capsule().fill(.white.opacity(0.06)))
-        .overlay(Capsule().stroke(.white.opacity(0.1), lineWidth: 0.8))
+        .background(Capsule().fill(theme.textTint.opacity(0.06)))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.1), lineWidth: 0.8))
     }
 
     // MARK: - Other Vehicles Carousel
@@ -410,11 +410,11 @@ struct VehicleProfilePreviewCard: View {
                 Text("OTROS GUARDADOS")
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
                 Spacer()
                 Text("Toca para cambiar")
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(theme.textTint.opacity(0.35))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -438,10 +438,10 @@ struct VehicleProfilePreviewCard: View {
                 HStack(spacing: 5) {
                     Image(systemName: Vehicle3DAsset.forProfile(p).systemIcon)
                         .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(theme.textTint.opacity(0.85))
                     Text(shortName(p))
                         .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
                 Text("\(String(format: "%.1f", p.conueeKmPerL)) km/L")
@@ -451,11 +451,11 @@ struct VehicleProfilePreviewCard: View {
             .padding(.horizontal, 10).padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.white.opacity(0.06))
+                    .fill(theme.textTint.opacity(0.06))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(.white.opacity(0.1), lineWidth: 1)
+                    .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -469,7 +469,7 @@ struct VehicleProfilePreviewCard: View {
                 Text("Agregar")
                     .font(.system(size: 11, weight: .heavy))
             }
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(
                 Capsule().fill(
@@ -502,7 +502,7 @@ struct VehicleProfilePreviewCard: View {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 12, weight: .heavy))
             }
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .padding(.horizontal, 14).padding(.vertical, 13)
             .background(
                 LinearGradient(
@@ -542,7 +542,7 @@ struct VehicleProfilePreviewCard: View {
                     Image(systemName: "arrow.up.right")
                         .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(
                     LinearGradient(

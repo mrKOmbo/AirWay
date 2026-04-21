@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HorizonCard: View {
+    @Environment(\.weatherTheme) private var theme
     let forecast: HorizonForecast
     var isSelected: Bool = false
 
@@ -52,7 +53,7 @@ struct HorizonCard: View {
 
                 Text(horizonLabel)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
 
                 Spacer()
 
@@ -71,7 +72,7 @@ struct HorizonCard: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.08))
+                        .fill(theme.textTint.opacity(0.08))
                     Capsule()
                         .fill(color)
                         .frame(width: animate ? geo.size.width * CGFloat(forecast.probFase1O3) : 0)
@@ -86,13 +87,13 @@ struct HorizonCard: View {
                 Text("O₃ \(Int(round(forecast.o3ExpectedPpb))) ppb")
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
             }
-            .foregroundColor(.white.opacity(0.55))
+            .foregroundColor(theme.textTint.opacity(0.55))
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(isSelected ? 0.08 : 0.04))
+                .fill(theme.textTint.opacity(isSelected ? 0.08 : 0.04))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(

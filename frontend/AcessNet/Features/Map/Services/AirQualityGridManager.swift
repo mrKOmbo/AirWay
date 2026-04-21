@@ -48,8 +48,11 @@ class AirQualityGridManager: ObservableObject {
     /// Queue para cálculos en background
     private let calculationQueue = DispatchQueue(label: "com.acessnet.airqualitygrid", qos: .userInitiated)
 
-    /// Distancia mínima para recalcular (en metros)
-    private let minimumDistanceForUpdate: CLLocationDistance = 500
+    /// Distancia mínima para recalcular (en metros).
+    /// Subido de 500m → 1000m: un fetch al backend cuesta ~12s (timeout) + rebuild
+    /// de 40+ annotations en SwiftUI. A 500m se disparaba cada ~30s en coche urbano;
+    /// a 1000m baja a ~1 min y aprovecha mejor el cache de 2 min.
+    private let minimumDistanceForUpdate: CLLocationDistance = 1000
 
     // MARK: - Initialization
 

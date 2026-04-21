@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct DriversPanel: View {
+    @Environment(\.weatherTheme) private var theme
     let drivers: [ForecastDriver]
 
     @State private var animate: Bool = false
@@ -17,20 +18,20 @@ struct DriversPanel: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.1))
+                        .fill(theme.textTint.opacity(0.1))
                         .frame(width: 32, height: 32)
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(theme.textTint.opacity(0.85))
                 }
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("¿Por qué esta probabilidad?")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("Top factores del modelo")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                         .textCase(.uppercase)
                         .tracking(1.0)
                 }
@@ -45,10 +46,10 @@ struct DriversPanel: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
                 )
         )
         .onAppear {
@@ -58,6 +59,7 @@ struct DriversPanel: View {
 }
 
 private struct DriverRow: View {
+    @Environment(\.weatherTheme) private var theme
     let driver: ForecastDriver
     let animate: Bool
     let index: Int
@@ -67,12 +69,12 @@ private struct DriverRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(driver.humanName)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
                     .lineLimit(1)
                 if let value = driver.value {
                     Text(formatValue(value))
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
             }
             Spacer(minLength: 6)
@@ -96,6 +98,7 @@ private struct DriverRow: View {
 }
 
 private struct ImportanceBar: View {
+    @Environment(\.weatherTheme) private var theme
     let importance: Double
     let animate: Bool
     let delay: Double
@@ -118,7 +121,7 @@ private struct ImportanceBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.white.opacity(0.08))
+                    .fill(theme.textTint.opacity(0.08))
                 Capsule()
                     .fill(color)
                     .frame(width: animate ? geo.size.width * intensity : 0)

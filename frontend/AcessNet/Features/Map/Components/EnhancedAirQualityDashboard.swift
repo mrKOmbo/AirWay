@@ -11,6 +11,7 @@ import SwiftUI
 
 /// Dashboard completo con gráficos y estadísticas visuales
 struct EnhancedAirQualityDashboard: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var isExpanded: Bool
     let statistics: AirQualityGridManager.GridStatistics?
     let referencePoint: AirQualityReferencePoint
@@ -130,7 +131,7 @@ struct EnhancedAirQualityDashboard: View {
                 HStack(spacing: 6) {
                     Text(activeRoute != nil ? "Aire de la ruta" : "Calidad del aire")
                         .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
 
                     // Reference Point Indicator (solo cuando NO hay ruta)
                     if activeRoute == nil {
@@ -161,7 +162,7 @@ struct EnhancedAirQualityDashboard: View {
                         Text("AQI PROM")
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(0.8)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
 
                         Text("\(Int(displayAQI))")
                             .font(.system(size: 15, weight: .heavy, design: .rounded))
@@ -171,7 +172,7 @@ struct EnhancedAirQualityDashboard: View {
                         Text(displayLevel.rawValue.uppercased())
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(0.6)
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .background(Capsule().fill(dominantColor))
                     }
@@ -180,7 +181,7 @@ struct EnhancedAirQualityDashboard: View {
                         Text("AQI")
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(0.8)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
 
                         Text("\(Int(stats.averageAQI))")
                             .font(.system(size: 15, weight: .heavy, design: .rounded))
@@ -216,7 +217,7 @@ struct EnhancedAirQualityDashboard: View {
 
     private var expandedContent: some View {
         VStack(spacing: activeRoute != nil ? 12 : 20) {
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 .padding(.horizontal, 14)
 
             // Donut Chart + Stats
@@ -232,7 +233,7 @@ struct EnhancedAirQualityDashboard: View {
             }
             .padding(.horizontal, 16)
 
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 .padding(.horizontal, 14)
 
             // Level distribution bars
@@ -271,7 +272,7 @@ struct EnhancedAirQualityDashboard: View {
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 11, weight: .heavy))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 13)
                         .background(
@@ -301,7 +302,7 @@ struct EnhancedAirQualityDashboard: View {
         ZStack {
             // Background circle
             Circle()
-                .stroke(.white.opacity(0.08), lineWidth: 20)
+                .stroke(theme.textTint.opacity(0.08), lineWidth: 20)
 
             // Animated segments
             if let stats = statistics, animateCharts {
@@ -321,13 +322,13 @@ struct EnhancedAirQualityDashboard: View {
                 if let stats = statistics {
                     Text("\(stats.totalZones)")
                         .font(.system(size: 28, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
 
                     Text("ZONAS")
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1.0)
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
             }
         }
@@ -340,7 +341,7 @@ struct EnhancedAirQualityDashboard: View {
             Text("DESGLOSE DE LA CALIDAD")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             if let route = activeRoute, let analysis = route.airQualityAnalysis {
                 VStack(spacing: 6) {
@@ -407,7 +408,7 @@ struct EnhancedAirQualityDashboard: View {
             Text("DISTRIBUCIÓN POR NIVEL")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             if let route = activeRoute, let analysis = route.airQualityAnalysis {
                 DistributionBar(
@@ -442,7 +443,7 @@ struct EnhancedAirQualityDashboard: View {
             Text("RESPIRABILIDAD")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             if statistics != nil {
                 HStack(spacing: 12) {
@@ -455,7 +456,7 @@ struct EnhancedAirQualityDashboard: View {
 
                         Text(breathabilityDetail)
                             .font(.system(size: 10, weight: .heavy))
-                            .foregroundColor(.white.opacity(0.65))
+                            .foregroundColor(theme.textTint.opacity(0.65))
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -507,7 +508,7 @@ struct EnhancedAirQualityDashboard: View {
     private var breathabilityScoreRing: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .stroke(theme.textTint.opacity(0.1), style: StrokeStyle(lineWidth: 5, lineCap: .round))
                 .frame(width: 46, height: 46)
 
             Circle()
@@ -525,7 +526,7 @@ struct EnhancedAirQualityDashboard: View {
 
             Text("\(Int(breathabilityScore))")
                 .font(.system(size: 13, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
         }
     }
@@ -566,7 +567,7 @@ struct EnhancedAirQualityDashboard: View {
             Text("INSIGHTS RÁPIDOS")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             if let stats = statistics {
                 HStack(spacing: 10) {
@@ -590,6 +591,7 @@ struct EnhancedAirQualityDashboard: View {
     // MARK: - Helper Components
 
     private struct StatRow: View {
+    @Environment(\.weatherTheme) private var theme
         let icon: String
         let label: String
         let count: Int
@@ -604,7 +606,7 @@ struct EnhancedAirQualityDashboard: View {
 
                 Text(label)
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Spacer()
 
@@ -620,6 +622,7 @@ struct EnhancedAirQualityDashboard: View {
     }
 
     private struct DistributionBar: View {
+    @Environment(\.weatherTheme) private var theme
         let segments: [(Int, Color)]
         let total: Int
         let animate: Bool
@@ -642,6 +645,7 @@ struct EnhancedAirQualityDashboard: View {
     }
 
     private struct InsightCard: View {
+    @Environment(\.weatherTheme) private var theme
         let icon: String
         let value: String
         let label: String
@@ -656,14 +660,14 @@ struct EnhancedAirQualityDashboard: View {
 
                     Text(value)
                         .font(.system(size: 15, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
                 }
 
                 Text(label.uppercased())
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(0.6)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

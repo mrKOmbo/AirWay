@@ -107,6 +107,39 @@ struct AQIHomeView: View {
         let storedHidden = UserDefaults.standard.string(forKey: "homeHiddenSections_v1") ?? ""
         let hiddenSet = Set(storedHidden.split(separator: ",").compactMap { HomeSection(rawValue: String($0)) })
         _hiddenSections = State(initialValue: hiddenSet)
+
+        // Cargar cache SÍNCRONAMENTE antes del primer render. Evita el flash
+        // ".sample → cache" en la segunda+ apertura de la app.
+        if let cached = UserDefaults.standard.dictionary(forKey: "aqi_cached_data"),
+           let aqi = cached["aqi"] as? Int, aqi > 0 {
+            let data = AirQualityData(
+                aqi: aqi,
+                pm25: cached["pm25"] as? Double ?? 0,
+                pm10: cached["pm10"] as? Double ?? 0,
+                o3: cached["o3"] as? Double ?? 0,
+                location: cached["location"] as? String ?? "CDMX",
+                city: cached["city"] as? String ?? "Ciudad de M\u{00E9}xico",
+                distance: cached["distance"] as? Double ?? 0,
+                temperature: cached["temperature"] as? Double ?? 18,
+                humidity: cached["humidity"] as? Int ?? 55,
+                windSpeed: cached["windSpeed"] as? Double ?? 5,
+                uvIndex: 0,
+                weatherCondition: .cloudy,
+                lastUpdate: Date()
+            )
+            _airQualityData = State(initialValue: data)
+            _hasLoadedBackend = State(initialValue: true)
+        }
+
+        if let aiData = UserDefaults.standard.data(forKey: "ai_cached_analysis"),
+           let ai = try? JSONDecoder().decode(AIAnalysisResponse.self, from: aiData) {
+            _aiAnalysis = State(initialValue: ai)
+        }
+
+        if let mlData = UserDefaults.standard.data(forKey: "ml_cached_prediction"),
+           let ml = try? JSONDecoder().decode(MLPredictionResponse.self, from: mlData) {
+            _mlPrediction = State(initialValue: ml)
+        }
     }
 
     private var visibleSections: [HomeSection] {
@@ -393,23 +426,35 @@ struct AQIHomeView: View {
 
     private func triggerAnimations() {
         Task { @MainActor in
-            animatedAQI = 0
-            animateGauges = false
+            let startValue = animatedAQI
+            let target = CGFloat(airQualityData.aqi)
+            let delta = abs(target - startValue)
 
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
-
-            withAnimation(.easeOut(duration: 1.2)) {
-                animateGauges = true
+            // Umbral: cambios pequeños saltan al valor final sin re-animar el gauge.
+            // Evita el "reset a 0 + rebuild" visible en actualizaciones cache → red.
+            guard delta >= 3 else {
+                animatedAQI = target
+                if !animateGauges {
+                    withAnimation(.easeOut(duration: 0.6)) { animateGauges = true }
+                }
+                return
             }
 
-            let target = CGFloat(airQualityData.aqi)
-            let steps = 40
+            // Solo activamos gauges la primera vez; no los ocultamos en updates.
+            if !animateGauges {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                withAnimation(.easeOut(duration: 1.2)) {
+                    animateGauges = true
+                }
+            }
 
+            // Interpolar DESDE el valor actual (no desde 0) hasta el target.
+            let steps = 40
             for i in 1...steps {
                 try? await Task.sleep(nanoseconds: 30_000_000) // 30ms
                 let progress = CGFloat(i) / CGFloat(steps)
                 let eased = 1.0 - pow(1.0 - progress, 3)
-                animatedAQI = target * eased
+                animatedAQI = startValue + (target - startValue) * eased
             }
             animatedAQI = target
         }
@@ -475,12 +520,12 @@ struct AQIHomeView: View {
                         o3: analysis.pollutants?.o3?.value ?? 0,
                         location: "CDMX Centro",
                         city: "Ciudad de M\u{00E9}xico",
-                        distance: 0,
-                        temperature: 18,
-                        humidity: 55,
-                        windSpeed: 5,
-                        uvIndex: 0,
-                        weatherCondition: .cloudy,
+                        distance: airQualityData.distance,  // preservar (backend no lo provee)
+                        temperature: airQualityData.temperature,
+                        humidity: airQualityData.humidity,
+                        windSpeed: airQualityData.windSpeed,
+                        uvIndex: airQualityData.uvIndex,
+                        weatherCondition: airQualityData.weatherCondition,
                         lastUpdate: Date()
                     )
                     // Keep cached AI analysis if skip_ai returned nil
@@ -621,13 +666,15 @@ struct AQIHomeView: View {
                     .foregroundColor(theme.textTint.opacity(0.6))
 
                 HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sensor.tag.radiowaves.forward")
-                            .font(.system(size: 9))
-                            .foregroundColor(theme.textTint.opacity(0.4))
-                        Text("Monitor: \(String(format: "%.1f", airQualityData.distance)) km")
-                            .font(.system(size: 10))
-                            .foregroundColor(theme.textTint.opacity(0.4))
+                    if airQualityData.distance > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sensor.tag.radiowaves.forward")
+                                .font(.system(size: 9))
+                                .foregroundColor(theme.textTint.opacity(0.4))
+                            Text("Monitor: \(String(format: "%.1f", airQualityData.distance)) km")
+                                .font(.system(size: 10))
+                                .foregroundColor(theme.textTint.opacity(0.4))
+                        }
                     }
 
                     HStack(spacing: 4) {
@@ -4030,7 +4077,7 @@ struct LocationSearchModal: View {
     @StateObject private var searchManager = LocationSearchManager()
     @State private var selectedLocation: SelectedLocation?
     @State private var locationAQI: LocationAQISnapshot?
-    @State private var isLoadingAQI: Bool = false
+    @State private var isLoadingLocationAQI: Bool = false
     @State private var loadError: String?
     @FocusState private var searchFieldFocused: Bool
 
@@ -4277,7 +4324,7 @@ struct LocationSearchModal: View {
             }
             .padding(.horizontal, 20)
 
-            if isLoadingAQI {
+            if isLoadingLocationAQI {
                 loadingCard
             } else if let err = loadError {
                 errorCard(err, location: location)
@@ -4455,13 +4502,13 @@ struct LocationSearchModal: View {
 
     private func fetchAQI(for location: SelectedLocation) async {
         await MainActor.run {
-            isLoadingAQI = true
+            isLoadingLocationAQI = true
             loadError = nil
         }
         let backend = "https://airway-api.onrender.com/api/v1"
         guard let url = URL(string: "\(backend)/air/analysis?lat=\(location.coordinate.latitude)&lon=\(location.coordinate.longitude)&mode=walk&skip_ai=true") else {
             await MainActor.run {
-                isLoadingAQI = false
+                isLoadingLocationAQI = false
                 loadError = "Invalid URL"
             }
             return
@@ -4478,11 +4525,11 @@ struct LocationSearchModal: View {
             )
             await MainActor.run {
                 locationAQI = snap
-                isLoadingAQI = false
+                isLoadingLocationAQI = false
             }
         } catch {
             await MainActor.run {
-                isLoadingAQI = false
+                isLoadingLocationAQI = false
                 loadError = error.localizedDescription
             }
         }

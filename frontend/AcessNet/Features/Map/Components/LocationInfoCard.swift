@@ -11,6 +11,7 @@ import MapKit
 // MARK: - Location Info Card
 
 struct LocationInfoCard: View {
+    @Environment(\.weatherTheme) private var theme
     let locationInfo: LocationInfo
     let onCalculateRoute: () -> Void
     let onViewAirQuality: () -> Void
@@ -73,7 +74,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : -10)
 
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             if sanitizedSubtitle != nil {
@@ -91,7 +92,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .scaleEffect(showContent ? 1.0 : 0.95)
 
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             // SECCIÓN 4: Predicción ML
@@ -99,7 +100,7 @@ struct LocationInfoCard: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 10)
 
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+            Rectangle().fill(theme.textTint.opacity(0.08)).frame(height: 1)
                 .opacity(showContent ? 1 : 0)
 
             // SECCIÓN 5: Botones de Acción
@@ -141,14 +142,14 @@ struct LocationInfoCard: View {
 
                 Image(systemName: "mappin.circle.fill")
                     .font(.system(size: 19, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: Color(hex: "#7C3AED").opacity(0.45), radius: 6)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(locationInfo.title)
                     .font(.system(size: 16, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(2)
 
                 HStack(spacing: 4) {
@@ -157,7 +158,7 @@ struct LocationInfoCard: View {
                     Text(locationInfo.distanceFromUser)
                         .font(.system(size: 10, weight: .heavy))
                 }
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             Spacer()
@@ -168,10 +169,10 @@ struct LocationInfoCard: View {
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.75))
+                    .foregroundColor(theme.textTint.opacity(0.75))
                     .frame(width: 32, height: 32)
-                    .background(Circle().fill(.white.opacity(0.1)))
-                    .overlay(Circle().stroke(.white.opacity(0.15), lineWidth: 1))
+                    .background(Circle().fill(theme.textTint.opacity(0.1)))
+                    .overlay(Circle().stroke(theme.textTint.opacity(0.15), lineWidth: 1))
             }
             .buttonStyle(.plain)
         }
@@ -187,7 +188,7 @@ struct LocationInfoCard: View {
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(theme.textTint.opacity(0.65))
                         .lineLimit(2)
                 }
             }
@@ -204,7 +205,7 @@ struct LocationInfoCard: View {
                 Text("CALIDAD DEL AIRE · DESTINO")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.0)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
             }
 
             // AQI Badge Principal
@@ -313,7 +314,7 @@ struct LocationInfoCard: View {
 
                 Text(locationInfo.healthMessage)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(theme.textTint.opacity(0.8))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -331,11 +332,11 @@ struct LocationInfoCard: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
         )
     }
 
@@ -366,7 +367,7 @@ struct LocationInfoCard: View {
             Text("PREDICCIÓN ML · DESTINO")
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.0)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
         }
     }
 
@@ -384,7 +385,7 @@ struct LocationInfoCard: View {
     private var predictionArrow: some View {
         Image(systemName: "arrow.right")
             .font(.system(size: 8, weight: .heavy))
-            .foregroundColor(.white.opacity(0.35))
+            .foregroundColor(theme.textTint.opacity(0.35))
     }
 
     private var predictionBestHint: some View {
@@ -394,7 +395,7 @@ struct LocationInfoCard: View {
                 .foregroundColor(Color(hex: "#FBBF24"))
             Text("Mejor salida: en la próxima hora")
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(theme.textTint.opacity(0.8))
         }
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -451,7 +452,7 @@ struct LocationInfoCard: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 11, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 14).padding(.vertical, 14)
                 .background(
                     LinearGradient(
@@ -488,18 +489,18 @@ struct LocationInfoCard: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.white.opacity(0.08))
+                        .fill(theme.textTint.opacity(0.08))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [Color(hex: "#22D3EE").opacity(0.55),
-                                         Color.white.opacity(0.1)],
+                                         theme.textTint.opacity(0.1)],
                                 startPoint: .leading, endPoint: .trailing
                             ),
                             lineWidth: 1
@@ -556,6 +557,7 @@ struct LocationInfoCard: View {
 // MARK: - Prediction Time Slot
 
 struct PredictionTimeSlot: View {
+    @Environment(\.weatherTheme) private var theme
     let label: String
     let aqi: Int
     let isHighlighted: Bool
@@ -565,7 +567,7 @@ struct PredictionTimeSlot: View {
             Text(label.uppercased())
                 .font(.system(size: 8, weight: .heavy))
                 .tracking(0.6)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
 
             Text("\(aqi)")
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
@@ -581,11 +583,11 @@ struct PredictionTimeSlot: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHighlighted ? aqiColor.opacity(0.15) : Color.white.opacity(0.04))
+                .fill(isHighlighted ? aqiColor.opacity(0.15) : theme.textTint.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isHighlighted ? aqiColor.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(isHighlighted ? aqiColor.opacity(0.45) : theme.textTint.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -602,6 +604,7 @@ struct PredictionTimeSlot: View {
 // MARK: - Pollutant Metric Component
 
 struct PollutantMetric: View {
+    @Environment(\.weatherTheme) private var theme
     let icon: String
     let label: String
     let value: String
@@ -623,17 +626,17 @@ struct PollutantMetric: View {
                 Text(label.uppercased())
                     .font(.system(size: 8, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .monospacedDigit()
 
                     Text(unit)
                         .font(.system(size: 8, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                 }
             }
         }
@@ -641,7 +644,7 @@ struct PollutantMetric: View {
         .padding(.horizontal, 10).padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(theme.textTint.opacity(0.06))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)

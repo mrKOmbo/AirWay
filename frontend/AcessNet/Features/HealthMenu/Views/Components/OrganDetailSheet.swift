@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct OrganDetailSheet: View {
+    @Environment(\.weatherTheme) private var theme
 
     let organ: BodyHealthState.Organ
     let health: OrganHealth
@@ -38,7 +39,7 @@ struct OrganDetailSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(organ.localizedName)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 Text(health.severity.label)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(health.severity.tint)
@@ -86,7 +87,7 @@ struct OrganDetailSheet: View {
             HStack {
                 Text(String(localized: "Nivel de daño"))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.0)
                     .textCase(.uppercase)
                 Spacer()
@@ -98,7 +99,7 @@ struct OrganDetailSheet: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.08))
+                        .fill(theme.textTint.opacity(0.08))
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -121,7 +122,7 @@ struct OrganDetailSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(String(localized: "Factores activos"))
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .tracking(1.0)
                 .textCase(.uppercase)
 
@@ -131,7 +132,7 @@ struct OrganDetailSheet: View {
                         .foregroundColor(Color(hex: "#4ADE80"))
                     Text(String(localized: "Sin factores ambientales adversos"))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(theme.textTint.opacity(0.8))
                 }
             } else {
                 ForEach(health.activeConditions) { condition in
@@ -145,7 +146,7 @@ struct OrganDetailSheet: View {
                             )
                         Text(condition.localizedName)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(theme.textTint.opacity(0.9))
                         Spacer()
                     }
                 }
@@ -163,7 +164,7 @@ struct OrganDetailSheet: View {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 13, weight: .bold))
             }
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(

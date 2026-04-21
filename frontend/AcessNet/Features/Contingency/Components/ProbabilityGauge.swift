@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ProbabilityGauge: View {
+    @Environment(\.weatherTheme) private var theme
     let probability: Double        // 0.0–1.0
     let ci80Lower: Double?
     let ci80Upper: Double?
@@ -57,7 +58,7 @@ struct ProbabilityGauge: View {
 
             // Background ring
             Circle()
-                .stroke(Color.white.opacity(0.06), lineWidth: 22)
+                .stroke(theme.textTint.opacity(0.06), lineWidth: 22)
 
             // Probability arc — solid color
             Circle()
@@ -80,23 +81,23 @@ struct ProbabilityGauge: View {
 
                 Text("prob. Fase 1 · \(horizonHours)h")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(theme.textTint.opacity(0.45))
 
                 if let lo = ci80Lower, let hi = ci80Upper {
                     HStack(spacing: 4) {
                         Text("O₃")
                             .font(.system(size: 9, weight: .heavy))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(theme.textTint.opacity(0.4))
                         Text("\(Int(round(o3ExpectedPpb))) ppb")
                             .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(theme.textTint.opacity(0.8))
                         Text("[\(Int(round(lo))) – \(Int(round(hi)))]")
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(theme.textTint.opacity(0.45))
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Capsule().fill(.white.opacity(0.06)))
+                    .background(Capsule().fill(theme.textTint.opacity(0.06)))
                     .padding(.top, 4)
                 }
             }

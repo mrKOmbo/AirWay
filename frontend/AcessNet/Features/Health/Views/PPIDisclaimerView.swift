@@ -13,6 +13,7 @@
 import SwiftUI
 
 struct PPIDisclaimerView: View {
+    @Environment(\.weatherTheme) private var theme
     let onAccept: () -> Void
     @State private var hasScrolledToBottom = false
 
@@ -26,7 +27,7 @@ struct PPIDisclaimerView: View {
 
                 Text("Personal Pollution Impact")
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text("PPI Score")
                     .font(.system(size: 14, weight: .medium))
@@ -76,7 +77,7 @@ struct PPIDisclaimerView: View {
 
                         Text("If you experience difficulty breathing, chest pain, persistent cough, dizziness, or any concerning symptoms, stop using this feature and seek medical attention immediately. Do not rely on PPI Score to assess medical emergencies.")
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                     }
                     .padding(14)
                     .background(
@@ -95,12 +96,12 @@ struct PPIDisclaimerView: View {
                                 .foregroundColor(Color(hex: "#4AA1B3"))
                             Text("Your Data")
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                         }
 
                         Text("All biometric data is processed locally on your Apple Watch. Health data is never sent to our servers. Your vulnerability profile is stored only on your device and synced via encrypted Watch Connectivity.")
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                     }
                     .padding(14)
                     .background(
@@ -115,12 +116,12 @@ struct PPIDisclaimerView: View {
                                 .foregroundColor(.purple)
                             Text("Scientific Basis")
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                         }
 
                         Text("PPI weights and dose-response coefficients are derived from peer-reviewed epidemiological studies including the VA Normative Aging Study (Gold et al., PMC1253756), Steubenville Cohort (PMC3987810), and meta-analyses of 33+ panel studies on PM2.5 and cardiovascular effects.")
                             .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                     }
                     .padding(14)
                     .background(
@@ -131,7 +132,7 @@ struct PPIDisclaimerView: View {
                     // Regulatory statement
                     Text("This product is classified as a general wellness product under FDA guidance (January 2026) and is not intended to be a medical device. EU MDR: This software does not support diagnostic or therapeutic decisions and is excluded from MDR scope.")
                         .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.25))
+                        .foregroundColor(theme.textTint.opacity(0.25))
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }
@@ -143,7 +144,7 @@ struct PPIDisclaimerView: View {
             Button(action: onAccept) {
                 Text("I Understand — Enable PPI")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
@@ -170,7 +171,7 @@ struct PPIDisclaimerView: View {
                     .foregroundColor(iconColor)
                 Text(title)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -181,7 +182,7 @@ struct PPIDisclaimerView: View {
                             .foregroundColor(iconColor.opacity(0.6))
                         Text(item)
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(theme.textTint.opacity(0.7))
                     }
                 }
             }
@@ -189,7 +190,7 @@ struct PPIDisclaimerView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 }
@@ -197,6 +198,7 @@ struct PPIDisclaimerView: View {
 // MARK: - Watch Disclaimer (compact version)
 
 struct PPIWatchDisclaimerView: View {
+    @Environment(\.weatherTheme) private var theme
     let onAccept: () -> Void
 
     var body: some View {
@@ -208,11 +210,11 @@ struct PPIWatchDisclaimerView: View {
 
                 Text("PPI Score")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
 
                 Text("Wellness information only. Not medical advice. Does not diagnose or treat any condition.")
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .multilineTextAlignment(.center)
 
                 Text("If you feel unwell, seek medical help.")
@@ -223,7 +225,7 @@ struct PPIWatchDisclaimerView: View {
                 Button(action: onAccept) {
                     Text("I Understand")
                         .font(.caption.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(

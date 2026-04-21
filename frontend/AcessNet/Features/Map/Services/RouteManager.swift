@@ -52,6 +52,11 @@ class RouteManager: ObservableObject {
     private var currentTask: Task<Void, Never>?
     private var preference: RoutePreference = .balanced  // Default: balanced
 
+    /// Override opcional del modo de transporte — si está presente,
+    /// sobrescribe el default de `preference.transportType`. Útil para
+    /// que el Trip Briefing fuerce `.walking`.
+    private var overrideTransportType: MKDirectionsTransportType?
+
     /// Incidentes activos en el mapa
     private var activeIncidents: [CustomAnnotation] = []
 
@@ -110,10 +115,16 @@ class RouteManager: ObservableObject {
     }
 
     /// Calcula la ruta desde un origen hasta un destino
-    func calculateRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, destinationName: String = "Destination") {
+    func calculateRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, destinationName: String = "Destination", transportType: MKDirectionsTransportType? = nil) {
         // Almacenar destino para recálculos
         lastDestination = destination
         lastDestinationName = destinationName
+        // Override opcional del transporte (walking vs automobile).
+        if let t = transportType {
+            self.overrideTransportType = t
+        } else {
+            self.overrideTransportType = nil
+        }
 
         // Cancelar cualquier cálculo previo
         currentTask?.cancel()
@@ -191,7 +202,7 @@ class RouteManager: ObservableObject {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: originPlacemark)
         request.destination = MKMapItem(placemark: destinationPlacemark)
-        request.transportType = preference.transportType
+        request.transportType = overrideTransportType ?? preference.transportType
         request.requestsAlternateRoutes = true  // Siempre pedir alternativas para scoring
 
         // Configurar opciones según preferencia

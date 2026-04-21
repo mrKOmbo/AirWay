@@ -10,6 +10,7 @@ import SwiftUI
 // MARK: - Search Bar View
 
 struct SearchBarView: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var searchText: String
     @FocusState.Binding var isFocused: Bool
 
@@ -49,7 +50,7 @@ struct SearchBarView: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(
                 color: isFocused ? Color(hex: "#3B82F6").opacity(0.5) : .clear,
@@ -60,10 +61,10 @@ struct SearchBarView: View {
             // Campo de texto
             TextField(placeholder, text: $searchText, prompt:
                 Text(placeholder)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             )
             .font(.system(size: 15, weight: .heavy))
-            .foregroundColor(.white)
+            .foregroundColor(theme.textTint)
             .tint(Color(hex: "#3B82F6"))
             .focused($isFocused)
             .submitLabel(.search)
@@ -87,9 +88,9 @@ struct SearchBarView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .heavy))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(theme.textTint.opacity(0.8))
                         .frame(width: 22, height: 22)
-                        .background(Circle().fill(.white.opacity(0.12)))
+                        .background(Circle().fill(theme.textTint.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
                 .transition(.scale.combined(with: .opacity))
@@ -107,7 +108,7 @@ struct SearchBarView: View {
                 } label: {
                     Text("Cancelar")
                         .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .padding(.horizontal, 10).padding(.vertical, 6)
                         .background(
                             Capsule().fill(Color(hex: "#3B82F6"))
@@ -130,8 +131,8 @@ struct SearchBarView: View {
             Capsule().stroke(
                 LinearGradient(
                     colors: isFocused
-                        ? [Color(hex: "#3B82F6").opacity(0.55), Color.white.opacity(0.1)]
-                        : [Color.white.opacity(0.12), Color.white.opacity(0.04)],
+                        ? [Color(hex: "#3B82F6").opacity(0.55), theme.textTint.opacity(0.1)]
+                        : [theme.textTint.opacity(0.12), theme.textTint.opacity(0.04)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ),
                 lineWidth: isFocused ? 1.5 : 1
@@ -150,6 +151,7 @@ struct SearchBarView: View {
 // MARK: - Compact Search Bar (para cuando hay poco espacio)
 
 struct CompactSearchBar: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var searchText: String
     @FocusState.Binding var isFocused: Bool
 
@@ -186,6 +188,7 @@ struct CompactSearchBar: View {
 // MARK: - Search Bar with Voice (futuro)
 
 struct SearchBarWithVoice: View {
+    @Environment(\.weatherTheme) private var theme
     @Binding var searchText: String
     @FocusState.Binding var isFocused: Bool
 
@@ -239,6 +242,7 @@ struct SearchBarWithVoice: View {
 
 #Preview("Standard Search Bar") {
     struct PreviewWrapper: View {
+    @Environment(\.weatherTheme) private var theme
         @State private var searchText = ""
         @FocusState private var isFocused: Bool
 
@@ -275,6 +279,7 @@ struct SearchBarWithVoice: View {
 
 #Preview("Compact Search Bar") {
     struct PreviewWrapper: View {
+    @Environment(\.weatherTheme) private var theme
         @State private var searchText = ""
         @FocusState private var isFocused: Bool
 
@@ -299,6 +304,7 @@ struct SearchBarWithVoice: View {
 
 #Preview("With Voice") {
     struct PreviewWrapper: View {
+    @Environment(\.weatherTheme) private var theme
         @State private var searchText = "Starbucks"
         @FocusState private var isFocused: Bool
 

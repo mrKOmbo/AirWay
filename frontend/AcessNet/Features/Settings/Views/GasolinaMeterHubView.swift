@@ -34,8 +34,8 @@ struct GasolinaMeterHubView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Fondo oscuro base (mismo que MainTabView, sin background dinámico)
-                Color(hex: "#0A0A0F")
+                // Fondo dinámico (respeta el tema AirWay light o climas oscuros)
+                theme.pageBackground
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -85,15 +85,15 @@ struct GasolinaMeterHubView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "fuelpump.circle.fill")
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(theme.textTint.opacity(0.9))
                         .font(.title3)
                     Text("GasolinaMeter")
                         .font(.title2.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 Text("Combustible · Rutas · Emisiones")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(theme.textTint.opacity(0.7))
             }
             Spacer()
         }
@@ -108,7 +108,7 @@ struct GasolinaMeterHubView: View {
             HStack {
                 Text("Vehículo activo")
                     .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.5)
                     .textCase(.uppercase)
                 Spacer()
@@ -133,12 +133,12 @@ struct GasolinaMeterHubView: View {
                             .frame(width: 48, height: 48)
                         Image(systemName: v.fuelType.systemIcon)
                             .font(.title3)
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(v.displayName)
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                         HStack(spacing: 6) {
                             Text(v.fuelType.displayName)
                             Text("·")
@@ -147,7 +147,7 @@ struct GasolinaMeterHubView: View {
                             Text(v.drivingStyleLabel)
                         }
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(theme.textTint.opacity(0.65))
                     }
                     Spacer()
                     Image(systemName: "checkmark.seal.fill")
@@ -165,12 +165,12 @@ struct GasolinaMeterHubView: View {
                                 .font(.subheadline.bold())
                             Text("Elige de 49 autos CONUEE o escanea")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(theme.textTint.opacity(0.7))
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                 }
                 .buttonStyle(.plain)
             }
@@ -186,13 +186,13 @@ struct GasolinaMeterHubView: View {
             HStack {
                 Text("Precios hoy · Profeco")
                     .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                     .tracking(1.5)
                     .textCase(.uppercase)
                 Spacer()
                 Text("MXN / L")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(theme.textTint.opacity(0.4))
             }
 
             HStack(spacing: 14) {
@@ -209,11 +209,11 @@ struct GasolinaMeterHubView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Circle().fill(color).frame(width: 6, height: 6)
-                Text(label).font(.caption2).foregroundColor(.white.opacity(0.7))
+                Text(label).font(.caption2).foregroundColor(theme.textTint.opacity(0.7))
             }
             Text("$\(String(format: "%.2f", price))")
                 .font(.system(.subheadline, design: .rounded).bold())
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,23 +237,23 @@ struct GasolinaMeterHubView: View {
                         .frame(width: 36, height: 36)
                     Image(systemName: icon)
                         .font(.callout)
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text(subtitle)
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                 }
                 Spacer()
                 Text(number)
                     .font(.caption.bold())
                     .monospacedDigit()
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.white.opacity(0.1))
-                    .foregroundColor(.white.opacity(0.7))
+                    .background(theme.textTint.opacity(0.1))
+                    .foregroundColor(theme.textTint.opacity(0.7))
                     .cornerRadius(6)
             }
             VStack(spacing: 8) {
@@ -280,35 +280,35 @@ private struct PhaseRow: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(isActive ? 0.25 : 0.12))
+                        .fill(theme.textTint.opacity(isActive ? 0.25 : 0.12))
                         .frame(width: 32, height: 32)
                     Image(systemName: icon)
                         .font(.callout)
-                        .foregroundColor(isActive ? .green : .white.opacity(0.9))
+                        .foregroundColor(isActive ? .green : theme.textTint.opacity(0.9))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text(subtitle)
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(theme.textTint.opacity(0.35))
             }
             .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(theme.textTint.opacity(0.05))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.white.opacity(isActive ? 0.2 : 0.08), lineWidth: 1)
+                    .stroke(theme.textTint.opacity(isActive ? 0.2 : 0.08), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -374,14 +374,14 @@ struct StationsNearbyTestView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 14) {
                         if loading {
-                            HStack { Spacer(); ProgressView("Buscando...").tint(.white); Spacer() }
+                            HStack { Spacer(); ProgressView("Buscando...").tint(theme.textTint); Spacer() }
                                 .padding(.top, 60)
                         } else if let err = errorMsg {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label("No se pudo cargar", systemImage: "exclamationmark.triangle.fill")
                                     .font(.headline)
                                     .foregroundColor(.orange)
-                                Text(err).font(.caption).foregroundColor(.white.opacity(0.7))
+                                Text(err).font(.caption).foregroundColor(theme.textTint.opacity(0.7))
                                 Button("Reintentar") {
                                     Task { await load() }
                                 }
@@ -395,10 +395,10 @@ struct StationsNearbyTestView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Promedio Magna")
-                                        .font(.caption).foregroundColor(.white.opacity(0.6))
+                                        .font(.caption).foregroundColor(theme.textTint.opacity(0.6))
                                     Text("$\(String(format: "%.2f", averagePrice))")
                                         .font(.title2.bold())
-                                        .foregroundColor(.white)
+                                        .foregroundColor(theme.textTint)
                                         .monospacedDigit()
                                 }
                                 Spacer()
@@ -417,7 +417,7 @@ struct StationsNearbyTestView: View {
                             if stations.isEmpty {
                                 Text("Sin estaciones en el radio")
                                     .font(.callout)
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                                     .padding()
                             }
                         }
@@ -442,13 +442,13 @@ struct StationsNearbyTestView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text("\(s.brand)").font(.subheadline.bold()).foregroundColor(.white)
+                        Text("\(s.brand)").font(.subheadline.bold()).foregroundColor(theme.textTint)
                         Text("· \(s.distanceKmFormatted)")
-                            .font(.caption).foregroundColor(.white.opacity(0.5))
+                            .font(.caption).foregroundColor(theme.textTint.opacity(0.5))
                     }
                     Text(s.address)
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(theme.textTint.opacity(0.6))
                         .lineLimit(1)
                 }
                 Spacer()
@@ -522,11 +522,11 @@ struct BackendTestView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("BASE URL")
                                 .font(.caption2.bold())
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(theme.textTint.opacity(0.5))
                                 .tracking(1.5)
                             Text(AppConfig.backendBaseURL.absoluteString)
                                 .font(.caption.monospaced())
-                                .foregroundColor(.white)
+                                .foregroundColor(theme.textTint)
                                 .textSelection(.enabled)
                         }
                         .padding()
@@ -550,8 +550,8 @@ struct BackendTestView: View {
                             HStack {
                                 Spacer()
                                 if running {
-                                    ProgressView().tint(.white)
-                                    Text("Ejecutando...").foregroundColor(.white)
+                                    ProgressView().tint(theme.textTint)
+                                    Text("Ejecutando...").foregroundColor(theme.textTint)
                                 } else {
                                     Image(systemName: "play.fill")
                                     Text("Correr tests")
@@ -559,7 +559,7 @@ struct BackendTestView: View {
                                 Spacer()
                             }
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .padding()
                             .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.6)))
                         }
@@ -569,7 +569,7 @@ struct BackendTestView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("ÚLTIMO ERROR")
                                     .font(.caption2.bold())
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(theme.textTint.opacity(0.5))
                                     .tracking(1.5)
                                 Text(err)
                                     .font(.caption.monospaced())
@@ -582,7 +582,7 @@ struct BackendTestView: View {
 
                         Text("⚠️ Render duerme tras 15 min. Primer request ~30s. Reintenta si falla.")
                             .font(.caption2)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(theme.textTint.opacity(0.5))
                             .padding(.horizontal)
                     }
                     .padding()
@@ -599,7 +599,7 @@ struct BackendTestView: View {
         HStack {
             Text(title)
                 .font(.caption.monospaced())
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(theme.textTint.opacity(0.8))
             Spacer()
             Text(status)
                 .font(.caption.bold())
@@ -612,7 +612,7 @@ struct BackendTestView: View {
         if s.contains("✓") { return .green }
         if s.contains("✗") { return .red }
         if s.contains("…") { return .blue }
-        return .white.opacity(0.4)
+        return theme.textTint.opacity(0.4)
     }
 
     private func runAllTests() async {

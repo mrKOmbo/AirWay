@@ -12,6 +12,7 @@ import CoreLocation
 
 /// Card de detalles con diseño cinematográfico premium
 struct HeroAirQualityCard: View {
+    @Environment(\.weatherTheme) private var theme
     let zone: AirQualityZone
     let onDismiss: () -> Void
 
@@ -99,7 +100,7 @@ struct HeroAirQualityCard: View {
                     Button(action: onDismiss) {
                         ZStack {
                             Circle()
-                                .fill(.white.opacity(0.2))
+                                .fill(theme.textTint.opacity(0.2))
                                 .frame(width: 36, height: 36)
 
                             Image(systemName: "xmark")
@@ -114,7 +115,7 @@ struct HeroAirQualityCard: View {
                     Button(action: {}) {
                         ZStack {
                             Circle()
-                                .fill(.white.opacity(0.2))
+                                .fill(theme.textTint.opacity(0.2))
                                 .frame(width: 36, height: 36)
 
                             Image(systemName: "square.and.arrow.up")
@@ -160,7 +161,7 @@ struct HeroAirQualityCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Air Quality Breakdown")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
 
             // AQI scale visualization
             AQIScaleView(currentAQI: zone.airQuality.aqi)
@@ -176,7 +177,7 @@ struct HeroAirQualityCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Pollutant Levels")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
 
             LazyVGrid(columns: [
                 GridItem(.flexible()),
@@ -241,12 +242,12 @@ struct HeroAirQualityCard: View {
 
                 Text("Health Impact")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             Text(zone.level.extendedHealthMessage)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .lineSpacing(4)
 
             // Health risk indicator
@@ -268,7 +269,7 @@ struct HeroAirQualityCard: View {
 
                 Text("Recommendations")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             ForEach(recommendationsForLevel, id: \.self) { recommendation in
@@ -279,7 +280,7 @@ struct HeroAirQualityCard: View {
 
                     Text(recommendation)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -312,6 +313,7 @@ struct HeroAirQualityCard: View {
     // MARK: - Helper Components
 
     private struct PollutantCard: View {
+    @Environment(\.weatherTheme) private var theme
         let icon: String
         let name: String
         let value: Double
@@ -332,7 +334,7 @@ struct HeroAirQualityCard: View {
 
                     Text(name)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
 
                     Spacer()
 
@@ -347,16 +349,16 @@ struct HeroAirQualityCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(String(format: "%.1f", value))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
 
                         Text(unit)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(theme.textTint.opacity(0.55))
                     }
 
                     Text("Safe: <\(Int(safeLimit)) \(unit)")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
             }
             .padding(16)
@@ -371,6 +373,7 @@ struct HeroAirQualityCard: View {
     }
 
     private struct AQIScaleView: View {
+    @Environment(\.weatherTheme) private var theme
         let currentAQI: Double
 
         var body: some View {
@@ -421,12 +424,13 @@ struct HeroAirQualityCard: View {
                     Text("300+")
                 }
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
             }
         }
     }
 
     private struct HealthRiskIndicator: View {
+    @Environment(\.weatherTheme) private var theme
         let level: AQILevel
 
         var riskLevel: String {
@@ -462,11 +466,11 @@ struct HeroAirQualityCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(riskLevel)
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
 
                     Text("For sensitive groups")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
 
                 Spacer()
@@ -478,6 +482,7 @@ struct HeroAirQualityCard: View {
     }
 
     private struct ActionButton: View {
+    @Environment(\.weatherTheme) private var theme
         let icon: String
         let title: String
         let color: Color

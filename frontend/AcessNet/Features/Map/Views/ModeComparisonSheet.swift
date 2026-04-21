@@ -11,6 +11,7 @@ import CoreLocation
 import os
 
 struct ModeComparisonSheet: View {
+    @Environment(\.weatherTheme) private var theme
     let origin: CLLocationCoordinate2D
     let destination: CLLocationCoordinate2D
     let vehicle: VehicleProfile?
@@ -22,10 +23,6 @@ struct ModeComparisonSheet: View {
     @State private var loading = true
     @State private var error: String?
     @State private var expandedModeId: String?
-
-    private var theme: WeatherTheme {
-        WeatherTheme(condition: appSettings.weatherOverride ?? .overcast)
-    }
 
     var body: some View {
         NavigationStack {
@@ -59,9 +56,9 @@ struct ModeComparisonSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.textTint)
                             .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white.opacity(0.1)))
+                            .background(Circle().fill(theme.textTint.opacity(0.1)))
                     }
                 }
             }
@@ -84,15 +81,15 @@ struct ModeComparisonSheet: View {
                         .frame(width: 42, height: 42)
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 18, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("¿Cómo llegar?")
                         .font(.system(size: 22, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("4 modos · precio real + CO₂ + exposición")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(theme.textTint.opacity(0.55))
                 }
             }
         }
@@ -126,7 +123,7 @@ struct ModeComparisonSheet: View {
                     .frame(width: 34, height: 34)
                 Image(systemName: "sparkles")
                     .font(.system(size: 14, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: Color(hex: "#A78BFA").opacity(0.5), radius: 6)
 
@@ -142,7 +139,7 @@ struct ModeComparisonSheet: View {
                 }
                 Text(insight)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(theme.textTint.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -218,7 +215,7 @@ struct ModeComparisonSheet: View {
                 Text(mode.emoji).font(.system(size: 14))
                 Text(mode.mode.capitalized)
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(1)
             }
         }
@@ -242,7 +239,7 @@ struct ModeComparisonSheet: View {
                 Text("LOS 4 MODOS")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 Spacer()
             }
 
@@ -276,7 +273,7 @@ struct ModeComparisonSheet: View {
                     Text("RESUMEN")
                         .font(.system(size: 10, weight: .heavy))
                         .tracking(1.2)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                     Spacer()
                 }
 
@@ -333,12 +330,12 @@ struct ModeComparisonSheet: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(theme.textTint.opacity(0.5))
                 HStack(spacing: 4) {
                     Text(mode.emoji).font(.system(size: 13))
                     Text(mode.displayName)
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                 }
             }
@@ -351,7 +348,7 @@ struct ModeComparisonSheet: View {
         .padding(.horizontal, 10).padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(theme.textTint.opacity(0.04))
         )
     }
 
@@ -359,13 +356,13 @@ struct ModeComparisonSheet: View {
 
     private var loadingCard: some View {
         VStack(spacing: 14) {
-            ProgressView().tint(.white)
+            ProgressView().tint(theme.textTint)
             Text("Calculando 4 modos…")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
             Text("Precio real + CO₂ + exposición + tráfico")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
         .padding(40)
@@ -386,10 +383,10 @@ struct ModeComparisonSheet: View {
                 .foregroundColor(.orange)
             Text("No pudimos comparar")
                 .font(.system(size: 15, weight: .heavy))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text(msg)
                 .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .multilineTextAlignment(.center)
             Button {
                 HapticFeedback.medium()
@@ -397,7 +394,7 @@ struct ModeComparisonSheet: View {
             } label: {
                 Text("Reintentar")
                     .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .padding(.horizontal, 18).padding(.vertical, 9)
                     .background(Capsule().fill(Color(hex: "#3B82F6")))
             }
@@ -468,7 +465,7 @@ private struct ModeGlassCard: View {
                 mainRow
                 if isExpanded {
                     Divider()
-                        .background(Color.white.opacity(0.08))
+                        .background(theme.textTint.opacity(0.08))
                         .padding(.horizontal, 14)
                     detailGrid
                         .padding(14)
@@ -479,7 +476,7 @@ private struct ModeGlassCard: View {
                     .fill(
                         highlight != nil
                             ? accentColor.opacity(0.08)
-                            : Color.white.opacity(0.04)
+                            : theme.textTint.opacity(0.04)
                     )
             )
             .overlay(
@@ -487,7 +484,7 @@ private struct ModeGlassCard: View {
                     .stroke(
                         LinearGradient(
                             colors: [accentColor.opacity(highlight != nil ? 0.55 : 0.15),
-                                     Color.white.opacity(0.05)],
+                                     theme.textTint.opacity(0.05)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ),
                         lineWidth: 1.2
@@ -512,7 +509,7 @@ private struct ModeGlassCard: View {
                 HStack(spacing: 6) {
                     Text(mode.displayName)
                         .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                         .lineLimit(1)
                     if let h = highlight {
                         HStack(spacing: 3) {
@@ -573,9 +570,9 @@ private struct ModeGlassCard: View {
 
             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(theme.textTint.opacity(0.5))
                 .frame(width: 28, height: 28)
-                .background(Circle().fill(.white.opacity(0.06)))
+                .background(Circle().fill(theme.textTint.opacity(0.06)))
         }
         .padding(14)
     }
@@ -587,7 +584,7 @@ private struct ModeGlassCard: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
         }
     }
@@ -654,15 +651,15 @@ private struct ModeGlassCard: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .frame(width: 14)
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(theme.textTint.opacity(0.65))
             Spacer()
             Text(value)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .monospacedDigit()
         }
     }

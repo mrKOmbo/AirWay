@@ -11,6 +11,7 @@ import CoreLocation
 // MARK: - Navigation Instruction Bar
 
 struct NavigationInstructionBar: View {
+    @Environment(\.weatherTheme) private var theme
     let step: NavigationStep?
     let distanceToManeuver: Double
 
@@ -42,12 +43,12 @@ struct NavigationInstructionBar: View {
                     .scaleEffect(pulse && isUrgent ? 1.05 : 1.0)
 
                 Circle()
-                    .stroke(.white.opacity(0.25), lineWidth: 1.2)
+                    .stroke(theme.textTint.opacity(0.25), lineWidth: 1.2)
                     .frame(width: 58, height: 58)
 
                 Image(systemName: step?.maneuverType.icon ?? "arrow.up")
                     .font(.system(size: 26, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
 
             // Información
@@ -55,11 +56,11 @@ struct NavigationInstructionBar: View {
                 Text(distanceText.uppercased())
                     .font(.system(size: 11, weight: .heavy))
                     .tracking(1.0)
-                    .foregroundColor(isUrgent ? iconColor : .white.opacity(0.6))
+                    .foregroundColor(isUrgent ? iconColor : theme.textTint.opacity(0.6))
 
                 Text(step?.shortInstruction ?? "Continúa en ruta")
                     .font(.system(size: 15, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
             }
@@ -140,6 +141,7 @@ struct NavigationInstructionBar: View {
 // MARK: - Compact Instruction Bar (vista reducida)
 
 struct CompactInstructionBar: View {
+    @Environment(\.weatherTheme) private var theme
     let step: NavigationStep?
     let distance: Double
 
@@ -156,7 +158,7 @@ struct CompactInstructionBar: View {
                     .frame(width: 36, height: 36)
                 Image(systemName: step?.maneuverType.icon ?? "arrow.up")
                     .font(.system(size: 16, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
             }
             .shadow(color: iconColor.opacity(0.5), radius: 5)
 
@@ -164,11 +166,11 @@ struct CompactInstructionBar: View {
                 Text(distanceText.uppercased())
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(0.8)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(theme.textTint.opacity(0.55))
 
                 Text(step?.shortInstruction ?? "Continúa")
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.textTint)
                     .lineLimit(1)
             }
             Spacer(minLength: 2)
@@ -180,7 +182,7 @@ struct CompactInstructionBar: View {
                 .fill(.black.opacity(0.7))
                 .background(Capsule().fill(.ultraThinMaterial))
         )
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+        .overlay(Capsule().stroke(theme.textTint.opacity(0.12), lineWidth: 1))
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.4), radius: 8, y: 3)
     }

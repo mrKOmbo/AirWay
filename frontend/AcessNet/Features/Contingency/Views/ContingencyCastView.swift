@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct ContingencyCastView: View {
+    @Environment(\.weatherTheme) private var theme
 
     // MARK: - Environment
 
@@ -128,11 +129,11 @@ struct ContingencyCastView: View {
                         .frame(width: 28, height: 28)
                     Image(systemName: "wind.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                 }
                 Text("CONTINGENCY CAST")
                     .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(theme.textTint.opacity(0.6))
                     .tracking(2.2)
             }
 
@@ -152,10 +153,10 @@ struct ContingencyCastView: View {
                 Text("Fase 1 Ozono")
                     .font(.system(size: 10, weight: .medium))
             }
-            .foregroundColor(.white.opacity(0.55))
+            .foregroundColor(theme.textTint.opacity(0.55))
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Capsule().fill(.white.opacity(0.06)))
+            .background(Capsule().fill(theme.textTint.opacity(0.06)))
         }
     }
 
@@ -181,20 +182,20 @@ struct ContingencyCastView: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.1))
+                        .fill(theme.textTint.opacity(0.1))
                         .frame(width: 32, height: 32)
                     Image(systemName: "text.bubble.fill")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(theme.textTint.opacity(0.85))
                 }
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Explicación")
                         .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.textTint)
                     Text("Análisis del pronóstico")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.textTint.opacity(0.5))
                         .textCase(.uppercase)
                         .tracking(1.0)
                 }
@@ -202,7 +203,7 @@ struct ContingencyCastView: View {
 
             Text(naturalExplanation)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(theme.textTint.opacity(0.85))
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -210,10 +211,10 @@ struct ContingencyCastView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(theme.textTint.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        .stroke(theme.textTint.opacity(0.1), lineWidth: 1)
                 )
         )
         .padding(.horizontal)
@@ -228,17 +229,17 @@ struct ContingencyCastView: View {
             ProgressView().scaleEffect(0.7).tint(.white.opacity(0.7))
             Text("Generando explicación…")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Capsule().fill(.white.opacity(0.06)))
+        .background(Capsule().fill(theme.textTint.opacity(0.06)))
     }
 
     private var disclaimerView: some View {
         Text(response?.disclaimer ?? "")
             .font(.system(size: 10))
-            .foregroundColor(.white.opacity(0.35))
+            .foregroundColor(theme.textTint.opacity(0.35))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 30)
             .padding(.top, 6)
@@ -247,10 +248,10 @@ struct ContingencyCastView: View {
 
     private var loadingView: some View {
         VStack(spacing: 14) {
-            ProgressView().tint(.white)
+            ProgressView().tint(theme.textTint)
             Text("Calculando pronóstico…")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(theme.textTint.opacity(0.6))
         }
         .padding(.vertical, 60)
     }
@@ -269,10 +270,10 @@ struct ContingencyCastView: View {
 
             Text("No pudimos obtener el pronóstico")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
             Text(message)
                 .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(theme.textTint.opacity(0.55))
                 .multilineTextAlignment(.center)
 
             Button {
@@ -284,7 +285,7 @@ struct ContingencyCastView: View {
                     Text("Reintentar")
                         .font(.system(size: 12, weight: .heavy))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(theme.textTint)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
                 .background(
